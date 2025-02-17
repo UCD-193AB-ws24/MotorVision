@@ -1,2 +1,0 @@
-# MotorVision
-Team 32
