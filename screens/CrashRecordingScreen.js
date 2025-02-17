@@ -1,29 +1,38 @@
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function CrashRecordingScreen({ navigation }) {
   const [isRecording, setIsRecording] = useState(false);
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
-    // TODO: Implement crash data collection logic
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        {isRecording ? 'Recording Crash Data...' : 'Press Start to Record'}
+    <LinearGradient
+      colors={['#121212', '#1E1E1E', '#292929']} // Adjust colors to match your Figma
+      style={styles.container}
+    >
+      <Text style={styles.title}>MotorVision</Text>
+      <Text style={styles.status}>
+        {isRecording ? 'Recording Crash Data...' : 'Tap to Start Recording'}
       </Text>
-      <Button
-        title={isRecording ? 'Stop Recording' : 'Start Recording'}
+
+      <TouchableOpacity
+        style={[styles.button, isRecording ? styles.buttonActive : styles.buttonInactive]}
         onPress={toggleRecording}
-        color={isRecording ? 'red' : 'green'}
-      />
-      <Button
-        title="View Crash Logs"
+      >
+        <Text style={styles.buttonText}>{isRecording ? 'Stop' : 'Start'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.linkButton}
         onPress={() => navigation.navigate('CrashLogs')}
-      />
-    </View>
+      >
+        <Text style={styles.linkText}>View Crash Reports</Text>
+      </TouchableOpacity>
+    </LinearGradient>
   );
 }
 
@@ -34,7 +43,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+  },
+  status: {
+    fontSize: 16,
+    color: '#bbb',
+    marginBottom: 30,
+  },
+  button: {
+    width: 180,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+  },
+  buttonActive: {
+    backgroundColor: 'red',
+    shadowColor: 'red',
+  },
+  buttonInactive: {
+    backgroundColor: '#00bfff',
+    shadowColor: '#00bfff',
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  linkButton: {
+    marginTop: 20,
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#00bfff',
+    textDecorationLine: 'underline',
   },
 });

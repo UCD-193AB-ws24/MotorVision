@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function CrashLogsScreen({ navigation }) {
   const [crashLogs, setCrashLogs] = useState([
@@ -8,8 +9,12 @@ export default function CrashLogsScreen({ navigation }) {
   ]);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#121212', '#1E1E1E', '#292929']} // Gradient to match Figma design
+      style={styles.container}
+    >
       <Text style={styles.title}>Crash Reports</Text>
+
       <FlatList
         data={crashLogs}
         keyExtractor={(item) => item.id}
@@ -18,11 +23,19 @@ export default function CrashLogsScreen({ navigation }) {
             style={styles.logItem}
             onPress={() => navigation.navigate('CrashDetail', { crash: item })}
           >
-            <Text>{item.timestamp}</Text>
+            <Text style={styles.logText}>{item.timestamp}</Text>
+            <Text style={styles.logDetails}>{item.details}</Text>
           </TouchableOpacity>
         )}
       />
-    </View>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('CrashRecording')}
+      >
+        <Text style={styles.buttonText}>Back to Recording</Text>
+      </TouchableOpacity>
+    </LinearGradient>
   );
 }
 
@@ -32,12 +45,42 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 20,
   },
   logItem: {
+    backgroundColor: '#1E1E1E',
     padding: 15,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: '#00bfff',
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+  },
+  logText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  logDetails: {
+    fontSize: 14,
+    color: '#bbb',
+  },
+  button: {
+    marginTop: 20,
+    backgroundColor: '#00bfff',
+    paddingVertical: 12,
+    borderRadius: 30,
+    alignItems: 'center',
+    shadowColor: '#00bfff',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });
