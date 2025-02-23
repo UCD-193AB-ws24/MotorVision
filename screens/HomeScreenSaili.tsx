@@ -1,18 +1,14 @@
 // used AI resources/generation for code
 
-import { View, Alert, Button, Easing, Text, ScrollView, Animated, Image, StyleSheet, Platform, PermissionsAndroid, ActivityIndicator, StatusBar } from 'react-native';
-import { useFonts } from 'expo-font';
+import { View, Button, Easing, Text, ScrollView, Animated, Image, StyleSheet, Platform, PermissionsAndroid, ActivityIndicator, StatusBar } from 'react-native';
+import { ThemedText, ThemedView } from '@react-navigation/native';
 
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { LinearGradient } from 'expo-linear-gradient';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+// import { ThemedText } from '@/components/ThemedText';
+// import { ThemedView } from '@/components/ThemedView';
 import React, { useEffect, useRef, useState } from "react";
 import Geolocation from "react-native-geolocation-service";
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from "react-native-svg";
+
 
 
 // rotating image component
@@ -51,7 +47,7 @@ function RotatingImageComponent({ isRotating, stopRotation }) {
   return (
     <View style={{ alignItems: "center", gap: 10 }}>
       <Animated.Image
-        source={require("../../assets/images/Car.svg")}
+        source={require("../assets/Car.svg")}
         style={{ width: 100, height: 100, transform: [{perspective: 800}, { rotateY: rotateInterpolation }] }}
       />
             <Button title={isRotating ? 'Choose SmartHelmet?' : 'SmartHelmet Chosen!'} onPress={stopRotation} />
