@@ -1,91 +1,279 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+// used AI resources/generation for code
 
-export default function HomeScreen({ navigation }) {
+import { View, Button, Easing, Text, ScrollView, Animated, Image, StyleSheet, Platform, PermissionsAndroid, ActivityIndicator, StatusBar } from 'react-native';
+import { ThemedText, ThemedView } from '@react-navigation/native';
+
+
+// import { ThemedText } from '@/components/ThemedText';
+// import { ThemedView } from '@/components/ThemedView';
+import React, { useEffect, useRef, useState } from "react";
+import Geolocation from "react-native-geolocation-service";
+
+
+
+// rotating image component
+function RotatingImageComponent({ isRotating, stopRotation }) {
+  const rotateValue = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    let animation;
+    if (isRotating) {
+      animation = Animated.loop(
+        Animated.timing(rotateValue, {
+          toValue: 1,
+          duration: 40000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      if (animation) {
+        animation.stop();
+      }
+    }
+
+    return () => {
+      if (animation) {
+        animation.stop();
+      }
+    };
+  }, [isRotating]);
+
+  const rotateInterpolation = rotateValue.interpolate({
+    inputRange: [0, 0.25],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
-    <LinearGradient
-      colors={["#121212", "#1E1E1E", "#292929"]} // Gradient Background
-      style={styles.container}
-    >
-      {/* Helmet Status */}
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>🔋 Helmet Battery: 85%</Text>
-        <Text style={[styles.statusText, { color: "#00ff00" }]}>🟢 Connected</Text>
-      </View>
+    <View style={{ alignItems: "center", gap: 10 }}>
+      <Animated.Image
+        source={require("../assets/Car.svg")}
+        style={{ width: 100, height: 100, transform: [{perspective: 800}, { rotateY: rotateInterpolation }] }}
+      />
+            <Button title={isRotating ? 'Choose SmartHelmet?' : 'SmartHelmet Chosen!'} onPress={stopRotation} />
+    </View>
+  );
+}
 
-      {/* Voice Control */}
-      <View style={styles.voiceContainer}>
-        <Text style={styles.label}>Tap to Speak</Text>
-        <TouchableOpacity style={styles.voiceButton}>
-          <Ionicons name="mic-outline" size={40} color="white" />
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+function RotatingImage() {
+  const [isRotating, setIsRotating] = useState(true);
+
+  const stopRotation = () => setIsRotating(false);
+
+  return <RotatingImageComponent isRotating={isRotating} stopRotation={stopRotation} />;
+}
+
+
+// live location function -> need to establish connectivity
+/*
+const LocationView = () => {
+    const [location, setLocation] = useState<{
+      latitude: number;
+      longitude: number;
+      accuracy: number;
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const requestPermissionAndGetLocation = async () => {
+            const hasPermission = await requestLocationPermission();
+            if (!hasPermission) {
+              setError("Location permission denied");
+              setLoading(false);
+              return;
+            }
+
+            Geolocation.getCurrentPosition(
+                (position) => {
+                    setLocation({
+                        latitude: parseFloat(position.coords.latitude.toFixed(2)),
+                        longitude: parseFloat(position.coords.longitude.toFixed(2)),
+                        accuracy: position.coords.accuracy,
+                    });
+                    setLoading(false);
+                },
+                (error) => {
+                    setError(error.message);
+                    setLoading(false);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+            );
+        };
+
+        requestPermissionAndGetLocation();
+    }, []);
+
+    const requestLocationPermission = async () => {
+        if (Platform.OS === 'android') {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+            );
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        }
+        return true; // iOS handles permissions in Info.plist
+    };
+
+    return (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+            {loading && <ActivityIndicator size="large" />}
+            {error && <Text style={{ color: 'red' }}>Error: {error}</Text>}
+            {location ? (
+                <View>
+                    <ThemedText style={styles.bodyText}> 🌍 {location.latitude}°, {location.longitude}°</ThemedText>
+                </View>
+            ) : (
+                !loading && <Text>No location data available.</Text>
+            )}
+        </View>
+    );
+}; */
+
+export default function HomeScreen() {
+  return (
+    <ScrollView style={styles.scrollView}>
+    <ThemedView style={styles.titleContainer}>
+      <ThemedText style={styles.titleText}>MotorVision</ThemedText>
+    </ThemedView>
+    <ThemedView style={styles.stepContainer}>
+    </ThemedView>
+    <ThemedView style={styles.helmetContainer}>
+      <ThemedText style={styles.connectText}>Connect to a Device</ThemedText>
+    </ThemedView>
+    <ThemedView style={styles.helmetContainer}>
+      <RotatingImage />
+    </ThemedView>
+  </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  application: {
+    flex: 1,
+    backgroundColor: '#F3F3F3',
+  },
+  titleContainer: {
+    marginTop: 100,
+    marginBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: "center",
+    backgroundColor: 'transparent',
+  },
+  titleText: {
+    fontSize: 60,  
+    fontWeight: 'bold', 
+    textAlign: 'center',  
+    color: 'white',  
+  },
+  stepContainer: {
+    marginTop: 5,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    fontWeight: "bold",
+    justifyContent: "center",
+    backgroundColor: 'transparent',
+  },
+  deviceContainer: {
+    marginTop: 30,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    fontWeight: "bold",
+    justifyContent: "center",
+    backgroundColor: 'transparent',
+  },
+  helmetContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: "center",
+    backgroundColor: 'transparent',
+
+  },
+  bodyContainer: {
+    marginTop: 5,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: "center",
+    backgroundColor: 'transparent',
+
+  },
+  connectText: {
+    fontSize: 30,  
+    fontWeight: 'bold', 
+    textAlign: 'center',  
+    color: 'white',  
+  },
+  bodyText: {
+    fontSize: 20,  
+    textAlign: 'center',  
+    color: 'white',  
+  },
+  helmetImage: {
+    width: 150,
+    height: 150,
+    justifyContent: "center",
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  linearContainer: {
+    flex: 1, // Full screen height
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    fontSize: 20,
+    color: 'white',
+  },
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusContainer: {
-    position: "absolute",
-    top: 60,
-    alignItems: "center",
+  pageContainer: {
+    marginTop: 150, 
+    marginBottom: 150,
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusText: {
-    color: "#fff",
-    fontSize: 18,
-    marginVertical: 5,
-  },
-  voiceContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
-  label: {
-    color: "#bbb",
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  voiceButton: {
-    backgroundColor: "#007bff",
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#121212", 
     padding: 20,
-    borderRadius: 50,
-    shadowColor: "#007bff",
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 5,
   },
-  controls: {
-    position: "absolute",
-    bottom: 60,
-    width: "100%",
+  gradient: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+  },
+  headerContainer: {
+    flex: 1,
+    backgroundColor: '#F3F3F3',
   },
   button: {
-    backgroundColor: "#4caf50",
-    padding: 15,
-    width: "80%",
-    borderRadius: 12,
+    backgroundColor: "#3498db",
+    padding: 12,
+    borderRadius: 50,
     alignItems: "center",
-    marginVertical: 10,
-    shadowColor: "#4caf50",
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    justifyContent: "center",
     elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
-  crashButton: {
-    backgroundColor: "#d32f2f",
-    shadowColor: "#d32f2f",
+  iconContainer: {
+    width: 40,
+    height: 40,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  
 });
-
