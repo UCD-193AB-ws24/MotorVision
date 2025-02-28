@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Card } from "react-native-paper";
 import { LineGraph } from './LineGraph'; 
+import { useNavigation } from '@react-navigation/native';
 
 // created with AI assistance
 // Created a stat object. We can call this repeatedly.
@@ -14,6 +15,7 @@ class stat {
     this.graphData = graphData;
   }
 }
+
 
 // mock data I created
 const stats = {
@@ -32,10 +34,20 @@ const stats = {
 };
 
 export default function HealthStats() {
+  const navigation = useNavigation();
   const [selectedStat, setSelectedStat] = useState(null);
 
   const handleStatPress = (statKey) => {
-    setSelectedStat(stats[statKey]); 
+    console.log("this is the key: ", statKey);
+    const selectedStat = stats[statKey];
+    console.log("this is the selected stat: ", selectedStat);
+    
+    setSelectedStat(stats[statKey]);
+    console.log("THIS IS THE SELECTED STAT 2: ", selectedStat);
+    console.log("this is the GRAPH DATA: ", selectedStat.graphData);
+    // const selectedStat = stats[statKey]; 
+    // Navigate to the LineGraph screen and pass the graph data
+    navigation.navigate('StatDetails', { stat: selectedStat });
   };
 
   return (
@@ -64,12 +76,12 @@ export default function HealthStats() {
           </TouchableOpacity>
         );
       })}
-
+{/* 
       {selectedStat && (
         <View style={styles.graphContainer}>
           <LineGraph data={selectedStat.graphData} />
         </View>
-      )}
+      )} */}
     </ScrollView>
   );
 }
