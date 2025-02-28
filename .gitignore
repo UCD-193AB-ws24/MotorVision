@@ -1,3 +1,8 @@
 node_modules/*
 backend/node_modules/*
 frontend/node_modules/*
+backend/api/__pycache__/*
+backend/api/migrations/*
+backend/api/db.sqlite3
+backend/api/db.sqlite3-journal
+backend/api/db.sqlite3-wal
