@@ -52,8 +52,8 @@ export default function HealthStats() {
 
   return (
     <ScrollView style={styles.container}>
-      <View type="title" style={styles.header}>
-        Summary
+      <View type="title" style={styles.headerTitle}>
+        <Text style={styles.header}>Summary</Text>
       </View>
 
       {Object.keys(stats).map((statKey) => {
@@ -96,6 +96,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: 'SFProDisplay-Bold',
   },
+  headerTitle: {
+    marginBottom: 10,
+    padding: 10,
+   color: 'white',
+    fontSize: 30,
+    fontWeight: 'bold',
+    fontFamily: 'SFProDisplay-Bold',
+  },
+  
   container: {
     flex: 1,
     backgroundColor: "#121212", 
