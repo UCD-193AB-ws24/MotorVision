@@ -56,7 +56,12 @@ function RotatingImageComponent({ isRotating, stopRotation }) {
         source={require("../assets/Car.png")} // Changed from SVG to PNG (React Native doesn't support require() for SVGs)
         style={{ width: 100, height: 100, transform: [{ perspective: 800 }, { rotateY: rotateInterpolation }] }}
       />
-      <Button title={isRotating ? "Choose SmartHelmet?" : "SmartHelmet Chosen!"} onPress={stopRotation} />
+      <TouchableOpacity
+          style={styles.button}
+            onPress={() => alert("Connected to Smart Helmet!")}
+      >
+            <Text style={styles.buttonText}> Connect to SmartHelmet? </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -138,11 +143,18 @@ export default function HomeScreen() {
       <View style={styles.stepContainer}></View>
       <LocationView /> {/* Added Location Component */}
       <View style={styles.helmetContainer}>
-        <Text style={styles.connectText}>Connect to a Device</Text>
+        <Text style={styles.connectText}>Connect to a Paired Device</Text>
       </View>
       <View style={styles.helmetContainer}>
         <RotatingImage />
       </View>
+      <TouchableOpacity
+          style={styles.button}
+            onPress={() => navigation.navigate('ConnectDeviceScreen')}
+          >
+            <Text style={styles.buttonText}>Change Device or Pair New Device</Text>
+      </TouchableOpacity>
+
     </ScrollView>
   );
 }
@@ -202,5 +214,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#121212",
     padding: 20,
+  },
+  button: {
+    marginTop: 20,
+    backgroundColor: '#00bfff',
+    paddingVertical: 12,
+    borderRadius: 30,
+    alignItems: 'center',
+    shadowColor: '#00bfff',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });
