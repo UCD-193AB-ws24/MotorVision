@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { Card } from "react-native-paper";
 import { LineGraph } from './LineGraph'; 
 import { useNavigation } from '@react-navigation/native';
+import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import { database } from "../config/firebase";
 
 // created with AI assistance
 // Created a stat object. We can call this repeatedly.
@@ -19,15 +21,15 @@ class stat {
 
 // mock data I created
 const stats = {
-  Steps: new stat("Average Distance", "20 ft", "average distance", "#ff453a", {
+  Average_Distance: new stat("Average Distance", "20 ft", "average distance", "#ff453a", {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     datasets: [{ data: [20, 10, 5, 25, 20] }],
   }),
-  Calories: new stat("Total Distance", "100 miles", "total distance", "#ff9f0a", {
+  Total_Distance: new stat("Total Distance", "100 miles", "total distance", "#ff9f0a", {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     datasets: [{ data: [25, 20, 30, 10, 15] }],
   }),
-  Sleep: new stat("Average Speed", "40 mph", "sleep", "#5ac8fa", {
+  Average_Speed: new stat("Average Speed", "40 mph", "sleep", "#5ac8fa", {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     datasets: [{ data: [60, 50, 20, 50, 20] }],
   }),
@@ -37,14 +39,104 @@ export default function HealthStats() {
   const navigation = useNavigation();
   const [selectedStat, setSelectedStat] = useState(null);
 
-  const handleStatPress = (statKey) => {
+
+
+
+
+  const uploadGraphData = async (statKey, graphData) => {
+    try {
+      // Reference to the document inside "stats" collection
+      const statRef = doc(database, "stats", statKey);
+  
+      // Upload data to Firestore
+      await setDoc(statRef, { graphData }, { merge: true });
+  
+      console.log("Graph data uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading graph data:", error);
+    }
+  };
+
+  const uploadStat = async (statKey, statObject) => {
+    try {
+      // Reference to the document inside "stats" collection
+      const statRef = doc(database, "stats", statKey);
+  
+      // Upload the entire stat object to Firestore
+      await setDoc(statRef, {
+        title: statObject.title,
+        value: statObject.value,
+        unit: statObject.unit,
+        color: statObject.color,
+        graphData: statObject.graphData,  // Include the graphData as well
+      }, { merge: true });
+  
+      console.log("Stat object uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading stat object:", error);
+    }
+  };
+
+
+  const fetchStat = async (statKey) => {
+    try {
+      const statRef = doc(database, "stats", String(statKey)); // Convert to string
+      const statSnap = await getDoc(statRef);
+
+      if (statSnap.exists()) {
+        console.log("Stat Data:", statSnap.data());
+        return statSnap.data(); // Returns the document data
+      } else {
+        console.log("No such document!");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching stat:", error);
+      return null;
+    }
+  };
+
+  const fetchStat2 = async (statKey) => {
+    try {
+      const statRef = doc(database, "stats", String(statKey)); // Convert to string
+      const statSnap = await getDoc(statRef);
+  
+      if (statSnap.exists()) {
+        const data = statSnap.data();  // Get the document data
+        console.log("Stat Data:", data);
+  
+        // Reconstruct the stat object using the fetched data
+        const fetchedStat = new stat(
+          data.title,
+          data.value,
+          data.unit,
+          data.color,
+          data.graphData  // Use the graphData from Firestore
+        );
+  
+        return fetchedStat;  // Return the fully reconstructed stat object
+      } else {
+        console.log("No such document!");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching stat:", error);
+      return null;
+    }
+  };
+
+  const handleStatPress = async (statKey) => {
+    // let response = await fetchStat(statKey);
+    // console.log("this is the response: ", response);
     console.log("this is the key: ", statKey);
-    const selectedStat = stats[statKey];
+    const selectedStat = await fetchStat2(statKey);
+    // uploadStat(statKey, selectedStat);
     console.log("this is the selected stat: ", selectedStat);
     
-    setSelectedStat(stats[statKey]);
+    setSelectedStat(selectedStat);
     console.log("THIS IS THE SELECTED STAT 2: ", selectedStat);
     console.log("this is the GRAPH DATA: ", selectedStat.graphData);
+    // uploadGraphData(statKey, selectedStat.graphData);
     // const selectedStat = stats[statKey]; 
     // Navigate to the LineGraph screen and pass the graph data
     navigation.navigate('StatDetails', { stat: selectedStat });
