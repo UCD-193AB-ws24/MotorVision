@@ -1,6 +1,11 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
+# import serial
+import threading # import from BluetoothReaderSimulation
+from .bluetooth_reader_sim import BluetoothReaderSimulation
+
+
 
 @api_view(['GET'])
 def printHelloWorld(request):
@@ -26,3 +31,23 @@ def printSomething(request):
     else:
         printedVal = {'message': 'Hello World!'}
     return Response(printedVal)
+
+@api_view(['GET'])
+def home_page(request):
+    message = "This is the home page!"
+    return Response({"message": message})
+
+
+# beginning of calling from the 
+bt_reader_sim = BluetoothReaderSimulation(port="COM5") # swap this out w OS
+
+@api_view(['GET'])
+def connect_sim(request):
+    res = bt_reader_sim.connect_sim()
+    # only takes the boolean value here -> the print outputs are printed as part of module
+    if (res == True):
+        message = "Connected to Smart Helmet!"
+    else:
+        message = "Connection not successful. Please try again."
+    return Response({"message": message, "res": res})
+
