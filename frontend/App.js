@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 // Import Screens
 import HomeScreen from "./screens/HomeScreen";
 import ConnectDeviceScreen from "./screens/ConnectDeviceScreen";
+import InstructionsPairNewDevice from "./screens/InstructionsPairNewDevice";
 
 import CrashLogsScreen from "./screens/CrashLogsScreen";
 import CrashDetailScreen from "./screens/CrashDetailScreen";
@@ -19,10 +20,11 @@ import CrashRecordingScreen from "./screens/CrashRecordingScreen";
 const HomeScreenStack = createStackNavigator();
 function HomeScreenNavigator() {
   return (
-    <HomeScreen.Navigator screenOptions={{ headerShown: false }}>
-      <HomeScreen.Screen name="HomeScreen" component={HomeScreen} />
-      <HomeScreen.Screen name="ConnectDeviceScreen" component={ConnectDeviceScreen} />
-    </HomeScreen.Navigator>
+    <HomeScreenStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeScreenStack.Screen name="HomeScreen" component={HomeScreen} />
+      <HomeScreenStack.Screen name="ConnectDeviceScreen" component={ConnectDeviceScreen} />
+      <HomeScreenStack.Screen name="InstructionsPairNewDevice" component={InstructionsPairNewDevice} />
+    </HomeScreenStack.Navigator>
   );
 }
 
