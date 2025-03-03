@@ -7,12 +7,28 @@ import { Ionicons } from "@expo/vector-icons";
 
 // Import Screens
 import HomeScreen from "./screens/HomeScreen";
+import ConnectDeviceScreen from "./screens/ConnectDeviceScreen";
+import InstructionsPairNewDevice from "./screens/InstructionsPairNewDevice";
+
 import CrashLogsScreen from "./screens/CrashLogsScreen";
 import CrashDetailScreen from "./screens/CrashDetailScreen";
 import StatsScreen from "./screens/StatsScreen";
 import CrashRecordingScreen from "./screens/CrashRecordingScreen";
 import { LineGraph } from "./screens/LineGraph";
 import StatDetails from "./screens/StatsDetails";
+
+// Create Stack Navigator for Home Screen (Connect to Device)
+const HomeScreenStack = createStackNavigator();
+function HomeScreenNavigator() {
+  return (
+    <HomeScreenStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeScreenStack.Screen name="HomeScreen" component={HomeScreen} />
+      <HomeScreenStack.Screen name="ConnectDeviceScreen" component={ConnectDeviceScreen} />
+      <HomeScreenStack.Screen name="InstructionsPairNewDevice" component={InstructionsPairNewDevice} />
+    </HomeScreenStack.Navigator>
+  );
+}
+
 // Create Stack Navigator for Crash Data (Crash Logs + Crash Recording)
 const CrashStack = createStackNavigator();
 function CrashStackNavigator() {
@@ -66,7 +82,7 @@ export default function App() {
         })}
       >
         <Tab.Screen name="Stats" component={StatsStackNavigator} />
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Home" component={HomeScreenNavigator} />
         <Tab.Screen name="Crash Data" component={CrashStackNavigator} />
       </Tab.Navigator>
     </NavigationContainer>
