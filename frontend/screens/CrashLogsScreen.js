@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 20,
+    marginTop: 60,
   },
   logItem: {
     backgroundColor: '#1E1E1E',

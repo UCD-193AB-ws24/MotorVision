@@ -14,7 +14,8 @@ import CrashLogsScreen from "./screens/CrashLogsScreen";
 import CrashDetailScreen from "./screens/CrashDetailScreen";
 import StatsScreen from "./screens/StatsScreen";
 import CrashRecordingScreen from "./screens/CrashRecordingScreen";
-
+import { LineGraph } from "./screens/LineGraph";
+import StatDetails from "./screens/StatsDetails";
 
 // Create Stack Navigator for Home Screen (Connect to Device)
 const HomeScreenStack = createStackNavigator();
@@ -40,6 +41,18 @@ function CrashStackNavigator() {
   );
 }
 
+
+const StatsStack = createStackNavigator(); 
+
+function StatsStackNavigator() {
+  return (
+    <StatsStack.Navigator screenOptions={{ headerShown: false }}>
+      <StatsStack.Screen name="Stats" component={StatsScreen} />
+      <StatsStack.Screen name="LineGraph" component={LineGraph} />
+      <StatsStack.Screen name="StatDetails" component={StatDetails} />
+    </StatsStack.Navigator>
+  );
+}
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
@@ -68,7 +81,7 @@ export default function App() {
           headerShown: false,
         })}
       >
-        <Tab.Screen name="Stats" component={StatsScreen} />
+        <Tab.Screen name="Stats" component={StatsStackNavigator} />
         <Tab.Screen name="Home" component={HomeScreenNavigator} />
         <Tab.Screen name="Crash Data" component={CrashStackNavigator} />
       </Tab.Navigator>
