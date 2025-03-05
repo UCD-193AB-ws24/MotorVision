@@ -20,6 +20,7 @@ export default function InstructionsPairNewDevice({navigation }) {
       colors={['#121212', '#1E1E1E', '#292929']} // Gradient effect
       style={styles.container}
     >
+      <View style={styles.paddingTop}>
       <Text style={styles.title}> How to Pair a New Device to Phone</Text>
       <Text style={styles.title}> </Text>
 
@@ -42,6 +43,7 @@ export default function InstructionsPairNewDevice({navigation }) {
       >
         <Text style={styles.buttonText}>Back to Change New Device</Text>
       </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 }
@@ -49,7 +51,7 @@ export default function InstructionsPairNewDevice({navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     justifyContent: 'center',
   },
   title: {
@@ -100,4 +102,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
 
   },
+  paddingContainer: {
+    flex: 1,
+    paddingTop: 50,
+    justifyContent: 'center',
+  }
 });
