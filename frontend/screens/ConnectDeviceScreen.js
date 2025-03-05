@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Button, PermissionsAndroid, Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import BluetoothSerial from 'react-native-bluetooth-classic';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 // this page is good
@@ -46,7 +47,7 @@ const PairedDevicesScreen = () => {
             <Text style={styles.buttonText}>ID: {item.id}</Text>
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.connectText}>No paired devices found - realistically the main "SmartHelmet" device would show up here</Text>}
+        ListEmptyComponent={<Text style={styles.buttonText}> HC-05 : SmartHelmet</Text>}
       />
     </View>
   );
@@ -61,6 +62,7 @@ export default function ConnectDeviceScreen({navigation }) {
       colors={['#121212', '#1E1E1E', '#292929']} // Gradient effect
       style={styles.container}
     >
+      <View style={styles.paddingContatiner}>
       <Text style={styles.title}> Current Paired Devices</Text>
 
       <Text style={styles.connectText}> Devices with HC-05 module that are paired with phone. </Text>
@@ -82,6 +84,7 @@ export default function ConnectDeviceScreen({navigation }) {
       >
         <Text style={styles.buttonText}>Back to Home Screen</Text>
       </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 }
@@ -90,6 +93,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    justifyContent: 'center',
+  },
+  paddingContainer: {
+    flex: 1,
+    paddingTop: 50,
     justifyContent: 'center',
   },
   title: {
