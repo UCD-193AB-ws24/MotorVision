@@ -54,7 +54,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 20,
+    marginBottom: 30,
+    marginTop: 60,
   },
   logItem: {
     backgroundColor: "#1E1E1E",

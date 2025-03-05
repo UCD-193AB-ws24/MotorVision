@@ -3,8 +3,8 @@ from rest_framework.decorators import api_view
 
 # import serial
 import threading # import from BluetoothReaderSimulation
-from .bluetooth_reader_sim import BluetoothReaderSimulation
-from . import ,sim13.csv
+# from .bluetooth_reader_sim import BluetoothReaderSimulation
+# from . import ,sim13.csv
 
 
 @api_view(['GET'])
@@ -39,11 +39,12 @@ def home_page(request):
 
 
 # beginning of calling the bluetooth api
-bt_reader_sim = BluetoothReaderSimulation(port="COM5", ".sim13.csv") # swap this out w OS
+# bt_reader_sim = BluetoothReaderSimulation(port="COM5", ".sim13.csv") # swap this out w OS
 
 @api_view(['GET'])
 def connect(request):
-    res = bt_reader_sim.connect_sim()
+    # res = bt_reader_sim.connect_sim()
+    res = True
     # only takes the boolean value here -> the print outputs are printed as part of module
     if (res == True):
         message = "Connected to Smart Helmet!"
