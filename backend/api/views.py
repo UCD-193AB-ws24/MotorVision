@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 # import serial
 import threading # import from BluetoothReaderSimulation
 from .bluetooth_reader_sim import BluetoothReaderSimulation
-
+from . import ,sim13.csv
 
 
 @api_view(['GET'])
@@ -38,11 +38,11 @@ def home_page(request):
     return Response({"message": message})
 
 
-# beginning of calling from the 
-bt_reader_sim = BluetoothReaderSimulation(port="COM5") # swap this out w OS
+# beginning of calling the bluetooth api
+bt_reader_sim = BluetoothReaderSimulation(port="COM5", ".sim13.csv") # swap this out w OS
 
 @api_view(['GET'])
-def connect_sim(request):
+def connect(request):
     res = bt_reader_sim.connect_sim()
     # only takes the boolean value here -> the print outputs are printed as part of module
     if (res == True):
@@ -51,3 +51,5 @@ def connect_sim(request):
         message = "Connection not successful. Please try again."
     return Response({"message": message, "res": res})
 
+def start(request):
+    bt_reader_sim.start_sim()
