@@ -129,7 +129,8 @@ export default function HealthStats() {
     // let response = await fetchStat(statKey);
     // console.log("this is the response: ", response);
     console.log("this is the key: ", statKey);
-    const selectedStat = await fetchStat2(statKey);
+    // const selectedStat = await fetchStat2(statKey);
+    const selectedStat = stats[statKey];
     // uploadStat(statKey, selectedStat);
     console.log("this is the selected stat: ", selectedStat);
     
