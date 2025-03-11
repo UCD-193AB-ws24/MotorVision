@@ -14,3 +14,4 @@ frontend/venv5
 frontend/mnt
 backend/mnt
 backend/venv_3_10
+node_modules
