@@ -37,6 +37,91 @@ const SmartHelmetButton = () => {
   );
 }; */
 
+// Location Component
+function LocationView() {
+  const [location, setLocation] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let locationSubscription = null;
+
+    const requestPermissionAndTrackLocation = async () => {
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        setError("Location permission denied");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Start watching the user's location
+        locationSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation, // Highest accuracy
+            timeInterval: 5000, // Get location updates every 5 seconds
+            distanceInterval: 2, // Update when user moves 2 meters
+          },
+          (position) => {
+            setLocation({
+              latitude: parseFloat(position.coords.latitude.toFixed(2)), // More precision
+              longitude: parseFloat(position.coords.longitude.toFixed(2)),
+              accuracy: position.coords.accuracy,
+              altitude: position.coords.altitude, // Elevation data
+              speed: position.coords.speed, // Speed in meters/sec
+              heading: position.coords.heading, // Compass direction
+            });
+            setLoading(false);
+          }
+        );
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    requestPermissionAndTrackLocation();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove(); // Stop tracking on unmount
+      }
+    };
+  }, []);
+
+  const requestLocationPermission = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    return status === "granted";
+  };
+
+  if (loading) return <ActivityIndicator size="large" color="blue" />;
+  if (error) return <Text>Error: {error}</Text>;
+
+  const latitudeDMS = convertToDMS(location.latitude, 'latitude');
+  const longitudeDMS = convertToDMS(location.longitude, 'longitude');
+
+  return (
+    <View style={styles.container}>
+      {location ? (
+        <View>
+        <Text style={styles.bodyText}>
+          🌍 {latitudeDMS} {longitudeDMS}
+        </Text>
+          {/* <Text style={styles.bodyText}>🌍 Longitude: {location.longitude}°</Text> */}
+          {/* <Text style={styles.bodyText}>📏 Accuracy: {location.accuracy} meters</Text>
+          <Text style={styles.bodyText}>⛰️ Altitude: {location.altitude} meters</Text> */}
+          {/* <Text style={styles.bodyText}>🚀 Speed: {location.speed} m/s</Text> */}
+          {/* <Text style={styles.bodyText}>🧭 Heading: {location.heading}°</Text> */}
+        </View>
+      ) : (
+        <Text>No location data available.</Text>
+      )}
+    </View>
+  );
+}
+
+// HomeScreen Component
+
 const SmartHelmetButton = () => {
   const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
   const [loading, setLoading] = useState(false);
