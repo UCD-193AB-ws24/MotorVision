@@ -1,9 +1,31 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import axios from 'axios';
+import { useState } from 'react';
+import { Image } from 'react-native';
+
 
 export default function CrashDetailScreen({ route, navigation }) {
+  const [trajectoryImage, setTrajectoryImage] = useState("");
   const { crash } = route.params;
+  const fetchTrajectoryImage = async () => {
+    console.log('Fetching trajectory image...');
+    const url = 'http://127.0.0.1:8000/traj_image/';
+    try {
+      const response = await axios.get(url);
+      console.log('Response:', response.data);
+      let base64 = response.data.image_data;
+      console.log('Base64:', base64);
+      let imageUrl = `data:image/png;base64,${base64}`;
+      setTrajectoryImage(imageUrl);
+      return response.data; // Return the data for further use
+    } catch (error) {
+      console.error('Error fetching trajectory image:', error);
+      return null; // Return null in case of an error
+    }
+
+  };
 
   return (
     <LinearGradient
@@ -19,10 +41,14 @@ export default function CrashDetailScreen({ route, navigation }) {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.goBack()}
+        onPress={fetchTrajectoryImage}
       >
         <Text style={styles.buttonText}>Back to Crash Logs</Text>
       </TouchableOpacity>
+
+      {trajectoryImage !== "" && (
+        <Image source={{ uri: trajectoryImage }} style={styles.image} />
+      )}
     </LinearGradient>
   );
 }
