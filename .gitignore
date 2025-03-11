@@ -8,3 +8,9 @@ backend/api/db.sqlite3-journal
 backend/api/db.sqlite3-wal
 backend/api/__pycache__/*
 backend/backend/__pycache__/*
+
+frontend/venv3
+frontend/venv5
+frontend/mnt
+backend/mnt
+backend/venv_3_10
