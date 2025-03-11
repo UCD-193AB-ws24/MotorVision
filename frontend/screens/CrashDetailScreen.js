@@ -9,14 +9,17 @@ import { Image } from 'react-native';
 export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState("");
   const { crash } = route.params;
+
   const fetchTrajectoryImage = async () => {
     console.log('Fetching trajectory image...');
     const url = 'http://127.0.0.1:8000/traj_image/';
     try {
       const response = await axios.get(url);
       console.log('Response:', response.data);
+
       let base64 = response.data.image_data;
       console.log('Base64:', base64);
+
       let imageUrl = `data:image/png;base64,${base64}`;
       setTrajectoryImage(imageUrl);
       return response.data; // Return the data for further use
@@ -26,6 +29,7 @@ export default function CrashDetailScreen({ route, navigation }) {
     }
 
   };
+
 
   return (
     <LinearGradient
@@ -39,16 +43,24 @@ export default function CrashDetailScreen({ route, navigation }) {
         <Text style={styles.info}>⚠️ Details: {crash.details}</Text>
       </View>
 
-      <TouchableOpacity
+        {/* Button to fetch and display the image */}
+        <TouchableOpacity
         style={styles.button}
-        onPress={fetchTrajectoryImage}
+        onPress={fetchTrajectoryImage} // Trigger image fetch on button press
       >
-        <Text style={styles.buttonText}>Back to Crash Logs</Text>
+        <Text style={styles.buttonText}>VIEW IMAGE</Text>
       </TouchableOpacity>
 
-      {trajectoryImage !== "" && (
-        <Image source={{ uri: trajectoryImage }} style={styles.image} />
+      {/* Render the image only if trajectoryImage is available */}
+      {trajectoryImage ? (
+        <Image
+          source={{ uri: trajectoryImage }}
+          style={{ width: 300, height: 300, marginTop: 20 }}
+        />
+      ) : (
+        <Text style={styles.info}>No image loaded yet.</Text> // Display text when image is not fetched yet
       )}
+
     </LinearGradient>
   );
 }
