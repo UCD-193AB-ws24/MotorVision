@@ -19,26 +19,9 @@ import React, { useEffect, useRef, useState } from "react";
 // import Geolocation from "react-native-geolocation-service";
 
 import axios from "axios";
-
 import * as Location from "expo-location";
 
-/* Smart Button -> connect this to a rest API (connect rest api)
-const SmartHelmetButton = () => {
-  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
-
-  return (
-    // add a call to a rest API
-    
-    
-    <TouchableOpacity
-      style={styles.button}
-      onPress={() => setButtonText('Connected to SmartHelmet!')}
-    >
-      <Text style={styles.buttonText}>{buttonText}</Text>
-    </TouchableOpacity>
-  );
-}; */
-
+// REST API - CONNECT
 const SmartHelmetButton = () => {
   const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
   const [loading, setLoading] = useState(false);
@@ -77,8 +60,6 @@ const SmartHelmetButton = () => {
     </TouchableOpacity>
   );
 };
-
-
 
 // Rotating image component
 function RotatingImageComponent({ isRotating, stopRotation }) {
@@ -133,6 +114,7 @@ function RotatingImage() {
   return <RotatingImageComponent isRotating={isRotating} stopRotation={stopRotation} />;
 }
 
+// Live location
 const convertToDMS = (coordinate, type) => {
   if (coordinate === null || coordinate === undefined) return '';
   
@@ -153,7 +135,7 @@ const convertToDMS = (coordinate, type) => {
 };
 
 // Location Component
-function LocationView() {
+export function LocationView() {
   const [location, setLocation] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +143,8 @@ function LocationView() {
   useEffect(() => {
     let locationSubscription = null;
 
+
+    // would call this in connect instead
     const requestPermissionAndTrackLocation = async () => {
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
@@ -169,6 +153,7 @@ function LocationView() {
         return;
       }
 
+      
       try {
         // Start watching the user's location
         locationSubscription = await Location.watchPositionAsync(
@@ -212,6 +197,7 @@ function LocationView() {
   if (loading) return <ActivityIndicator size="large" color="blue" />;
   if (error) return <Text>Error: {error}</Text>;
 
+  
   const latitudeDMS = convertToDMS(location.latitude, 'latitude');
   const longitudeDMS = convertToDMS(location.longitude, 'longitude');
 

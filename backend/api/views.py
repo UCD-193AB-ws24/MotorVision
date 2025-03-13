@@ -58,6 +58,7 @@ def connect(request):
     return Response({"message": message, "res": res})
 
 
+
 @api_view(['GET'])
 def traj_image(request):
     # res = simulation("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5)
@@ -67,5 +68,19 @@ def traj_image(request):
     with open(res, 'rb') as img_file:
         img_data = base64.b64encode(img_file.read()).decode('utf-8')
     return Response({'image_data': img_data})
+
+@api_view(['GET'])
+def live_loc(request):
+    lat = request.GET.get('lat')
+    long = request.GET.get('long')
+    # printedVal = {'message': 'Hello World!'}
+    if lat and long:
+        printedVal = {"lat_recieved":lat, "long_recieved": long}
+
+    else:
+        printedVal = {'message': 'No data recieved'}
+    print("This is what I have ", printedVal)
+    return Response(printedVal)
+
     
 

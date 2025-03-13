@@ -6,5 +6,6 @@ urlpatterns = [
     path("something/", views.printSomething),
     path("connect/", views.connect),
     path("traj_image/", views.traj_image),
+    path("live_loc/", views.live_loc),
     path("", views.home_page)
 ]

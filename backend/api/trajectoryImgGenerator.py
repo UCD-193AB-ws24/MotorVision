@@ -138,8 +138,8 @@ def simulate_motorcyclist_trajectory(duration_mins=5, spacing_secs=0.4, start_la
         delta_lat = speed * np.cos(np.radians(angle))
         delta_lon = speed * np.sin(np.radians(angle))
         
-        lat += delta_lat
-        lon += delta_lon
+        lat += delta_lat # would swap this out with the live location instead
+        lon += delta_lon # would swap this out with the live location instead
         
         latitudes.append(lat)
         longitudes.append(lon)
