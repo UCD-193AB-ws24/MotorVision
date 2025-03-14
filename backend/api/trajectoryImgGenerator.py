@@ -154,10 +154,12 @@ def simulate_motorcyclist_trajectory(duration_mins=5, spacing_secs=0.4, start_la
     return df
 
 
-# Get the trajectory dataframe
-def simulation(csv_input, html_output, png_output, sim_duration, spacing):
+# Get the trajectory dataframe 
+def image_generator(csv_input, html_output, png_output, sim_duration, spacing):
     csv_file =  os.path.join(os.path.dirname(__file__), csv_input)
     df = pd.read_csv(csv_file)
+
+    
     df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing)
 
 # Run the html/image generators
@@ -184,5 +186,5 @@ def simulation(csv_input, html_output, png_output, sim_duration, spacing):
     convertHtmlToPng(input_html=output_html_file, output_png=output_png_file)
 """
 print("Running simulation function")
-res = simulation("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5 )
+res = image_generator("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5 )
 print("Result from simulation: ", res)

@@ -20,6 +20,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import axios from "axios";
 import * as Location from "expo-location";
+import { setHasPermission } from "./locationPermissionStore";
 
 // REST API - CONNECT
 const SmartHelmetButton = () => {
@@ -191,7 +192,10 @@ export function LocationView() {
 
   const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    return status === "granted";
+    const permissionGranted = status === "granted";
+    setHasPermission(permissionGranted);
+    console.log("Permission should be set", permissionGranted)
+    return permissionGranted;
   };
 
   if (loading) return <ActivityIndicator size="large" color="blue" />;
