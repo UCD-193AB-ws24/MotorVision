@@ -7,6 +7,6 @@ urlpatterns = [
     path("connect/", views.connect),
     path("traj_image/", views.traj_image),
     path("live_loc/", views.live_loc),
-    path("location_array/", views.location_array)
+    path("location_array/", views.location_array),
     path("", views.home_page)
 ]

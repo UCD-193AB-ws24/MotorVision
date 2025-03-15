@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -9,111 +9,93 @@ import { getHasPermission } from "./locationPermissionStore";
 // import { logToLogBoxAndConsole } from "react-native-reanimated/lib/typescript/logger";
 
 export function LocationView() {
-  const [location, setLocation] = useState(null);
+  const [locations, setLocations] = useState([]); // Stores location array
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [serverResponse, setServerResponse] = useState(null);
+  const locationSubscription = useRef(null); // Persist subscription reference
+  const uploadInterval = useRef(null); // Persist interval reference
 
   useEffect(() => {
-    let locationSubscription = null;
-
-    // would call this in connect instead - nvm
-    const requestPermissionAndTrackLocation = async () => {
-      {/*const hasPermission = await requestLocationPermission(); */}
+    const requestPermission = async () => {
       if (!getHasPermission()) {
         alert("Location permission denied");
         setError("Location permission denied");
         setLoading(false);
         return;
       }
-      console.log("Working w this permission rn", getHasPermission()); // this doesn't look
-      try {
-        // Start watching the user's location
-        console.log("Trying to get location"); // ebfore loop
-        // this is where the loop starts 
-        locationSubscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.BestForNavigation, // Highest accuracy
-            timeInterval: 5000, // Get location updates every 5 seconds - this would change according to the rate that the user specifies
-            distanceInterval: 2, // Update when user moves 2 meters
-          },
-          async (position) => {
-            // think about everything that i want from this
-            const newLocation = {
-              latitude: parseFloat(position.coords.latitude.toFixed(2)), // More precision
-              longitude: parseFloat(position.coords.longitude.toFixed(2)),
-              accuracy: position.coords.accuracy,
-              altitude: position.coords.altitude, // Elevation data
-              speed: position.coords.speed, // Speed in meters/sec
-              heading: position.coords.heading, // Compass direction
-          };
-            setLocation(newLocation); // resetting the variable -> change this to array
-            // calling the 
-            console.log("recieved location")
-            await sendLocationToServer(newLocation.latitude, newLocation.longitude);
-            console.log("just sent data to backend")
-            setLoading(false);
-
-          }
-        );
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-
-      }
+      startTracking();
     };
 
-    requestPermissionAndTrackLocation();
+    const startTracking = async () => {
+      console.log("Permission granted:", getHasPermission());
+
+      locationSubscription.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 5000, // call location every 5 seconds
+          distanceInterval: 2,
+        },
+        (position) => {
+          const newLocation = {
+            latitude: parseFloat(position.coords.latitude.toFixed(2)),
+            longitude: parseFloat(position.coords.longitude.toFixed(2)),
+          };
+
+          setLocations((prev) => [...prev, newLocation]);
+          console.log("Just ran a new location loop", newLocation);
+
+          sendLocationToServer([...locations, newLocation]);
+        }
+      );
+
+      uploadInterval.current = setInterval(() => {
+        if (locations.length > 0) {
+          console.log("About to call send to with this much data", locations.length )
+          sendLocationToServer(locations);
+          setLocations([]); // Reset locations after sending
+        } else {
+          console.log("Wasn't able to call the the server thing, because not enought in array")
+        }
+      }, 60000); // sending the location every 60 seconds (in there there )
+    };
+
+    requestPermission();
 
     return () => {
-      if (locationSubscription) {
-        locationSubscription.remove(); // Stop tracking on unmount
-      }
+      if (locationSubscription.current) locationSubscription.current.remove();
+      if (uploadInterval.current) clearInterval(uploadInterval.current);
     };
-  }, []);
+  }, []); // Run only on mount
 
-  const sendLocationToServer = async (latitude, longitude) => {
-    console.log("Updating backend location,",  latitude, longitude);
-    const url = `http://127.0.0.1:8000/live_loc/?lat=${latitude}&long=${longitude}`;
+  const sendLocationToServer = async (locations) => {
+    console.log("Sending locations to backend:", locations);
+    const url = `http://127.0.0.1:8000/location_array/`;
     try {
-      const response = await axios.get(url);
-      console.log("Just recieved live loc from frontend...")
-      setServerResponse(response.data)
-      console.log(response)
-      return response.data
-    }  catch (error) {
-      console.error("Error fetching/sending the live location:", error);
-      return {error: error.message};
-      setServerResponse("NO IDEA")
-    } finally {
-      console.log("Finally statment");
-    } // end of try catch
-  }; // end of function 
-  
+      const response = await axios.post(url, { locations });
+      console.log("Received response from server:", response.data);
+      setServerResponse(response.data);
+    } catch (error) {
+      console.error("Error sending location:", error);
+      setServerResponse("Error sending location");
+    }
+  };
+
   if (loading) return <ActivityIndicator size="large" color="blue" />;
   if (error) return <Text>Error: {error}</Text>;
 
   return (
     <View style={styles.locationContainer}>
-      {/*{location ? (
-        <View>
-          <Text style={styles.bodyText}>🌍 Latitude: {location.latitude}</Text>
-          <Text style={styles.bodyText}>🌍 Longitude: {location.longitude}</Text>
-          {/* Optionally display more location details 
-        </View>
-      ) : (
-        <Text>No location data available.</Text>
-      )} */}
-
       {serverResponse && (
-        <View style={styles.locationContainer}>
+        <View>
           <Text style={styles.bodyText}>Server Response:</Text>
-          <Text style={styles.bodyText}>{JSON.stringify(serverResponse, null, 2)}</Text>
+          <Text style={styles.bodyText}>Locations stored: {locations.length}</Text>
         </View>
       )}
     </View>
   );
 }
+
 
 
 export default function CrashRecordingScreen({ navigation }) {

@@ -10,8 +10,6 @@ from .bluetooth_reader_sim import BluetoothReaderSimulation
 from .trajectoryImgGenerator import image_generator
 
 
-
-
 @api_view(['GET'])
 def printHelloWorld(request):
     name = request.GET.get('name')
@@ -80,17 +78,10 @@ def live_loc(request):
 
 @api_view(['POST'])
 def location_array(request):
-    lat = request.GET.get('lat')
-    long = request.GET.get('long')
-    # printedVal = {'message': 'Hello World!'}
-    if lat and long:
-        printedVal = {"lat_recieved":lat, "long_recieved": long}
+    data = request.data  # Extract JSON payload from request body
 
-    else:
-        printedVal = {'message': 'No data recieved'}
-    print("This is what I have ", printedVal)
-    return Response(printedVal)
-
+    print("This is what the backend is seeing", data)
+    return Response({"loc_array": "data"})
     
 @api_view(['POST'])
 def crash_prediction(request):
