@@ -9,17 +9,18 @@ import { getHasPermission } from "./locationPermissionStore";
 // import { logToLogBoxAndConsole } from "react-native-reanimated/lib/typescript/logger";
 
 export function LocationView() {
-  const [locations, setLocations] = useState([]); // Stores location array
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [serverResponse, setServerResponse] = useState(null);
-  const locationSubscription = useRef(null); // Persist subscription reference
-  const uploadInterval = useRef(null); // Persist interval reference
+  
+  const locationsRef = useRef([]); // Stores location array efficiently
+  const locationSubscription = useRef(null);
+  const uploadInterval = useRef(null);
 
   useEffect(() => {
     const requestPermission = async () => {
       if (!getHasPermission()) {
-        alert("Location permission denied");
+        Alert.alert("Location permission denied");
         setError("Location permission denied");
         setLoading(false);
         return;
@@ -28,36 +29,42 @@ export function LocationView() {
     };
 
     const startTracking = async () => {
-      console.log("Permission granted:", getHasPermission());
+      console.log("Permission granted in crash recordings:", getHasPermission());
 
+  
       locationSubscription.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 5000, // call location every 5 seconds
-          distanceInterval: 2,
+          timeInterval: 10, // Every 1 second (Faster updates)
+          // distanceInterval: 1, // Every 1 meter change (More frequent)
         },
         (position) => {
+          console.log("Starting the new location loop")
           const newLocation = {
-            latitude: parseFloat(position.coords.latitude.toFixed(2)),
-            longitude: parseFloat(position.coords.longitude.toFixed(2)),
+            latitude: parseFloat(position.coords.latitude.toFixed(6)), // More precise
+            longitude: parseFloat(position.coords.longitude.toFixed(6)),
           };
+          const timestamp = new Date().toISOString();
+          console.log(`Location Updated at ${timestamp}:`);
 
-          setLocations((prev) => [...prev, newLocation]);
-          console.log("Just ran a new location loop", newLocation);
 
-          sendLocationToServer([...locations, newLocation]);
+          locationsRef.current.push(newLocation);
+          if (locationsRef.current.length > 30) {
+            locationsRef.current.shift(); // Maintain sliding window of 30
+          }
+
+          console.log("New location added:", newLocation);
         }
       );
 
       uploadInterval.current = setInterval(() => {
-        if (locations.length > 0) {
-          console.log("About to call send to with this much data", locations.length )
-          sendLocationToServer(locations);
-          setLocations([]); // Reset locations after sending
+        if (locationsRef.current.length >= 10) {
+          console.log("Sending data:", locationsRef.current.length, "locations");
+          sendLocationToServer([...locationsRef.current]); // Send copy
         } else {
-          console.log("Wasn't able to call the the server thing, because not enought in array")
+          console.log("Not enough locations to send:", locationsRef.current.length);
         }
-      }, 60000); // sending the location every 60 seconds (in there there )
+      }, 30000); // Send every 30 seconds
     };
 
     requestPermission();
@@ -66,7 +73,7 @@ export function LocationView() {
       if (locationSubscription.current) locationSubscription.current.remove();
       if (uploadInterval.current) clearInterval(uploadInterval.current);
     };
-  }, []); // Run only on mount
+  }, []);
 
   const sendLocationToServer = async (locations) => {
     console.log("Sending locations to backend:", locations);
@@ -89,14 +96,12 @@ export function LocationView() {
       {serverResponse && (
         <View>
           <Text style={styles.bodyText}>Server Response:</Text>
-          <Text style={styles.bodyText}>Locations stored: {locations.length}</Text>
+          <Text style={styles.bodyText}>Locations stored: {locationsRef.current.length}</Text>
         </View>
       )}
     </View>
   );
 }
-
-
 
 export default function CrashRecordingScreen({ navigation }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -157,7 +162,6 @@ export default function CrashRecordingScreen({ navigation }) {
         <Text style={styles.buttonText}>{isRecording ? "Stop" : "Start"}</Text>
       </TouchableOpacity>
 
-      <LocationView /> {/* added what i create */}
 
       <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate("CrashLogs")}>
         <Text style={styles.linkText}>View Crash Reports</Text>

@@ -29,6 +29,15 @@ function HomeScreenNavigator() {
   );
 }
 
+const SettingsStack = createStackNavigator();
+function SettingsNavigator() {
+  return (
+    <SettingsNavigator.Navigator screenOptions={{ headerShown: false }}>
+      <SettingsNavigator.Screen name="SettingsScreen" component={SettingsScreen} />
+    </SettingsNavigator.Navigator>
+  );
+}
+
 // Create Stack Navigator for Crash Data (Crash Logs + Crash Recording)
 const CrashStack = createStackNavigator();
 function CrashStackNavigator() {
