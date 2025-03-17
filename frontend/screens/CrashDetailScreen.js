@@ -22,7 +22,7 @@ export default function CrashDetailScreen({ route, navigation }) {
   const { crash } = route.params;
 
 
-  const fetchTrajectoryImage = async () => {
+  {/*const fetchTrajectoryImage = async () => {
     setIsLoading(true);
     console.log('Fetching trajectory image...');
     const url = 'http://127.0.0.1:8000/traj_image/';
@@ -37,9 +37,10 @@ export default function CrashDetailScreen({ route, navigation }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }; */}
 
-  {/*const fetchTrajectoryImage = async (locations) => {
+  const fetchTrajectoryImage = async (locations) => {
+    setIsLoading(true);
     console.log("Sending locations to backend for image generation in details screen", locations);
     const url = `http://127.0.0.1:8000/traj_image_live/`;
     try {
@@ -56,7 +57,7 @@ export default function CrashDetailScreen({ route, navigation }) {
     } finally {
       setIsLoading(false);
     }
-  }; */}
+  };
 
   return (
     <LinearGradient colors={['#121212', '#1E1E1E', '#292929']} style={styles.container}>
@@ -81,7 +82,7 @@ export default function CrashDetailScreen({ route, navigation }) {
         {!trajectoryImage && (
           <TouchableOpacity 
             style={styles.button} 
-            onPress={fetchTrajectoryImage}
+            onPress={() => fetchTrajectoryImage(crash.location)}
             disabled={isLoading}
           >
             {isLoading ? (
