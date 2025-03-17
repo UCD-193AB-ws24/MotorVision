@@ -11,6 +11,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
+
 
 export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState("");
@@ -18,6 +20,7 @@ export default function CrashDetailScreen({ route, navigation }) {
   const [isImageVisible, setIsImageVisible] = useState(false);
 
   const { crash } = route.params;
+
 
   const fetchTrajectoryImage = async () => {
     setIsLoading(true);
@@ -35,6 +38,25 @@ export default function CrashDetailScreen({ route, navigation }) {
       setIsLoading(false);
     }
   };
+
+  {/*const fetchTrajectoryImage = async (locations) => {
+    console.log("Sending locations to backend for image generation in details screen", locations);
+    const url = `http://127.0.0.1:8000/traj_image_live/`;
+    try {
+      const response = await axios.post(url, { locations});
+      console.log("Server response for image generation in details screen", response.data);
+      let base64 = response.data.image_data;
+      let imageUrl = `data:image/png;base64,${base64}`;
+      setTrajectoryImage(imageUrl);
+      setIsImageVisible(true);
+      // setServerResponse(response.data);
+    } catch (error) {
+      console.error("Error sending location for image generation in details screen:", error);
+      // setServerResponse("Error sending location for image generation in details screen");
+    } finally {
+      setIsLoading(false);
+    }
+  }; */}
 
   return (
     <LinearGradient colors={['#121212', '#1E1E1E', '#292929']} style={styles.container}>
@@ -54,6 +76,7 @@ export default function CrashDetailScreen({ route, navigation }) {
           <Text style={styles.info}>⚠️ Details: {crash.details}</Text>
         </View>
 
+        
         {/* Load Image Button */}
         {!trajectoryImage && (
           <TouchableOpacity 
@@ -64,7 +87,7 @@ export default function CrashDetailScreen({ route, navigation }) {
             {isLoading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>LOAD IMAGE</Text>
+              <Text style={styles.buttonText}>SHOW IMAGE</Text>
             )}
           </TouchableOpacity>
         )}

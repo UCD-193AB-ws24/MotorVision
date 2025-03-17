@@ -23,5 +23,6 @@ urlpatterns = [
     path("connect/", include('api.urls')),
     path("traj_image/", include('api.urls')),
     path("live_loc/", include('api.urls')),
-    path("location_array/", include('api.urls'))
+    path("location_array/", include('api.urls')), 
+    path("traj_image_live", include('api.urls'))
 ]

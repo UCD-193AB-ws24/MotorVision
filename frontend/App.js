@@ -17,6 +17,8 @@ import CrashRecordingScreen from "./screens/CrashRecordingScreen";
 import { LineGraph } from "./screens/LineGraph";
 import StatDetails from "./screens/StatsDetails";
 
+import SettingsScreen from "./screens/SettingsScreen";
+
 // Create Stack Navigator for Home Screen (Connect to Device)
 const HomeScreenStack = createStackNavigator();
 function HomeScreenNavigator() {
@@ -29,14 +31,6 @@ function HomeScreenNavigator() {
   );
 }
 
-const SettingsStack = createStackNavigator();
-function SettingsNavigator() {
-  return (
-    <SettingsNavigator.Navigator screenOptions={{ headerShown: false }}>
-      <SettingsNavigator.Screen name="SettingsScreen" component={SettingsScreen} />
-    </SettingsNavigator.Navigator>
-  );
-}
 
 // Create Stack Navigator for Crash Data (Crash Logs + Crash Recording)
 const CrashStack = createStackNavigator();
@@ -62,6 +56,15 @@ function StatsStackNavigator() {
     </StatsStack.Navigator>
   );
 }
+
+const SettingsStack = createStackNavigator();
+function SettingsNavigator() {
+  return (
+    <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+      <SettingsStack.Screen name="SettingsScreen" component={SettingsScreen} />
+    </SettingsStack.Navigator>
+  );
+}
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
@@ -80,6 +83,8 @@ export default function App() {
               iconName = "bar-chart-outline";
             } else if (route.name === "Crash Data") {
               iconName = "alert-circle-outline";
+            } else if (route.name === "Settings") {
+              iconName =  "settings";
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -93,6 +98,7 @@ export default function App() {
         <Tab.Screen name="Stats" component={StatsStackNavigator} />
         <Tab.Screen name="Home" component={HomeScreenNavigator} />
         <Tab.Screen name="Crash Data" component={CrashStackNavigator} />
+        <Tab.Screen name="Settings" component={SettingsNavigator} />
       </Tab.Navigator>
     </NavigationContainer>
   );

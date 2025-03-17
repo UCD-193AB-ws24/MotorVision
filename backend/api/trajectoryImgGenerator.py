@@ -8,6 +8,8 @@ import os
 import scipy.signal
 import folium
 
+# these are all the predefined functions
+
 def getOptimalZoom(min_lat, max_lat, min_lon, max_lon):
     """
     Estimate an appropriate zoom level based on the bounding box of lat/lon coordinates.
@@ -153,7 +155,6 @@ def simulate_motorcyclist_trajectory(duration_mins=5, spacing_secs=0.4, start_la
 
     return df
 
-
 # Get the trajectory dataframe 
 def image_generator(csv_input, html_output, png_output, sim_duration, spacing):
     csv_file =  os.path.join(os.path.dirname(__file__), csv_input)
@@ -171,6 +172,67 @@ def image_generator(csv_input, html_output, png_output, sim_duration, spacing):
 
     return output_png_file
 
+# TODO for the live shit
+# num_points is how many values we have
+"""
+csv_input = ???
+html_output = where file goes
+png_output = where file goes
+sim_duration = get this from time
+spacing = can be some buillshit right now
+
+(if length == 1, if start == length & start == mid)
+- things to do before:
+    - generate csv name
+    - generate html name
+    - generate png name
+    - get the duration INPUT
+    - determine the spacing according to number of points and duration
+    - get the start latitude INPUT
+    - get the start longitude INPUT
+- send the following: 
+
+(if length != 1)
+
+"""
+
+# this is if i have the same points or if i only have the start
+def image_generator_live_start(csv_input_name, html_output_name, png_output_name, sim_duration, spacing, start_latitude, start_longitude):
+   
+    # this is where the if st atement should be 
+    df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_lon=start_longitude)
+
+    # create the csv storage
+    # Run the html/image generators -> this doesn't change
+    csv_file =  os.path.join(os.path.dirname(__file__), csv_input_name)
+    df.to_csv(csv_file)
+    output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
+    output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
+
+    plotHtmlMapFromDataframe(df, output_html_file)
+    convertHtmlToPng(input_html=output_html_file, output_png=output_png_file)
+
+    return output_png_file
+
+# this is if i have all live posts
+def image_generator_live_list(csv_input_name, html_output_name, png_output_name, sim_duration, spacing, location_data):
+
+    # don't need to create df anymore
+    # df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_long=start_longitude)
+    # TODO: create 
+    # create the csv storage
+    # Run the html/image generators -> this doesn't change
+    csv_file =  os.path.join(os.path.dirname(__file__), csv_input_name)
+    df = pd.to_csv(csv_file)
+    output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
+    output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
+
+    plotHtmlMapFromDataframe(df, output_html_file)
+    convertHtmlToPng(input_html=output_html_file, output_png=output_png_file)
+
+    return output_png_file
+
+
 """
 # Get the trajectory dataframe
 def simulation(csv_input, html_output, png_output, sim_duration, spacing):
@@ -185,6 +247,8 @@ def simulation(csv_input, html_output, png_output, sim_duration, spacing):
     plotHtmlMapFromDataframe(df, output_html_file)
     convertHtmlToPng(input_html=output_html_file, output_png=output_png_file)
 """
+
+
 print("Running simulation function")
 res = image_generator("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5 )
 print("Result from simulation: ", res)
