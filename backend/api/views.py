@@ -107,10 +107,14 @@ def traj_image_live(request):
     print("Determining if there is enough data to create a trajectory image...")
     print()
 
-        
+    timestamp = timestamps[0].replace(":", "-").replace(".", "_")
     if len(locations_array) == 1:
         print("Only have starting point. Creating a random simulation...")
-        res = image_generator_live_start("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5, latitudes[0], longitudes[0])
+        csv_name = "Motorcylist_Trajectory_" + timestamp + ".csv"
+        html_name = "motorcyclist_trajectory_map" + timestamp + ".html"
+        screenshot_name =  "motorcyclist_trajectory_map_screenshot" + timestamp + ".html"
+        print("These are the file names as calculated in views")
+        res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, latitudes[0], longitudes[0])
         print("Created mock simulation with starting point.")
         with open(res, 'rb') as img_file:
             img_data = base64.b64encode(img_file.read()).decode('utf-8')

@@ -7,6 +7,8 @@ import time
 import os
 import scipy.signal
 import folium
+import csv
+from PIL import Image
 
 # these are all the predefined functions
 
@@ -174,27 +176,6 @@ def image_generator(csv_input, html_output, png_output, sim_duration, spacing):
 
 # TODO for the live shit
 # num_points is how many values we have
-"""
-csv_input = ???
-html_output = where file goes
-png_output = where file goes
-sim_duration = get this from time
-spacing = can be some buillshit right now
-
-(if length == 1, if start == length & start == mid)
-- things to do before:
-    - generate csv name
-    - generate html name
-    - generate png name
-    - get the duration INPUT
-    - determine the spacing according to number of points and duration
-    - get the start latitude INPUT
-    - get the start longitude INPUT
-- send the following: 
-
-(if length != 1)
-
-"""
 
 # this is if i have the same points or if i only have the start
 def image_generator_live_start(csv_input_name, html_output_name, png_output_name, sim_duration, spacing, start_latitude, start_longitude):
@@ -202,10 +183,50 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
     # this is where the if st atement should be 
     df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_lon=start_longitude)
 
-    # create the csv storage
-    # Run the html/image generators -> this doesn't change
-    csv_file =  os.path.join(os.path.dirname(__file__), csv_input_name)
-    df.to_csv(csv_file)
+    # 1 - create the csv storage
+    # Run the html/image generators -> this doesn't change\
+    print("This is the name I have chosen for csv input", csv_input_name)
+    csv_file = os.path.join(os.getcwd(), csv_input_name)  # Saves in current working directory
+    print("This is the total name before I call to_csv", csv_file)
+    df.to_csv(csv_file, index=False, encoding="utf-8", mode="w")
+
+    full_path = os.path.abspath(csv_file)
+    print("CSV file saved at:", full_path)
+
+    if not html_output_name.endswith(".html"):
+        html_output_name += ".html"
+    
+    # Define basic HTML content
+    html_content = """<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+</head>
+<body>
+    <h1>Welcome to My Page</h1>
+    <p>This is a sample HTML file.</p>
+</body>
+</html>"""
+
+    # 2 - Create and write to the HTML file
+    with open(html_output_name, "w", encoding="utf-8") as file:
+        file.write(html_content)
+    
+    print(f"HTML file '{html_output_name}' created successfully.")
+
+
+    # 3 - create a png file
+    if not png_output_name.endswith(".png"):
+        png_output_name += ".png"
+    
+    # Create a blank image with the specified color
+    img = Image.new("RGB", (500, 500), color=(255, 255, 255))
+
+    # Save the image
+    img.save(png_output_name)
+
+    print(f"Blank PNG file '{png_output_name}' created successfully.")
+
     output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
     output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
 
@@ -250,5 +271,5 @@ def simulation(csv_input, html_output, png_output, sim_duration, spacing):
 
 
 print("Running simulation function")
-res = image_generator("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5 )
+res = image_generator_live_start("Motorcyclist_Trajectory_2.csv", "motorcyclist_trajectory_map_2.html", "motorcyclist_trajectory_map_screenshot_2.png", 10, 5, 37.7749, -122.4194)
 print("Result from simulation: ", res)
