@@ -181,6 +181,8 @@ def image_generator(csv_input, html_output, png_output, sim_duration, spacing):
 def image_generator_live_start(csv_input_name, html_output_name, png_output_name, sim_duration, spacing, start_latitude, start_longitude):
    
     # this is where the if st atement should be 
+
+    
     df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_lon=start_longitude)
 
     # 1 - create the csv storage
@@ -244,15 +246,69 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
     return output_png_file
 
 # this is if i have all live posts
-def image_generator_live_list(csv_input_name, html_output_name, png_output_name, sim_duration, spacing, location_data):
+def image_generator_live_list(csv_input_name, html_output_name, png_output_name, timestamps, latitudes, longitudes):
 
-    # don't need to create df anymore
-    # df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_long=start_longitude)
-    # TODO: create 
-    # create the csv storage
-    # Run the html/image generators -> this doesn't change
-    csv_file =  os.path.join(os.path.dirname(__file__), csv_input_name)
-    df = pd.to_csv(csv_file)
+    # so the df has to be changed, where 
+    # df = simulate_motorcyclist_trajectory(duration_mins=sim_duration, spacing_secs=spacing, start_lat=start_latitude, start_lon=start_longitude)
+
+    # creating the dataframe from this 
+    df = pd.DataFrame({
+        "Timestamp": timestamps,
+        "Latitude": latitudes,
+        "Longitude": longitudes
+    })
+    # 1 - create the csv storage
+    # Run the html/image generators -> this doesn't change\
+    print("This is the name I have chosen for csv input", csv_input_name)
+
+    folder_name = f"{csv_input_name}"
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+
+    # adding to a folder
+    csv_file = os.path.join(folder_path, csv_input_name)  # Saves in current working directory
+    print("This is the total name before I call to_csv", csv_file)
+    df.to_csv(csv_file, index=False, encoding="utf-8", mode="w")
+
+    full_path = os.path.abspath(csv_file)
+    print("CSV file saved at:", full_path)
+
+    if not html_output_name.endswith(".html"):
+        html_output_name += ".html"
+    
+    html_file = os.path.join(folder_path, html_output_name)
+    # Define basic HTML content
+    html_content = """<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+</head>
+<body>
+    <h1>Welcome to My Page</h1>
+    <p>This is a sample HTML file.</p>
+</body>
+</html>"""
+
+    # 2 - Create and write to the HTML file
+    with open(html_file, "w", encoding="utf-8") as file:
+        file.write(html_content)
+    
+    print(f"HTML file '{html_file}' created successfully.")
+
+
+    # 3 - create a png file
+    if not png_output_name.endswith(".png"):
+        png_output_name += ".png"
+    
+    png_file = os.path.join(folder_path, png_output_name)
+    # Create a blank image with the specified color
+    img = Image.new("RGB", (500, 500), color=(255, 255, 255))
+
+    # Save the image
+    img.save(png_file)
+
+    print(f"Blank PNG file '{png_file}' created successfully.")
+
     output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
     output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
 
@@ -278,6 +334,6 @@ def simulation(csv_input, html_output, png_output, sim_duration, spacing):
 """
 
 
-print("Running simulation function")
+# print("Running simulation function")
 # res = image_generator_live_start("Motorcyclist_Trajectory_2.csv", "motorcyclist_trajectory_map_2.html", "motorcyclist_trajectory_map_screenshot_2.png", 10, 5, 37.7749, -122.4194)
 # print("Result from simulation: ", res)

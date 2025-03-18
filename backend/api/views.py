@@ -7,7 +7,7 @@ from django.http import FileResponse
 # import serial
 import threading # import from BluetoothReaderSimulation
 from .bluetooth_reader_sim import BluetoothReaderSimulation
-from .trajectoryImgGenerator import image_generator
+from .trajectoryImgGenerator import image_generator, image_generator_live_list
 from .trajectoryImgGenerator import image_generator_live_start
 
 
@@ -119,7 +119,6 @@ def traj_image_live(request):
         print("Created mock simulation with starting point.")
         with open(res, 'rb') as img_file:
             img_data = base64.b64encode(img_file.read()).decode('utf-8')
-        return Response({'image_data': img_data})
     else:
         # seeing if there was enough movvement
         if len(locations_array) > 3:
@@ -130,21 +129,26 @@ def traj_image_live(request):
                     print("Created mock simulation with starting point.")
                     with open(res, 'rb') as img_file:
                         img_data = base64.b64encode(img_file.read()).decode('utf-8')
-                    return Response({'image_data': img_data})
+                    
             else:
                 # TODO: determine duration
                 # TODO: change list function
                 # TODO: change how to call it?
                 print("There exists enough data to create a trajectory image. Creating trajectory image...")
+                res = image_generator_live_list(csv_name, html_name, screenshot_name, timestamps, latitudes, longitudes)
+                print("Created real image with real data")
+                with open(res, 'rb') as img_file:
+                    img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                
         else:
             print("Not enough points. Creating a random trajectory image...")
             res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, latitudes[0], longitudes[0])
             print("Created mock simulation with starting point.")
             with open(res, 'rb') as img_file:
                 img_data = base64.b64encode(img_file.read()).decode('utf-8')
-            return Response({'image_data': img_data})
+            
 
-    return Response({"loc_array": data})
+    return Response({'image_data': img_data})
     
 @api_view(['POST'])
 def crash_prediction(request):
