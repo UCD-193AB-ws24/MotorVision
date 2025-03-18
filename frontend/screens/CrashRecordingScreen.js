@@ -57,7 +57,7 @@ export default function CrashRecordingScreen({ navigation }) {
   // Send locations for image generation
   const imageGeneration = async (locations) => {
     console.log("Sending locations to backend for image generation", locations);
-    const url = `http://127.0.0.1:8000/traj_image_live/`;
+    const url = `http://3.147.83.156:8000//traj_image_live/`;
     try {
       const response = await axios.post(url, { locations });
       console.log("Server response for image generation", response.data);
