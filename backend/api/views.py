@@ -88,7 +88,7 @@ def traj_image_live(request):
 
     data = request.data  # Extract JSON payload from request body
     print()
-    print("Stop buttong pressed - backend processing for trajectory image...", data)
+    print("Stop button pressed - backend processing for trajectory image...", data)
 
     locations_array = data["locations"]
     if len(locations_array) == 0:
@@ -108,27 +108,41 @@ def traj_image_live(request):
     print()
 
     timestamp = timestamps[0].replace(":", "-").replace(".", "_")
+    csv_name = "Motorcylist_Trajectory_" + timestamp + ".csv"
+    html_name = "motorcyclist_trajectory_map_" + timestamp + ".html"
+    screenshot_name =  "motorcyclist_trajectory_map_screenshot_" + timestamp + ".html"
+
     if len(locations_array) == 1:
         print("Only have starting point. Creating a random simulation...")
-        csv_name = "Motorcylist_Trajectory_" + timestamp + ".csv"
-        html_name = "motorcyclist_trajectory_map" + timestamp + ".html"
-        screenshot_name =  "motorcyclist_trajectory_map_screenshot" + timestamp + ".html"
-        print("These are the file names as calculated in views")
+        # calling the image generation script
         res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, latitudes[0], longitudes[0])
         print("Created mock simulation with starting point.")
         with open(res, 'rb') as img_file:
             img_data = base64.b64encode(img_file.read()).decode('utf-8')
         return Response({'image_data': img_data})
     else:
-        # TODO: determine the duration
+        # seeing if there was enough movvement
         if len(locations_array) > 3:
             if (latitudes[0] == latitudes[-1]) and (latitudes[0] == latitudes[len(latitudes)/2]):
                 if (longitudes[0] == longitudes[-1]) and (longitudes[0] == longitudes[len(longitudes)/2]):
-                    print("Not enough movement. Creating a random trajectory image...")
+                    print("Not enough movement or change in trajectory. Creating a random trajectory image...")
+                    res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, latitudes[0], longitudes[0])
+                    print("Created mock simulation with starting point.")
+                    with open(res, 'rb') as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                    return Response({'image_data': img_data})
             else:
+                # TODO: determine duration
+                # TODO: change list function
+                # TODO: change how to call it?
                 print("There exists enough data to create a trajectory image. Creating trajectory image...")
         else:
-            print("Not enough movement. Creating a random trajectory image...")
+            print("Not enough points. Creating a random trajectory image...")
+            res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, latitudes[0], longitudes[0])
+            print("Created mock simulation with starting point.")
+            with open(res, 'rb') as img_file:
+                img_data = base64.b64encode(img_file.read()).decode('utf-8')
+            return Response({'image_data': img_data})
 
     return Response({"loc_array": data})
     

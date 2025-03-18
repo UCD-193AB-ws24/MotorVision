@@ -186,7 +186,13 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
     # 1 - create the csv storage
     # Run the html/image generators -> this doesn't change\
     print("This is the name I have chosen for csv input", csv_input_name)
-    csv_file = os.path.join(os.getcwd(), csv_input_name)  # Saves in current working directory
+
+    folder_name = f"{csv_input_name}"
+    folder_path = os.path.join(os.getcwd(), folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+
+    # adding to a folder
+    csv_file = os.path.join(folder_path, csv_input_name)  # Saves in current working directory
     print("This is the total name before I call to_csv", csv_file)
     df.to_csv(csv_file, index=False, encoding="utf-8", mode="w")
 
@@ -196,6 +202,7 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
     if not html_output_name.endswith(".html"):
         html_output_name += ".html"
     
+    html_file = os.path.join(folder_path, html_output_name)
     # Define basic HTML content
     html_content = """<!DOCTYPE html>
 <html>
@@ -209,23 +216,24 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
 </html>"""
 
     # 2 - Create and write to the HTML file
-    with open(html_output_name, "w", encoding="utf-8") as file:
+    with open(html_file, "w", encoding="utf-8") as file:
         file.write(html_content)
     
-    print(f"HTML file '{html_output_name}' created successfully.")
+    print(f"HTML file '{html_file}' created successfully.")
 
 
     # 3 - create a png file
     if not png_output_name.endswith(".png"):
         png_output_name += ".png"
     
+    png_file = os.path.join(folder_path, png_output_name)
     # Create a blank image with the specified color
     img = Image.new("RGB", (500, 500), color=(255, 255, 255))
 
     # Save the image
-    img.save(png_output_name)
+    img.save(png_file)
 
-    print(f"Blank PNG file '{png_output_name}' created successfully.")
+    print(f"Blank PNG file '{png_file}' created successfully.")
 
     output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
     output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
@@ -271,5 +279,5 @@ def simulation(csv_input, html_output, png_output, sim_duration, spacing):
 
 
 print("Running simulation function")
-res = image_generator_live_start("Motorcyclist_Trajectory_2.csv", "motorcyclist_trajectory_map_2.html", "motorcyclist_trajectory_map_screenshot_2.png", 10, 5, 37.7749, -122.4194)
-print("Result from simulation: ", res)
+# res = image_generator_live_start("Motorcyclist_Trajectory_2.csv", "motorcyclist_trajectory_map_2.html", "motorcyclist_trajectory_map_screenshot_2.png", 10, 5, 37.7749, -122.4194)
+# print("Result from simulation: ", res)
