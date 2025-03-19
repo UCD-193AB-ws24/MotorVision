@@ -42,7 +42,7 @@ export default function CrashDetailScreen({ route, navigation }) {
   const fetchTrajectoryImage = async (locations) => {
     setIsLoading(true);
     console.log("Sending locations to backend for image generation in details screen", locations);
-    const url = `http://127.0.0.1:8000/traj_image_live/`;
+    const url = `http://3.147.83.156:8000/traj_image_live/`;
     try {
       const response = await axios.post(url, { locations});
       console.log("Server response for image generation in details screen", response.data);

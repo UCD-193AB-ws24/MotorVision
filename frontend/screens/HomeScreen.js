@@ -35,7 +35,7 @@ const SmartHelmetButton = () => {
 
     try {
       // Make the API call here (replace with your actual endpoint)
-      const response = await axios.get('http://127.0.0.1:8000/connect/');
+      const response = await axios.get('http://3.147.83.156:8000/connect/');
       
       // Assume the response has a boolean field `success`
       const isConnected = response.data.message;
