@@ -9,6 +9,7 @@ export const useBluetoothStore = create((set) => ({
     { id: '3', name: 'GPS Unit' }
   ],
   crashLogs: [],
+  tripActive: false, // Track whether trip is active
   connectToDevice: (device) =>
     set({ connectedDevice: device }),
   disconnectDevice: () =>
@@ -18,5 +19,7 @@ export const useBluetoothStore = create((set) => ({
       crashLogs: [...state.crashLogs, data]
     })),
   clearCrashLogs: () =>
-    set({ crashLogs: [] })
+    set({ crashLogs: [] }),
+  setTripActive: (active) =>
+    set({ tripActive: active }),
 }));

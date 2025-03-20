@@ -1,18 +1,21 @@
-// NavigationScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { useBluetoothStore } from '../store/bluetoothStore';
 
 export default function NavigationScreen() {
   const [region, setRegion] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
+
+  // Zustand state for trip status
+  const tripActive = useBluetoothStore((state) => state.tripActive);
+  const setTripActive = useBluetoothStore((state) => state.setTripActive);
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
+        Alert.alert('Permission to access location was denied');
         return;
       }
 
@@ -26,35 +29,53 @@ export default function NavigationScreen() {
     })();
   }, []);
 
-  if (errorMsg) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{errorMsg}</Text>
-      </View>
-    );
-  }
+  // Handle Start/End Trip
+  const handleStartTrip = () => {
+    if (tripActive) {
+      Alert.alert('Trip Ended', 'Trip tracking has been stopped.');
+    } else {
+      Alert.alert('Trip Started', 'Trip tracking has begun!');
+    }
+    setTripActive(!tripActive);
+  };
 
   if (!region) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0A84FF" />
+        <Text style={styles.loadingText}>Loading map...</Text>
       </View>
     );
   }
 
   return (
-    <MapView 
-      style={styles.map}
-      region={region}
-      showsUserLocation={true}
-      followsUserLocation={true}
-    >
-      <Marker coordinate={region} title="You are here" />
-    </MapView>
+    <View style={styles.container}>
+      {/* Map */}
+      <MapView 
+        style={styles.map}
+        region={region}
+        showsUserLocation={true}
+        followsUserLocation={true}
+      >
+        <Marker coordinate={region} title="You are here" />
+      </MapView>
+
+      {/* Start Trip Button (Overlay) */}
+      <TouchableOpacity
+        style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
+        onPress={handleStartTrip}
+      >
+        <Text style={styles.startTripText}>
+          {tripActive ? 'End Trip' : 'Start Trip'}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   map: {
     flex: 1,
   },
@@ -64,9 +85,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#121212',
   },
-  errorText: {
-    color: '#FF3B30',
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  startTripButton: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: '#0A84FF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    shadowColor: '#0A84FF',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5, // Shadow for Android
+  },
+  activeButton: {
+    backgroundColor: '#FF3B30', // Red color when trip is active
+  },
+  startTripText: {
+    color: '#fff',
     fontSize: 16,
-    marginBottom: 20,
+    fontWeight: 'bold',
   },
 });

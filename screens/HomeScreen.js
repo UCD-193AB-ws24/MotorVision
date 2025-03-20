@@ -16,7 +16,7 @@ export default function HomeScreen({ navigation }) {
       setSpeed((Math.random() * 60).toFixed(1));
       setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
       setTripDuration((prev) => prev + 1);
-    }, 1000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, []);
