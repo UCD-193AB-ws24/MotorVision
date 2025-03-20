@@ -1,15 +1,18 @@
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import HomeScreen from './screens/HomeScreen';
 import NavigationScreen from './screens/NavigationScreen';
 import RideInsightsScreen from './screens/RideInsightsScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import CrashLogsScreen from './screens/CrashLogsScreen'; // Import Crash Logs Screen
+import CrashLogsScreen from './screens/CrashLogsScreen';
+import CrashDetailScreen from './screens/CrashDetailScreen'; // Import Crash Detail Screen
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 const DarkTheme = {
   ...DefaultTheme,
@@ -22,6 +25,16 @@ const DarkTheme = {
     notification: '#0A84FF',
   },
 };
+
+// Stack for Crash Logs + Crash Detail
+function CrashStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CrashLogs" component={CrashLogsScreen} />
+      <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -47,7 +60,7 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Navigation" component={NavigationScreen} />
         <Tab.Screen name="Insights" component={RideInsightsScreen} />
-        <Tab.Screen name="Crash Logs" component={CrashLogsScreen} />
+        <Tab.Screen name="Crash Logs" component={CrashStack} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>

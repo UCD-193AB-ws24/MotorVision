@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
+import * as Location from 'expo-location';
 
-const THRESHOLD = 25;
+const THRESHOLD = 25; // Adjusted to reduce sensitivity
 const CRASH_COOLDOWN_MS = 3000;
 
 export const useCrashDetection = () => {
@@ -16,7 +17,7 @@ export const useCrashDetection = () => {
     let subscription;
 
     const subscribe = () => {
-      subscription = Accelerometer.addListener(({ x, y, z }) => {
+      subscription = Accelerometer.addListener(async ({ x, y, z }) => {
         if (!tripActive) return; // Only detect if trip is active
 
         const acceleration = Math.sqrt(x * x + y * y + z * z);
@@ -29,11 +30,26 @@ export const useCrashDetection = () => {
           setIsCrashed(true);
           lastCrashTime = Date.now();
 
-          // Save crash log to AsyncStorage and Zustand
+          let location = null;
+          try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+              const position = await Location.getCurrentPositionAsync({});
+              location = {
+                latitude: position.coords.latitude.toFixed(4),
+                longitude: position.coords.longitude.toFixed(4),
+              };
+            }
+          } catch (error) {
+            console.error('Error getting location:', error);
+          }
+
+          // Save crash log with location (if available)
           addCrashLog({
-            id: Date.now().toString(), // Unique ID
+            id: Date.now().toString(),
             time: new Date().toLocaleString(),
             acceleration: acceleration.toFixed(2),
+            location, // Include location in the log
           });
 
           setTimeout(() => setIsCrashed(false), 5000);

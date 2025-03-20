@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function CrashLogsScreen() {
+export default function CrashLogsScreen({ navigation }) {
   const crashLogs = useBluetoothStore((state) => state.crashLogs);
   const loadCrashLogs = useBluetoothStore((state) => state.loadCrashLogs);
   const deleteCrashLog = useBluetoothStore((state) => state.deleteCrashLog);
@@ -46,9 +46,24 @@ export default function CrashLogsScreen() {
           data={crashLogs}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.logItem}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CrashDetail', { crash: item })}
+              style={styles.logItem}
+            >
               <View style={styles.logDetails}>
+                {/* Date */}
                 <Text style={styles.logText}>📅 {item.time}</Text>
+                
+                {/* Location (if available) */}
+                {item.location ? (
+                  <Text style={styles.logText}>
+                    🌍 {item.location.latitude}°, {item.location.longitude}°
+                  </Text>
+                ) : (
+                  <Text style={styles.logText}>🌍 Location: Not available</Text>
+                )}
+
+                {/* Acceleration */}
                 <Text style={styles.logText}>⚡ Acceleration: {item.acceleration} m/s²</Text>
               </View>
 
@@ -61,7 +76,7 @@ export default function CrashLogsScreen() {
                   style={styles.trashIcon}
                 />
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -95,14 +110,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center', // Align delete icon to the center
+    alignItems: 'center',
   },
   logDetails: {
-    flexShrink: 1, // Prevent text from overflowing
+    flexShrink: 1,
   },
   logText: {
     color: '#ffffff',
     fontSize: 16,
+    marginBottom: 4,
   },
   emptyText: {
     color: '#888',
@@ -119,9 +135,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#FF3B30',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
   },
   clearButtonText: {
     color: '#ffffff',
