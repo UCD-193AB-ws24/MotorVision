@@ -1,25 +1,23 @@
 // HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen({ navigation }) {
-  // Mock state to simulate real-time data
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
   const [tripDuration, setTripDuration] = useState(0);
 
-  // Simulate real-time data updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setSpeed((Math.random() * 60).toFixed(1)); // Simulate random speed
-      setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100)); // Decreasing battery
-      setTripDuration((prev) => prev + 1); // Increment trip duration each second
-    }, 1000);
+      setSpeed((Math.random() * 60).toFixed(1));
+      setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
+      setTripDuration((prev) => prev + 1);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Convert seconds to HH:MM:SS
   const formatDuration = (secs) => {
     const hrs = Math.floor(secs / 3600);
     const mins = Math.floor((secs % 3600) / 60);
@@ -29,23 +27,25 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>🏍️ MotorVision Dashboard</Text>
+      <StatusBar style="light" />
 
-      <View style={styles.statContainer}>
-        <Text style={styles.stat}>⚡ Battery: {battery}%</Text>
-        <Text style={styles.stat}>🚀 Speed: {speed} mph</Text>
-        <Text style={styles.stat}>⏱️ Duration: {formatDuration(tripDuration)}</Text>
+      <Text style={styles.header}>MotorVision</Text>
+
+      <View style={styles.statCard}>
+        <Text style={styles.mainStat}>{speed}</Text>
+        <Text style={styles.unit}>mph</Text>
+      </View>
+
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
+        <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
       </View>
 
       <TouchableOpacity
-        style={styles.button}
+        style={styles.voiceButton}
         onPress={() => navigation.navigate('Navigation')}
       >
-        <Text style={styles.buttonText}>🗺️ Start Navigation</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.voiceButton}>
-        <Text style={styles.buttonText}>🎙️ Activate Voice Command</Text>
+        <Ionicons name="mic" size={32} color="#ffffff" />
       </TouchableOpacity>
     </View>
   );
@@ -54,44 +54,67 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 80,
     alignItems: 'center',
-    backgroundColor: '#f5f7fa',
+    justifyContent: 'center',
+    backgroundColor: '#121212',
+    padding: 20,
   },
   header: {
-    fontSize: 26,
+    color: '#fff',
+    fontSize: 30,
     fontWeight: 'bold',
     marginBottom: 50,
   },
-  statContainer: {
+  statCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    marginBottom: 30,
     width: '80%',
+    shadowColor: '#000',
+    shadowOpacity: 0.7,
+    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  mainStat: {
+    color: '#ffffff',
+    fontSize: 60,
+    fontWeight: '200',
+  },
+  unit: {
+    color: '#888',
+    fontSize: 18,
+  },
+  infoContainer: {
+    backgroundColor: '#1E1E1E',
     padding: 20,
-    backgroundColor: '#ffffff',
     borderRadius: 15,
-    shadowOpacity: 0.2,
+    width: '80%',
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
     elevation: 5,
-    marginBottom: 40,
   },
-  stat: {
-    fontSize: 20,
-    marginVertical: 10,
-  },
-  button: {
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    backgroundColor: '#4b7bec',
-    borderRadius: 12,
-    marginBottom: 15,
+  infoText: {
+    color: '#ccc',
+    fontSize: 18,
+    marginVertical: 4,
   },
   voiceButton: {
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    backgroundColor: '#20bf6b',
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#0A84FF',
+    shadowColor: '#0A84FF',
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
   },
 });
