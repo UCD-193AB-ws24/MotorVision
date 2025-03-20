@@ -1,4 +1,3 @@
-// hooks/useCrashDetection.js
 import { useEffect, useState } from 'react';
 import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
@@ -9,7 +8,7 @@ const CRASH_COOLDOWN_MS = 3000;
 export const useCrashDetection = () => {
   const [isCrashed, setIsCrashed] = useState(false);
   const addCrashLog = useBluetoothStore((state) => state.addCrashLog);
-  const tripActive = useBluetoothStore((state) => state.tripActive); // Access trip state
+  const tripActive = useBluetoothStore((state) => state.tripActive);
 
   let lastCrashTime = 0;
 
@@ -18,7 +17,7 @@ export const useCrashDetection = () => {
 
     const subscribe = () => {
       subscription = Accelerometer.addListener(({ x, y, z }) => {
-        if (!tripActive) return; // 🚨 Only detect crashes when trip is active
+        if (!tripActive) return; // Only detect if trip is active
 
         const acceleration = Math.sqrt(x * x + y * y + z * z);
 
@@ -30,8 +29,9 @@ export const useCrashDetection = () => {
           setIsCrashed(true);
           lastCrashTime = Date.now();
 
-          // Save crash log to Zustand
+          // Save crash log to AsyncStorage and Zustand
           addCrashLog({
+            id: Date.now().toString(), // Unique ID
             time: new Date().toLocaleString(),
             acceleration: acceleration.toFixed(2),
           });
