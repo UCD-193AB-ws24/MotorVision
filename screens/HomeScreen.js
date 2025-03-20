@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert } from 'react-native';
 import { useCrashDetection } from '../hooks/useCrashDetection';
+import { useBluetoothStore } from '../store/bluetoothStore';
+import * as Location from 'expo-location';
+import axios from 'axios';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
   const [tripDuration, setTripDuration] = useState(0);
-
-  // Crash Detection Hook
   const isCrashed = useCrashDetection();
 
   useEffect(() => {
@@ -21,7 +21,6 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle Crash Detection Alert
   useEffect(() => {
     if (isCrashed) {
       Alert.alert(
@@ -35,7 +34,6 @@ export default function HomeScreen({ navigation }) {
     }
   }, [isCrashed]);
 
-  // Simulated Crash Report
   const sendCrashReport = () => {
     console.log('🚨 Sending crash report...');
     Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
@@ -48,12 +46,87 @@ export default function HomeScreen({ navigation }) {
     return `${hrs}:${mins.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
   };
 
+  // 🌍 Live Location
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 5000,
+            distanceInterval: 2,
+          },
+          (position) => {
+            setLocation({
+              latitude: position.coords.latitude.toFixed(2),
+              longitude: position.coords.longitude.toFixed(2),
+            });
+          }
+        );
+      }
+    };
+
+    requestLocationPermission();
+  }, []);
+
+  // Bluetooth Connection Button
+  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleButtonPress = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.get('http://127.0.0.1:8000/connect/');
+      setButtonText(response.data.message);
+    } catch (err) {
+      setError('Error with API/Bluetooth Connection: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
+  const rotateValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const startRotation = () => {
+      Animated.timing(rotateValue, {
+        toValue: 1,
+        duration: 8000, // Slow down rotation to 8 seconds
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(() => {
+        // Reset and wait 5 seconds before next rotation
+        rotateValue.setValue(0);
+        setTimeout(startRotation, 5000); // Longer delay between rotations
+      });
+    };
+
+    // Start the first rotation after a brief delay
+    setTimeout(startRotation, 2000);
+
+    return () => rotateValue.setValue(0);
+  }, []);
+
+  const rotateInterpolation = rotateValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['360deg', '0deg'], // Reverse direction (counterclockwise)
+  });
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
+      {/* Header */}
       <Text style={styles.header}>MotorVision</Text>
 
+      {/* Speed + Battery */}
       <View style={styles.statCard}>
         <Text style={styles.mainStat}>{speed}</Text>
         <Text style={styles.unit}>mph</Text>
@@ -62,18 +135,27 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
         <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
+        {location && (
+          <Text style={styles.infoText}>
+            🌍 {location.latitude}°, {location.longitude}°
+          </Text>
+        )}
       </View>
 
-      {/* Crash Alert Indicator */}
-      {isCrashed && (
-        <Text style={styles.crashText}>⚠️ Crash Detected!</Text>
-      )}
+      {/* Crash Alert */}
+      {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
 
-      <TouchableOpacity
-        style={styles.voiceButton}
-        onPress={() => navigation.navigate('Navigation')}
-      >
-        <Ionicons name="mic" size={32} color="#ffffff" />
+      {/* Helmet Animation */}
+      <Animated.Image
+        source={require('../assets/helmet.png')}
+        style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
+      />
+
+      {/* Bluetooth Button */}
+      <TouchableOpacity style={styles.connectButton} onPress={handleButtonPress}>
+        <Text style={styles.buttonText}>
+          {loading ? 'Connecting...' : error || buttonText}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -91,26 +173,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 30,
     fontWeight: 'bold',
-    marginBottom: 50,
+    marginBottom: 20,
   },
   statCard: {
     alignItems: 'center',
-    justifyContent: 'center',
     padding: 40,
     borderRadius: 20,
     backgroundColor: '#1E1E1E',
-    marginBottom: 30,
     width: '80%',
-    shadowColor: '#000',
-    shadowOpacity: 0.7,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 10,
-    elevation: 10,
+    marginBottom: 20,
   },
   mainStat: {
     color: '#ffffff',
     fontSize: 60,
-    fontWeight: '200',
   },
   unit: {
     color: '#888',
@@ -121,12 +196,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 15,
     width: '80%',
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 5,
+    marginBottom: 20,
   },
   infoText: {
     color: '#ccc',
@@ -137,18 +207,22 @@ const styles = StyleSheet.create({
     color: '#ff3b30',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  voiceButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  helmet: {
+    width: 120,
+    height: 120,
+    marginVertical: 20,
+  },
+  connectButton: {
     backgroundColor: '#0A84FF',
-    shadowColor: '#0A84FF',
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
