@@ -1,22 +1,45 @@
-// HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useCrashDetection } from '../hooks/useCrashDetection';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
   const [tripDuration, setTripDuration] = useState(0);
 
+  // Crash Detection Hook
+  const isCrashed = useCrashDetection();
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSpeed((Math.random() * 60).toFixed(1));
       setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
       setTripDuration((prev) => prev + 1);
-    }, 5000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  // Handle Crash Detection Alert
+  useEffect(() => {
+    if (isCrashed) {
+      Alert.alert(
+        'Crash Detected!',
+        'A crash-like event was detected. Do you want to report it?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Report', onPress: () => sendCrashReport() }
+        ]
+      );
+    }
+  }, [isCrashed]);
+
+  // Simulated Crash Report
+  const sendCrashReport = () => {
+    console.log('🚨 Sending crash report...');
+    Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
+  };
 
   const formatDuration = (secs) => {
     const hrs = Math.floor(secs / 3600);
@@ -40,6 +63,11 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
         <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
       </View>
+
+      {/* Crash Alert Indicator */}
+      {isCrashed && (
+        <Text style={styles.crashText}>⚠️ Crash Detected!</Text>
+      )}
 
       <TouchableOpacity
         style={styles.voiceButton}
@@ -104,6 +132,12 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 18,
     marginVertical: 4,
+  },
+  crashText: {
+    color: '#ff3b30',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
   },
   voiceButton: {
     alignItems: 'center',

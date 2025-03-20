@@ -8,8 +8,15 @@ export const useBluetoothStore = create((set) => ({
     { id: '2', name: 'Rider Audio' },
     { id: '3', name: 'GPS Unit' }
   ],
+  crashLogs: [],
   connectToDevice: (device) =>
     set({ connectedDevice: device }),
   disconnectDevice: () =>
     set({ connectedDevice: null }),
+  addCrashLog: (data) =>
+    set((state) => ({
+      crashLogs: [...state.crashLogs, data]
+    })),
+  clearCrashLogs: () =>
+    set({ crashLogs: [] })
 }));

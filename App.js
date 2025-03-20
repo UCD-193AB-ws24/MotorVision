@@ -7,6 +7,7 @@ import HomeScreen from './screens/HomeScreen';
 import NavigationScreen from './screens/NavigationScreen';
 import RideInsightsScreen from './screens/RideInsightsScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import CrashLogsScreen from './screens/CrashLogsScreen'; // Import Crash Logs Screen
 
 const Tab = createBottomTabNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
               case 'Navigation': iconName = 'map'; break;
               case 'Insights': iconName = 'stats-chart'; break;
               case 'Settings': iconName = 'settings'; break;
+              case 'Crash Logs': iconName = 'alert-circle'; break;
               default: iconName = 'ellipse'; break;
             }
             return <Ionicons name={iconName} size={24} color={color} />;
@@ -45,6 +47,7 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Navigation" component={NavigationScreen} />
         <Tab.Screen name="Insights" component={RideInsightsScreen} />
+        <Tab.Screen name="Crash Logs" component={CrashLogsScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
