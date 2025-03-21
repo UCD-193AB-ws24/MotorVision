@@ -8,9 +8,9 @@ import HomeScreen from './screens/HomeScreen';
 import NavigationScreen from './screens/NavigationScreen';
 import RideInsightsScreen from './screens/RideInsightsScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import CrashLogsScreen from './screens/CrashLogsScreen';
 import CrashDetailScreen from './screens/CrashDetailScreen';
-import PairingGuideScreen from './screens/PairingGuideScreen'; // Import Pairing Guide Screen
+import PairingGuideScreen from './screens/PairingGuideScreen';
+import TripHistoryScreen from './screens/TripHistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -27,12 +27,11 @@ const DarkTheme = {
   },
 };
 
-// Stack for Crash Logs + Crash Detail
-function CrashStack() {
+// Stack for Trip History (expandable for future trip details)
+function TripStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CrashLogs" component={CrashLogsScreen} />
-      <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
+      <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
     </Stack.Navigator>
   );
 }
@@ -62,8 +61,8 @@ export default function App() {
               case 'Home': iconName = 'home'; break;
               case 'Navigation': iconName = 'map'; break;
               case 'Insights': iconName = 'stats-chart'; break;
+              case 'Trip History': iconName = 'time'; break;
               case 'Settings': iconName = 'settings'; break;
-              case 'Crash Logs': iconName = 'alert-circle'; break;
               default: iconName = 'ellipse'; break;
             }
             return <Ionicons name={iconName} size={24} color={color} />;
@@ -75,7 +74,7 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Navigation" component={NavigationScreen} />
         <Tab.Screen name="Insights" component={RideInsightsScreen} />
-        <Tab.Screen name="Crash Logs" component={CrashStack} />
+        <Tab.Screen name="Trip History" component={TripStack} />
         <Tab.Screen name="Settings" component={SettingsStack} />
       </Tab.Navigator>
     </NavigationContainer>
