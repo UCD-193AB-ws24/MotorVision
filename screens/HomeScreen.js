@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCrashDetection } from '../hooks/useCrashDetection';
-import { useBluetoothStore } from '../store/bluetoothStore';
-import * as Location from 'expo-location';
 import axios from 'axios';
+import { useCrashDetection } from '../hooks/useCrashDetection';
+import * as Location from 'expo-location';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
@@ -12,39 +11,48 @@ export default function HomeScreen({ navigation }) {
   const [tripDuration, setTripDuration] = useState(0);
   const isCrashed = useCrashDetection();
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSpeed((Math.random() * 60).toFixed(1));
-      setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
-      setTripDuration((prev) => prev + 1);
-    }, 1000);
+  // Connection state
+  const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    return () => clearInterval(interval);
-  }, []);
+  // Handle Bluetooth Connection
+  const handleConnect = async () => {
+    setLoading(true);
+    setError(null);
 
-  useEffect(() => {
-    if (isCrashed) {
-      Alert.alert(
-        'Crash Detected!',
-        'A crash-like event was detected. Do you want to report it?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Report', onPress: () => sendCrashReport() }
-        ]
-      );
+    try {
+      const response = await axios.get('http://3.147.83.156:8000/connect/');
+      console.log('Helmet connection response:', response.data);
+
+      if (response.data.success) {
+        setIsConnected(true);
+        Alert.alert('Connected', 'SmartHelmet is now connected.');
+      } else {
+        setIsConnected(false);
+        Alert.alert('Connection Failed', response.data.message || 'Failed to connect to SmartHelmet.');
+      }
+    } catch (err) {
+      console.error('Connection Error:', err);
+      setError('Connection failed. Please try again.');
+      Alert.alert('Error', 'Unable to connect to SmartHelmet. Please try again later.');
+    } finally {
+      setLoading(false);
     }
-  }, [isCrashed]);
+  };
 
+  // Handle Crash Reporting
   const sendCrashReport = () => {
     console.log('🚨 Sending crash report...');
     Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
   };
 
+  // Format Duration
   const formatDuration = (secs) => {
     const hrs = Math.floor(secs / 3600);
     const mins = Math.floor((secs % 3600) / 60);
     const sec = secs % 60;
-    return `${hrs}:${mins.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
   // 🌍 Live Location
@@ -73,25 +81,6 @@ export default function HomeScreen({ navigation }) {
     requestLocationPermission();
   }, []);
 
-  // Bluetooth Connection Button
-  const [buttonText, setButtonText] = useState('Connect Helmet');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleButtonPress = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.get('http://127.0.0.1:8000/connect/');
-      setButtonText(response.data.message);
-    } catch (err) {
-      setError('Error with API/Bluetooth Connection: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
   const rotateValue = useRef(new Animated.Value(0)).current;
 
@@ -119,7 +108,7 @@ export default function HomeScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="light" />
 
       {/* Header */}
@@ -130,6 +119,18 @@ export default function HomeScreen({ navigation }) {
         source={require('../assets/helmet.png')}
         style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
       />
+
+      {/* Connection Status */}
+      <View style={styles.statusContainer}>
+        <Ionicons
+          name={isConnected ? 'checkmark-circle' : 'alert-circle'}
+          size={18}
+          color={isConnected ? '#00ff00' : '#ff4d4d'}
+        />
+        <Text style={[styles.statusText, { color: isConnected ? '#00ff00' : '#ff4d4d' }]}>
+          {isConnected ? 'Connected' : 'Not Connected'}
+        </Text>
+      </View>
 
       {/* Speed + Battery */}
       <View style={styles.statCard}>
@@ -150,81 +151,97 @@ export default function HomeScreen({ navigation }) {
       {/* Crash Alert */}
       {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
 
-      {/* Bluetooth Button */}
-      <TouchableOpacity style={styles.connectButton} onPress={handleButtonPress}>
+      {/* Bluetooth Connection Button */}
+      <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
         <Text style={styles.buttonText}>
-          {loading ? 'Connecting...' : error || buttonText}
+          {loading ? 'Connecting...' : isConnected ? 'Connected' : 'Connect Helmet'}
         </Text>
       </TouchableOpacity>
-    </View>
+
+      {/* Error Message */}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#121212',
     alignItems: 'center',
     padding: 20,
+    paddingBottom: 40,
   },
   header: {
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   helmet: {
-    width: 140,
-    height: 140,
-    marginBottom: 20,
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
   statCard: {
     alignItems: 'center',
-    padding: 40,
-    borderRadius: 20,
+    padding: 30,
+    borderRadius: 16,
     backgroundColor: '#1E1E1E',
     width: '80%',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   mainStat: {
     color: '#ffffff',
-    fontSize: 64,
+    fontSize: 48,
     fontWeight: 'bold',
   },
   unit: {
     color: '#888',
-    fontSize: 18,
+    fontSize: 14,
   },
   infoContainer: {
     backgroundColor: '#1E1E1E',
-    padding: 20,
-    borderRadius: 15,
+    padding: 16,
+    borderRadius: 12,
     width: '80%',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   infoText: {
     color: '#ccc',
-    fontSize: 18,
-    marginVertical: 4,
+    fontSize: 14,
+    marginVertical: 2,
   },
   crashText: {
     color: '#ff4d4d',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   connectButton: {
     backgroundColor: '#0A84FF',
-    paddingVertical: 14,
-    paddingHorizontal: 50,
-    borderRadius: 16,
-    shadowColor: '#0A84FF',
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#ff4d4d',
+    marginTop: 10,
   },
 });
