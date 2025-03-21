@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import * as Location from 'expo-location';
@@ -16,7 +17,7 @@ export default function HomeScreen({ navigation }) {
       setSpeed((Math.random() * 60).toFixed(1));
       setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
       setTripDuration((prev) => prev + 1);
-    }, 1500);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -73,7 +74,7 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   // Bluetooth Connection Button
-  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
+  const [buttonText, setButtonText] = useState('Connect Helmet');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -102,13 +103,11 @@ export default function HomeScreen({ navigation }) {
         easing: Easing.linear,
         useNativeDriver: true,
       }).start(() => {
-        // Reset and wait 5 seconds before next rotation
         rotateValue.setValue(0);
         setTimeout(startRotation, 5000); // Longer delay between rotations
       });
     };
 
-    // Start the first rotation after a brief delay
     setTimeout(startRotation, 2000);
 
     return () => rotateValue.setValue(0);
@@ -125,6 +124,12 @@ export default function HomeScreen({ navigation }) {
 
       {/* Header */}
       <Text style={styles.header}>MotorVision</Text>
+
+      {/* Helmet Animation */}
+      <Animated.Image
+        source={require('../assets/helmet.png')}
+        style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
+      />
 
       {/* Speed + Battery */}
       <View style={styles.statCard}>
@@ -145,12 +150,6 @@ export default function HomeScreen({ navigation }) {
       {/* Crash Alert */}
       {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
 
-      {/* Helmet Animation */}
-      <Animated.Image
-        source={require('../assets/helmet.png')}
-        style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
-      />
-
       {/* Bluetooth Button */}
       <TouchableOpacity style={styles.connectButton} onPress={handleButtonPress}>
         <Text style={styles.buttonText}>
@@ -164,15 +163,19 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#121212',
+    alignItems: 'center',
     padding: 20,
   },
   header: {
-    color: '#fff',
-    fontSize: 30,
+    fontSize: 36,
     fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 30,
+  },
+  helmet: {
+    width: 140,
+    height: 140,
     marginBottom: 20,
   },
   statCard: {
@@ -185,7 +188,8 @@ const styles = StyleSheet.create({
   },
   mainStat: {
     color: '#ffffff',
-    fontSize: 60,
+    fontSize: 64,
+    fontWeight: 'bold',
   },
   unit: {
     color: '#888',
@@ -204,25 +208,23 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   crashText: {
-    color: '#ff3b30',
+    color: '#ff4d4d',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  helmet: {
-    width: 120,
-    height: 120,
-    marginVertical: 20,
-  },
   connectButton: {
     backgroundColor: '#0A84FF',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    marginTop: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 50,
+    borderRadius: 16,
+    shadowColor: '#0A84FF',
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
