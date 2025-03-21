@@ -9,7 +9,8 @@ import NavigationScreen from './screens/NavigationScreen';
 import RideInsightsScreen from './screens/RideInsightsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import CrashLogsScreen from './screens/CrashLogsScreen';
-import CrashDetailScreen from './screens/CrashDetailScreen'; // Import Crash Detail Screen
+import CrashDetailScreen from './screens/CrashDetailScreen';
+import PairingGuideScreen from './screens/PairingGuideScreen'; // Import Pairing Guide Screen
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -32,6 +33,20 @@ function CrashStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CrashLogs" component={CrashLogsScreen} />
       <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Stack for Settings + Pairing Guide
+function SettingsStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen
+        name="PairingGuide"
+        component={PairingGuideScreen}
+        options={{ tabBarButton: () => null }}
+      />
     </Stack.Navigator>
   );
 }
@@ -61,7 +76,7 @@ export default function App() {
         <Tab.Screen name="Navigation" component={NavigationScreen} />
         <Tab.Screen name="Insights" component={RideInsightsScreen} />
         <Tab.Screen name="Crash Logs" component={CrashStack} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
+        <Tab.Screen name="Settings" component={SettingsStack} />
       </Tab.Navigator>
     </NavigationContainer>
   );

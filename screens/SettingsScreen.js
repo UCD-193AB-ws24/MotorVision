@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
-import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen({ navigation }) {
@@ -66,6 +65,20 @@ export default function SettingsScreen({ navigation }) {
         )}
       />
 
+      {/* Pairing Guide Button */}
+      <TouchableOpacity
+        style={styles.guideButton}
+        onPress={() => navigation.navigate('PairingGuide')}
+      >
+        <Ionicons 
+          name="bluetooth-outline" 
+          size={24} 
+          color="#ffffff" 
+          style={styles.icon}
+        />
+        <Text style={styles.buttonText}>How to Pair a Device</Text>
+      </TouchableOpacity>
+
       {/* Back Button */}
       <TouchableOpacity
         style={styles.backButton}
@@ -102,7 +115,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
-    elevation: 3, // Shadow for Android
+    elevation: 3,
   },
   icon: {
     marginRight: 12,
@@ -111,7 +124,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '500',
-    flex: 1, // Allow text to expand properly
+    flex: 1,
+  },
+  guideButton: {
+    marginTop: 20,
+    backgroundColor: '#00bfff',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#00bfff',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   backButton: {
     marginTop: 20,
@@ -123,7 +155,7 @@ const styles = StyleSheet.create({
     shadowColor: '#0A84FF',
     shadowOpacity: 0.5,
     shadowRadius: 8,
-    elevation: 4, // Shadow for Android
+    elevation: 4,
   },
   backButtonText: {
     color: '#ffffff',
