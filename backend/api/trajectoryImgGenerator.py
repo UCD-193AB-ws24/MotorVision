@@ -84,15 +84,19 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     # Format file path for Selenium
     file_url = f"file://{input_html_path}"
 
-    # Set up headless Chrome
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run without UI
-    chrome_options.add_argument("--window-size=1200x900")  # Set window size
-    chrome_options.add_argument("--disable-gpu")  # Improve performance
-    chrome_options.add_argument("--no-sandbox")  # Fixes issues on some systems
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--headless')  # Run in headless mode (no GUI)
+    chrome_options.add_argument('--no-sandbox')  # Prevents errors related to running as root
+    chrome_options.add_argument('--disable-dev-shm-usage')  # Helps with memory issues in Docker and cloud environments
+    chrome_options.add_argument('--remote-debugging-port=9222')  # Can be useful for debugging
 
-    # Launch browser
+    # Set a unique directory for user data to avoid conflicts
+    chrome_options.add_argument("--user-data-dir=/tmp/chrome_user_data")
+
+    # Create the Chrome WebDriver
     driver = webdriver.Chrome(options=chrome_options)
+
+
 
     # Load HTML file
     driver.get(file_url)
