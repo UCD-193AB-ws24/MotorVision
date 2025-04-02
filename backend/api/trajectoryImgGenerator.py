@@ -89,7 +89,7 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
         raise FileNotFoundError(f"File not found: {input_html_path}")
 
     # Format file path for Selenium
-    file_url = f"file://{input_html_path}"
+    file_url = f"file:/{input_html_path}"
 
     print("THIS IS THE FILE URL that SELENIUM USES", file_url)
 
