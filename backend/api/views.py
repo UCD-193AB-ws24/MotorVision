@@ -10,7 +10,7 @@ from .bluetooth_reader_sim import BluetoothReaderSimulation
 from .trajectoryImgGenerator import image_generator, image_generator_live_list
 from .trajectoryImgGenerator import image_generator_live_start
 
-
+# TESTING FUNCTION
 @api_view(['GET'])
 def printHelloWorld(request):
     name = request.GET.get('name')
@@ -23,7 +23,7 @@ def printHelloWorld(request):
         printedVal = {'message': 'Hello World!'}
     return Response(printedVal)
 
-
+# TESTING FUNCTION
 @api_view(['GET'])
 def printSomething(request):
     name = request.GET.get('name')
@@ -36,6 +36,7 @@ def printSomething(request):
         printedVal = {'message': 'Hello World!'}
     return Response(printedVal)
 
+# TESTING FUNCTION
 @api_view(['GET'])
 def home_page(request):
     message = "This is the home page!"
@@ -55,6 +56,7 @@ def connect(request):
         message = "Connection not successful. Please try again."
     return Response({"message": message, "res": res})
 
+# DEPRECATED
 @api_view(['GET'])
 def traj_image(request):
     # TODO: change this to create a new 
@@ -63,6 +65,7 @@ def traj_image(request):
         img_data = base64.b64encode(img_file.read()).decode('utf-8')
     return Response({'image_data': img_data})
 
+# DEPRECATED
 @api_view(['GET'])
 def live_loc(request):
     lat = request.GET.get('lat')
@@ -76,6 +79,7 @@ def live_loc(request):
     print("This is what I have ", printedVal)
     return Response(printedVal)
 
+# DEPRECATED
 @api_view(['POST'])
 def location_array(request):
     data = request.data  # Extract JSON payload from request body
@@ -83,6 +87,7 @@ def location_array(request):
     print("This is what the backend is seeing", data)
     return Response({"loc_array": "data"})
 
+# DEPRECATED
 @api_view(['POST'])
 def traj_image_live(request):
 
@@ -107,10 +112,10 @@ def traj_image_live(request):
     print("Determining if there is enough data to create a trajectory image...")
     print()
 
-    timestamp = timestamps[0].replace(":", "-").replace(".", "_")
-    csv_name = "Motorcylist_Trajectory_" + timestamp + ".csv"
-    html_name = "motorcyclist_trajectory_map_" + timestamp + ".html"
-    screenshot_name =  "motorcyclist_trajectory_map_screenshot_" + timestamp + ".html"
+    timestamp = timestamps[0].replace("T", "_Time_").replace(":", "-").replace(".", "_")
+    csv_name = "Recording_Capture_" + timestamp + ".csv"
+    html_name = "Recording_Capture_Map_HTML_" + timestamp + ".html"
+    screenshot_name =  "Recording_Capture_Map_Image_" + timestamp + ".png"
 
     if len(locations_array) == 1:
         print("Only have starting point. Creating a random simulation...")
