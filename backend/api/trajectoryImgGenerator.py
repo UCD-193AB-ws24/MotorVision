@@ -75,7 +75,10 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     Converts an HTML file (Folium map) to a PNG image using Selenium and headless Chrome.
     """
     # Convert file path to absolute path
-    input_html_path = os.path.abspath(input_html)
+    # input_html_path = os.path.abspath(input_html) # old and not local stuff
+    input_html_path = os.path.join(os.getcwd(), input_html)  # Get path relative to current working directory
+    input_html_path = os.path.expanduser(input_html_path)  # Expands user directory (~) if necessary
+
 
     # Ensure the file exists
     if not os.path.exists(input_html_path):
