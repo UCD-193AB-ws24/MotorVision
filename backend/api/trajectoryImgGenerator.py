@@ -108,11 +108,9 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     # Create the Chrome WebDriver
     driver = webdriver.Chrome(options=chrome_options)
     """
-
-    chrome_options = webdriver.ChromeOptions()
-    user_data_dir = "/home/ubuntu/chrome_user_data_2025_04_02_184719"
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-    chrome_options.add_argument("--headless=new")
+    #user_data_dir = "/home/ubuntu/chrome_user_data_2025_04_02_184719"
+    #chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    #chrome_options.add_argument("--headless=new")
 
     driver = webdriver.Chrome(options=chrome_options)
 
