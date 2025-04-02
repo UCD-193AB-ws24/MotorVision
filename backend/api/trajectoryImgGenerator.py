@@ -193,7 +193,7 @@ def image_generator_live_start(csv_input_name, html_output_name, png_output_name
     print("This is the name I have chosen for csv input", csv_input_name)
 
     base_dir = "/home/ubuntu" # possible create a new folder for everytime i make a connection?
-    folder_name = f"{csv_input_name}"
+    folder_name = f"{csv_input_name[:-4]}"
     folder_path = os.path.join(base_dir, folder_name)
     os.makedirs(folder_path, exist_ok=True) # creating the directory for this recording
 
