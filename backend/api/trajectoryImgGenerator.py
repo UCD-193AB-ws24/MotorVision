@@ -81,7 +81,7 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     input_html_path = os.path.join(os.getcwd(), input_html)  # Get path relative to current working directory
     input_html_path = os.path.expanduser(input_html_path)  # Expands user directory (~) if necessary
 
-    print("THIS IS OUR FILE PATH!", input_html_path)
+    print("THIS IS OUR FILE HTML PATH!", input_html_path)
     print()
 
     # Ensure the file exists
@@ -90,6 +90,8 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
 
     # Format file path for Selenium
     file_url = f"file://{input_html_path}"
+
+    print("THIS IS THE FILE URL that SELENIUM USES", file_url)
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--headless')  # Run in headless mode (no GUI)
