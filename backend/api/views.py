@@ -99,6 +99,9 @@ def traj_image_live(request):
         # print("Cannot create mock or real trajectory image. Please try again.")
         # return Response({"message": "Nothing generated because nothing found"})
         print("Creating a completely random map for testing reasons")
+        csv_name = "Recording_Capture_RANDOM.csv"
+        html_name = "Recording_Capture_RANDOM.html"
+        screenshot_name =  "Recording_Capture_Map_Image_RADNOM.png"
         res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, 38.51, 24.85)
         print("Created mock simulation with starting point.")
         with open(res, 'rb') as img_file:
