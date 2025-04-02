@@ -9,6 +9,8 @@ import scipy.signal
 import folium
 import csv
 from PIL import Image
+from playwright.sync_api import sync_playwright
+
 
 # these are all the predefined functions
 
@@ -70,6 +72,7 @@ def plotHtmlMapFromDataframe(df, output_html_file):
     map_obj.save(output_html_file)
     print("Map saved as motorcyclist_trajectory_map.html. Open it in a browser.")
 
+"""
 def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filename>.png"):
     """
     Converts an HTML file (Folium map) to a PNG image using Selenium and headless Chrome.
@@ -99,15 +102,7 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     chrome_options.add_argument('--disable-dev-shm-usage')  # Helps with memory issues in Docker and cloud environments
     chrome_options.add_argument('--remote-debugging-port=9222')  # Can be useful for debugging
 
-    # Set a unique directory for user data to avoid conflicts
-    """
-    unique_directory = "--user-data-dir="+ input_html_path[:-5]
-    print("this is the unique directory path ", unique_directory)
-    chrome_options.add_argument(unique_directory)
-
-    # Create the Chrome WebDriver
-    driver = webdriver.Chrome(options=chrome_options)
-    """
+    
     #user_data_dir = "/home/ubuntu/chrome_user_data_2025_04_02_184719"
     #chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     #chrome_options.add_argument("--headless=new")
@@ -124,6 +119,20 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     # Capture screenshot
     driver.save_screenshot(output_png)
     driver.quit()
+
+    print(f"Screenshot saved as {output_png}")
+"""
+def convertHtmlToPng(input_html, output_png):
+    print("ENTERING CONVERT PNG")
+    input_html = f"file://{input_html}"  # Ensure correct format
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.set_viewport_size({"width": 1200, "height": 800})  # Adjust as needed
+        page.goto(input_html, wait_until="load")  # Ensure page fully loads
+        page.screenshot(path=output_png)
+        browser.close()
 
     print(f"Screenshot saved as {output_png}")
 
