@@ -87,7 +87,6 @@ def location_array(request):
     print("This is what the backend is seeing", data)
     return Response({"loc_array": "data"})
 
-# DEPRECATED
 @api_view(['POST'])
 def traj_image_live(request):
 
