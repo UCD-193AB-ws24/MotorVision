@@ -100,7 +100,9 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     chrome_options.add_argument('--remote-debugging-port=9222')  # Can be useful for debugging
 
     # Set a unique directory for user data to avoid conflicts
-    chrome_options.add_argument("--user-data-dir=/tmp/chrome_user_data")
+    unique_directory = "--user-data-dir=/home/ubuntu/" + input_html_path[:-5]
+    print("this is the unique directory path ", unique_directory)
+    chrome_options.add_argument(unique_directory)
 
     # Create the Chrome WebDriver
     driver = webdriver.Chrome(options=chrome_options)
