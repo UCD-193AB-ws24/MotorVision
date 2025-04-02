@@ -96,8 +96,16 @@ def traj_image_live(request):
 
     locations_array = data["locations"]
     if len(locations_array) == 0:
-        print("Cannot create mock or real trajectory image. Please try again.")
-        return Response({"message": "Nothing generated because nothing found"})
+        # print("Cannot create mock or real trajectory image. Please try again.")
+        # return Response({"message": "Nothing generated because nothing found"})
+        print("Creating a completely random map for testing reasons")
+        res = image_generator_live_start(csv_name, html_name, screenshot_name, 10, 5, 38.51, 24.85)
+        print("Created mock simulation with starting point.")
+        with open(res, 'rb') as img_file:
+            img_data = base64.b64encode(img_file.read()).decode('utf-8')
+        return Response({'image_data': img_data})
+
+
     latitudes, longitudes, timestamps = [], [], []
 
     for i in locations_array:
