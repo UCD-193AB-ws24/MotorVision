@@ -72,7 +72,7 @@ def plotHtmlMapFromDataframe(df, output_html_file):
     map_obj.save(output_html_file)
     print("Map saved as motorcyclist_trajectory_map.html. Open it in a browser.")
 
-"""
+
 def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filename>.png"):
     """
     Converts an HTML file (Folium map) to a PNG image using Selenium and headless Chrome.
@@ -92,7 +92,7 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
         raise FileNotFoundError(f"File not found: {input_html_path}")
 
     # Format file path for Selenium
-    file_url = f"file:/{input_html_path}"
+    file_url = f"file://{input_html_path}"
 
     print("THIS IS THE FILE URL that SELENIUM USES", file_url)
 
@@ -121,6 +121,7 @@ def convertHtmlToPng(input_html="<html filename>.html", output_png="<img filenam
     driver.quit()
 
     print(f"Screenshot saved as {output_png}")
+
 """
 def convertHtmlToPng(input_html, output_png):
     print("ENTERING CONVERT PNG")
@@ -135,7 +136,7 @@ def convertHtmlToPng(input_html, output_png):
         browser.close()
 
     print(f"Screenshot saved as {output_png}")
-
+"""
 def simulate_motorcyclist_trajectory(duration_mins=5, spacing_secs=0.4, start_lat=37.7749, start_lon=-122.4194):
     # Calculate total number of data points
     total_time_secs = duration_mins * 60
