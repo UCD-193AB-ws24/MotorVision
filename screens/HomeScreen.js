@@ -5,6 +5,9 @@ import axios from 'axios';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 import * as Location from 'expo-location';
 
+
+
+
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
@@ -58,6 +61,34 @@ export default function HomeScreen({ navigation }) {
   // 🌍 Live Location
   const [location, setLocation] = useState(null);
 
+
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to track speed.');
+        return;
+      }
+  
+      await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000, // Update every second
+          // distanceInterval: 1, // Update when moved at least 1 meter
+        },
+        (position) => {
+          if (position.coords.speed !== null) {
+            const speedMps = position.coords.speed; // Speed in meters per second
+            const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
+            setSpeed(speedMph);
+          }
+        }
+      );
+    };
+  
+    requestLocationPermission();
+  }, []);
+  
   useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -80,6 +111,25 @@ export default function HomeScreen({ navigation }) {
 
     requestLocationPermission();
   }, []);
+
+  // Bluetooth Connection Button
+  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleButtonPress = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.get('http://3.147.83.156:8000/connect');
+      setButtonText(response.data.message);
+    } catch (err) {
+      setError('Error with API/Bluetooth Connection: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
   const rotateValue = useRef(new Animated.Value(0)).current;

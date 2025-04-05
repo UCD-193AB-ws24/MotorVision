@@ -1,19 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useBluetoothStore } from '../store/bluetoothStore';
+import * as Location from 'expo-location';
 
 export default function RideInsightsScreen() {
   const [speedData, setSpeedData] = useState([0]);
+  const [speed, setSpeed] = useState(0);
+  const speedRef = useRef(0); // Ref to store the latest speed value
   const [leanAngleData, setLeanAngleData] = useState([0]);
   const [brakingForceData, setBrakingForceData] = useState([0]);
   const tripActive = useBluetoothStore((state) => state.tripActive);
 
   useEffect(() => {
-    if (!tripActive) return; // 🚨 Only record data when trip is active
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to track speed.');
+        return;
+      }
+
+      await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000, // Update every second
+        },
+        (position) => {
+          if (position.coords.speed !== null) {
+            const speedMps = position.coords.speed; // Speed in meters per second
+            const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
+            setSpeed(speedMph);
+            speedRef.current = speedMph; // Update the ref with the latest speed
+            console.log('Speed:', speedMph);
+          }
+        }
+      );
+    };
+
+    requestLocationPermission();
+  }, []);
+
+  useEffect(() => {
+    if (!tripActive) return; // Only record data when trip is active
 
     const interval = setInterval(() => {
-      setSpeedData((data) => [...data.slice(-20), Math.random() * 80]);
+      if(speedRef.current < 0) {
+        speedRef.current = 0; // Ensure speed is not negative
+      }
+      console.log('speed2', speedRef.current); // Use speedRef to get the latest speed
+      setSpeedData((data) => [...data.slice(-20), parseFloat(speedRef.current)]);
       setLeanAngleData((data) => [...data.slice(-20), Math.random() * 45]);
       setBrakingForceData((data) => [...data.slice(-20), Math.random() * 100]);
     }, 1000);
