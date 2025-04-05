@@ -11,6 +11,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import CrashDetailScreen from './screens/CrashDetailScreen';
 import PairingGuideScreen from './screens/PairingGuideScreen';
 import TripHistoryScreen from './screens/TripHistoryScreen';
+import TripDetailScreen from './screens/TripDetailScreen'; // Import Trip Detail Screen
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -20,18 +21,19 @@ const DarkTheme = {
   colors: {
     ...DefaultTheme.colors,
     background: '#121212',
-    card: '#1E1E1E',       // Footer color
+    card: '#1E1E1E',
     text: '#FFFFFF',
     border: '#272727',
     notification: '#0A84FF',
   },
 };
 
-// Stack for Trip History (expandable for future trip details)
+// Stack for Trip History + Trip Detail
 function TripStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
+      <Stack.Screen name="TripDetail" component={TripDetailScreen} />
     </Stack.Navigator>
   );
 }

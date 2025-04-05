@@ -9,14 +9,13 @@ import {
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function TripHistoryScreen() {
-  // ✅ Get trips directly from Zustand state
+export default function TripHistoryScreen({ navigation }) {
   const trips = useBluetoothStore((state) => state.tripLogs);
   const loadTripLogs = useBluetoothStore((state) => state.loadTripLogs);
   const deleteTrip = useBluetoothStore((state) => state.deleteTrip);
 
   useEffect(() => {
-    loadTripLogs(); // ✅ Load trips on mount
+    loadTripLogs(); // Load trips on mount
   }, []);
 
   const formatDuration = (startTime, endTime) => {
@@ -47,7 +46,10 @@ export default function TripHistoryScreen() {
   };
 
   const renderTrip = ({ item, index }) => (
-    <View style={styles.tripItem}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('TripDetail', { trip: item })}
+      style={styles.tripItem}
+    >
       <View style={styles.tripInfo}>
         <Text style={styles.tripDate}>
           {formatDateTime(item.startTime)}
@@ -64,11 +66,7 @@ export default function TripHistoryScreen() {
         <Text style={styles.tripDetail}>
           Max Speed: {formatSpeed(item.maxSpeed)}
         </Text>
-        <Text style={styles.tripDetail}>
-          Crashes: {item.crashEvents?.length || 0}
-        </Text>
       </View>
-      {/* Delete Button */}
       <TouchableOpacity onPress={() => deleteTrip(index)}>
         <Ionicons
           name="trash-outline"
@@ -77,7 +75,7 @@ export default function TripHistoryScreen() {
           style={styles.deleteIcon}
         />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -118,6 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    elevation: 4, // Slight shadow for better visibility
   },
   tripInfo: {
     flexShrink: 1,
@@ -130,6 +129,7 @@ const styles = StyleSheet.create({
   tripDetail: {
     fontSize: 14,
     color: '#ccc',
+    marginBottom: 2,
   },
   deleteIcon: {
     padding: 8,
