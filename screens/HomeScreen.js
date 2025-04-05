@@ -80,7 +80,12 @@ export default function HomeScreen({ navigation }) {
           if (position.coords.speed !== null) {
             const speedMps = position.coords.speed; // Speed in meters per second
             const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
-            setSpeed(speedMph);
+            if(speedMph < 0) {
+              setSpeed(0); // Ensure speed is not negative
+            }
+            else {
+              setSpeed(speedMph);
+            }
           }
         }
       );
