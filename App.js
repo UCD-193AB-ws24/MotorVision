@@ -34,6 +34,7 @@ function TripStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} />
+      <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
     </Stack.Navigator>
   );
 }

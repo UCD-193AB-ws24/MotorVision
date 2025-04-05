@@ -42,8 +42,20 @@ export default function TripDetailScreen({ navigation }) {
     return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  const renderCrash = ({ item }) => (
-    <View style={styles.crashItem}>
+  const renderCrash = ({ item, index }) => (
+    <TouchableOpacity
+      style={styles.crashItem}
+      onPress={() =>
+        navigation.navigate("CrashDetail", {
+          crash: item,
+          locations: trip.crashEvents.map(c => ({
+            latitude: c.location?.latitude,
+            longitude: c.location?.longitude,
+            timestamp: c.timestamp || c.time || new Date().toISOString()
+          }))
+        })
+      }
+    >
       <Text style={styles.crashDetail}>
         <Text style={styles.crashLabel}>Crash Time: </Text>
         {formatDateTime(item.time)}
@@ -59,20 +71,18 @@ export default function TripDetailScreen({ navigation }) {
           : 'N/A'}
       </Text>
       {item.location ? (
-        <>
-          <Text style={styles.crashDetail}>
-            <Text style={styles.crashLabel}>Location: </Text>
-            {`${item.location.latitude}, ${item.location.longitude}`}
-          </Text>
-        </>
+        <Text style={styles.crashDetail}>
+          <Text style={styles.crashLabel}>Location: </Text>
+          {`${item.location.latitude}, ${item.location.longitude}`}
+        </Text>
       ) : (
         <Text style={styles.crashDetail}>
           <Text style={styles.crashLabel}>Location: </Text>
           Not available
         </Text>
       )}
-    </View>
-  );
+    </TouchableOpacity>
+  );  
 
   return (
     <ScrollView
