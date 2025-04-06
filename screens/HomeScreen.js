@@ -119,8 +119,8 @@ export default function HomeScreen({ navigation }) {
 
   // Bluetooth Connection Button
   const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState(null);
 
   const handleButtonPress = async () => {
     setLoading(true);
