@@ -29,10 +29,10 @@ export const useBluetoothStore = create((set, get) => ({
       tripData: {
         startTime,
         endTime: null,
-        totalDistance: 0, // in meters
+        totalDistance: 0,
         averageSpeed: 0,
         maxSpeed: 0,
-        crashEvents: [],
+        crashEvents: [], // Ensure crashEvents is initialized properly
       },
     });
   },
@@ -47,13 +47,12 @@ export const useBluetoothStore = create((set, get) => ({
         endTime,
       };
 
-      // Save trip to AsyncStorage
       try {
+        // Save trip to AsyncStorage and update Zustand state
         const existingTrips = JSON.parse(await AsyncStorage.getItem('tripLogs')) || [];
         const newTrips = [...existingTrips, updatedTripData];
         await AsyncStorage.setItem('tripLogs', JSON.stringify(newTrips));
 
-        // ✅ Load updated trips into Zustand state (for real-time update)
         set({
           tripLogs: newTrips.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)),
           tripActive: false,
@@ -88,7 +87,7 @@ export const useBluetoothStore = create((set, get) => ({
       if (!state.tripActive || !state.tripData) return state;
       const updatedData = {
         ...state.tripData,
-        crashEvents: [...state.tripData.crashEvents, event],
+        crashEvents: [...state.tripData.crashEvents, event], // Append crash events to trip data
       };
       return { tripData: updatedData };
     });

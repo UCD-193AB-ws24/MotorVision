@@ -8,12 +8,13 @@ import {
 } from 'react-native';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 export default function TripHistoryScreen() {
-  // ✅ Get trips directly from Zustand state
   const trips = useBluetoothStore((state) => state.tripLogs);
   const loadTripLogs = useBluetoothStore((state) => state.loadTripLogs);
   const deleteTrip = useBluetoothStore((state) => state.deleteTrip);
+  const navigation = useNavigation();
 
   useEffect(() => {
     loadTripLogs(); // ✅ Load trips on mount
@@ -47,7 +48,10 @@ export default function TripHistoryScreen() {
   };
 
   const renderTrip = ({ item, index }) => (
-    <View style={styles.tripItem}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('TripDetail', { trip: item })}
+      style={styles.tripItem}
+    >
       <View style={styles.tripInfo}>
         <Text style={styles.tripDate}>
           {formatDateTime(item.startTime)}
@@ -64,9 +68,6 @@ export default function TripHistoryScreen() {
         <Text style={styles.tripDetail}>
           Max Speed: {formatSpeed(item.maxSpeed)}
         </Text>
-        <Text style={styles.tripDetail}>
-          Crashes: {item.crashEvents?.length || 0}
-        </Text>
       </View>
       {/* Delete Button */}
       <TouchableOpacity onPress={() => deleteTrip(index)}>
@@ -77,7 +78,7 @@ export default function TripHistoryScreen() {
           style={styles.deleteIcon}
         />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -133,6 +134,9 @@ const styles = StyleSheet.create({
   },
   deleteIcon: {
     padding: 8,
+  },
+  chevronIcon: {
+    marginLeft: 8,
   },
   emptyText: {
     fontSize: 16,

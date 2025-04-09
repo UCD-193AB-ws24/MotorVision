@@ -3,12 +3,12 @@ import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import * as Location from 'expo-location';
 
-const THRESHOLD = 25; // Adjusted to reduce sensitivity
+const THRESHOLD = 10; // Adjusted to reduce sensitivity
 const CRASH_COOLDOWN_MS = 3000;
 
 export const useCrashDetection = () => {
   const [isCrashed, setIsCrashed] = useState(false);
-  const addCrashLog = useBluetoothStore((state) => state.addCrashLog);
+  const recordCrashEvent = useBluetoothStore((state) => state.recordCrashEvent);
   const tripActive = useBluetoothStore((state) => state.tripActive);
 
   let lastCrashTime = 0;
@@ -18,7 +18,7 @@ export const useCrashDetection = () => {
 
     const subscribe = () => {
       subscription = Accelerometer.addListener(async ({ x, y, z }) => {
-        if (!tripActive) return; // Only detect if trip is active
+        if (!tripActive) return;
 
         const acceleration = Math.sqrt(x * x + y * y + z * z);
 
@@ -26,7 +26,7 @@ export const useCrashDetection = () => {
           acceleration > THRESHOLD &&
           Date.now() - lastCrashTime > CRASH_COOLDOWN_MS
         ) {
-          console.log(`⚠️ Crash detected! Acceleration: ${acceleration}`);
+          console.log(`Crash detected! Acceleration: ${acceleration}`);
           setIsCrashed(true);
           lastCrashTime = Date.now();
 
@@ -44,12 +44,12 @@ export const useCrashDetection = () => {
             console.error('Error getting location:', error);
           }
 
-          // Save crash log with location (if available)
-          addCrashLog({
-            id: Date.now().toString(),
-            time: new Date().toLocaleString(),
+          // Record crash event in the trip log
+          recordCrashEvent({
+            time: new Date().toISOString(),
+            speed: acceleration, // Treating acceleration as an estimate for speed
             acceleration: acceleration.toFixed(2),
-            location, // Include location in the log
+            location,
           });
 
           setTimeout(() => setIsCrashed(false), 5000);

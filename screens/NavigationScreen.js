@@ -10,7 +10,6 @@ export default function NavigationScreen() {
   const [startTripAlertShown, setStartTripAlertShown] = useState(false);
   const [endTripAlertShown, setEndTripAlertShown] = useState(false);
 
-  // Zustand state for trip status
   const tripActive = useBluetoothStore((state) => state.tripActive);
   const startTrip = useBluetoothStore((state) => state.startTrip);
   const stopTrip = useBluetoothStore((state) => state.stopTrip);
@@ -34,10 +33,8 @@ export default function NavigationScreen() {
     })();
   }, []);
 
-  // Handle Start/End Trip
   const handleStartTrip = async () => {
     if (tripActive) {
-      // Show alert the first time the user ends a trip
       if (!endTripAlertShown) {
         Alert.alert(
           'Trip Ended',
@@ -48,13 +45,11 @@ export default function NavigationScreen() {
 
       stopTrip();
 
-      // Stop location updates
       if (locationSubscription) {
         locationSubscription.remove();
         setLocationSubscription(null);
       }
     } else {
-      // Show alert the first time the user starts a trip
       if (!startTripAlertShown) {
         Alert.alert(
           'Trip Started',
@@ -65,18 +60,16 @@ export default function NavigationScreen() {
 
       startTrip();
 
-      // Start location updates for trip tracking
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000, // Update every second
-          distanceInterval: 1, // Minimum distance change to trigger an update
+          timeInterval: 1000,
+          distanceInterval: 1,
         },
         (position) => {
           if (tripActive) {
             const { speed, latitude, longitude } = position.coords;
 
-            // Calculate distance using Haversine formula
             if (region) {
               const distance = calculateDistance(
                 region.latitude,
@@ -90,7 +83,6 @@ export default function NavigationScreen() {
                 speed: speed || 0,
               });
 
-              // Update the region for the next distance calculation
               setRegion({
                 latitude,
                 longitude,
@@ -106,25 +98,20 @@ export default function NavigationScreen() {
     }
   };
 
-  // Haversine formula to calculate distance between two coordinates
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Radius of the earth in meters
+    const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
     const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) *
-        Math.cos(φ2) *
-        Math.sin(Δλ / 2) *
-        Math.sin(Δλ / 2);
+      Math.sin(Δφ / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    const distance = R * c; // Distance in meters
-    return distance;
+    return R * c; // meters
   };
 
   if (!region) {
@@ -137,7 +124,6 @@ export default function NavigationScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Map */}
       <MapView
         style={styles.map}
         region={region}
@@ -147,7 +133,6 @@ export default function NavigationScreen() {
         <Marker coordinate={region} title="You are here" />
       </MapView>
 
-      {/* Start Trip Button (Overlay) */}
       <TouchableOpacity
         style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
         onPress={handleStartTrip}
@@ -185,13 +170,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 30,
-    shadowColor: '#0A84FF',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 5, // Shadow for Android
   },
   activeButton: {
-    backgroundColor: '#FF3B30', // Red color when trip is active
+    backgroundColor: '#FF3B30',
   },
   startTripText: {
     color: '#fff',
