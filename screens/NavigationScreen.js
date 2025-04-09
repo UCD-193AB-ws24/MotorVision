@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -44,6 +44,19 @@ export default function NavigationScreen() {
       { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 10 },
       (location) => {
         const { latitude, longitude } = location.coords;
+        // calculate the distance between the prev coord and the new coord
+        if(tripActive)  {
+
+          const distance = calculateDistance(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            latitude,
+            longitude
+          );
+            totalDistance.current += distance;
+
+            setDisplayDistance(totalDistance.current);
+        }
         setCurrentLocation({ latitude, longitude });
       }
     );
@@ -95,15 +108,15 @@ export default function NavigationScreen() {
 
             // Calculate distance using Haversine formula
             if (region) {
-              const distance = calculateDistance(
-                region.latitude,
-                region.longitude,
-                latitude,
-                longitude
-              );
+              // const distance = calculateDistance(
+              //   region.latitude,
+              //   region.longitude,
+              //   latitude,
+              //   longitude
+              // );
 
-              totalDistance.current += distance;
-              setDisplayDistance(totalDistance.current);
+              // totalDistance.current += distance;
+              // setDisplayDistance(totalDistance.current);
 
 
               updateTripData({
@@ -180,7 +193,7 @@ export default function NavigationScreen() {
             <Text style={styles.overlayText}>
               Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
             </Text>
-            <Text style={styles.overlayText}>
+            <Text style={styles.overlayText2}>
               Distance Traveled: {(displayDistance / 1000).toFixed(2)} km
             </Text>
           </>
@@ -228,6 +241,13 @@ const styles = StyleSheet.create({
   overlayText: {
     color: '#fff',
     fontSize: 16,
+  },
+  overlayText2: {
+    color: '#fff',
+    fontSize: 16,
+    alignContent: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
   },
   startTripButton: {
     position: 'absolute',
