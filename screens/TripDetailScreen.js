@@ -7,10 +7,11 @@ import {
   FlatList,
   ScrollView,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
-export default function TripDetailScreen({ navigation }) {
+export default function TripDetailScreen() {
   const route = useRoute();
+  const navigation = useNavigation();
   const { trip } = route.params;
 
   const formatDuration = (startTime, endTime) => {
@@ -39,39 +40,42 @@ export default function TripDetailScreen({ navigation }) {
   const formatDateTime = (timestamp) => {
     if (!timestamp) return 'Unknown';
     const date = new Date(timestamp);
-    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
   };
 
   const renderCrash = ({ item }) => (
-    <View style={styles.crashItem}>
-      <Text style={styles.crashDetail}>
-        <Text style={styles.crashLabel}>Crash Time: </Text>
-        {formatDateTime(item.time)}
-      </Text>
-      <Text style={styles.crashDetail}>
-        <Text style={styles.crashLabel}>Speed at Crash: </Text>
-        {formatSpeed(item.speed)}
-      </Text>
-      <Text style={styles.crashDetail}>
-        <Text style={styles.crashLabel}>Acceleration: </Text>
-        {item.acceleration !== undefined && item.acceleration !== null
-          ? `${parseFloat(item.acceleration).toFixed(2)} m/s²`
-          : 'N/A'}
-      </Text>
-      {item.location ? (
-        <>
+    <TouchableOpacity onPress={() => navigation.navigate('CrashDetail', { crash: item })}>
+      <View style={styles.crashItem}>
+        <Text style={styles.crashDetail}>
+          <Text style={styles.crashLabel}>Crash Time: </Text>
+          {formatDateTime(item.time)}
+        </Text>
+        <Text style={styles.crashDetail}>
+          <Text style={styles.crashLabel}>Speed at Crash: </Text>
+          {formatSpeed(item.speed)}
+        </Text>
+        <Text style={styles.crashDetail}>
+          <Text style={styles.crashLabel}>Acceleration: </Text>
+          {item.acceleration !== undefined && item.acceleration !== null
+            ? `${parseFloat(item.acceleration).toFixed(2)} m/s²`
+            : 'N/A'}
+        </Text>
+        {item.location ? (
           <Text style={styles.crashDetail}>
             <Text style={styles.crashLabel}>Location: </Text>
             {`${item.location.latitude}, ${item.location.longitude}`}
           </Text>
-        </>
-      ) : (
-        <Text style={styles.crashDetail}>
-          <Text style={styles.crashLabel}>Location: </Text>
-          Not available
-        </Text>
-      )}
-    </View>
+        ) : (
+          <Text style={styles.crashDetail}>
+            <Text style={styles.crashLabel}>Location: </Text>
+            Not available
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -82,7 +86,6 @@ export default function TripDetailScreen({ navigation }) {
     >
       <Text style={styles.header}>Trip Details</Text>
 
-      {/* Trip Stats */}
       <View style={styles.detailBox}>
         <Text style={styles.detailLabel}>Start Time:</Text>
         <Text style={styles.detailValue}>
@@ -115,7 +118,6 @@ export default function TripDetailScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Crash Info */}
       {trip.crashEvents?.length > 0 ? (
         <>
           <Text style={styles.sectionHeader}>Crash Info</Text>

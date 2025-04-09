@@ -8,16 +8,14 @@ import {
 } from 'react-native';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 
-export default function TripHistoryScreen() {
+export default function TripHistoryScreen({ navigation }) {
   const trips = useBluetoothStore((state) => state.tripLogs);
   const loadTripLogs = useBluetoothStore((state) => state.loadTripLogs);
   const deleteTrip = useBluetoothStore((state) => state.deleteTrip);
-  const navigation = useNavigation();
 
   useEffect(() => {
-    loadTripLogs(); // ✅ Load trips on mount
+    loadTripLogs();
   }, []);
 
   const formatDuration = (startTime, endTime) => {
@@ -34,11 +32,13 @@ export default function TripHistoryScreen() {
   };
 
   const formatDistance = (distance) => {
-    return (distance / 1609).toFixed(2) + ' mi'; // Convert meters to miles
+    if (distance === null || distance === undefined) return '0.00 mi';
+    return (distance / 1609).toFixed(2) + ' mi';
   };
 
   const formatSpeed = (speed) => {
-    return (speed * 2.237).toFixed(1) + ' mph'; // Convert m/s to mph
+    if (speed === null || speed === undefined) return '0.0 mph';
+    return (speed * 2.237).toFixed(1) + ' mph';
   };
 
   const formatDateTime = (timestamp) => {
@@ -69,8 +69,7 @@ export default function TripHistoryScreen() {
           Max Speed: {formatSpeed(item.maxSpeed)}
         </Text>
       </View>
-      {/* Delete Button */}
-      <TouchableOpacity onPress={() => deleteTrip(index)}>
+      <TouchableOpacity onPress={() => deleteTrip(index)} style={styles.deleteButton}>
         <Ionicons
           name="trash-outline"
           size={24}
@@ -119,6 +118,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    elevation: 4, // Slight shadow for better visibility
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   tripInfo: {
     flexShrink: 1,
@@ -131,12 +135,13 @@ const styles = StyleSheet.create({
   tripDetail: {
     fontSize: 14,
     color: '#ccc',
+    marginBottom: 2,
   },
-  deleteIcon: {
+  deleteButton: {
     padding: 8,
   },
-  chevronIcon: {
-    marginLeft: 8,
+  deleteIcon: {
+    color: '#ff4d4d',
   },
   emptyText: {
     fontSize: 16,

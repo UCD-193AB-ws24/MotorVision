@@ -29,10 +29,10 @@ export const useBluetoothStore = create((set, get) => ({
       tripData: {
         startTime,
         endTime: null,
-        totalDistance: 0,
+        totalDistance: 0, // in meters
         averageSpeed: 0,
         maxSpeed: 0,
-        crashEvents: [], // Ensure crashEvents is initialized properly
+        crashEvents: [], // Initialize crashEvents to an empty array
       },
     });
   },
@@ -45,14 +45,15 @@ export const useBluetoothStore = create((set, get) => ({
       const updatedTripData = {
         ...state.tripData,
         endTime,
+        crashEvents: [...state.tripData.crashEvents], // Ensure crash events are included when saving trip data
       };
 
       try {
-        // Save trip to AsyncStorage and update Zustand state
         const existingTrips = JSON.parse(await AsyncStorage.getItem('tripLogs')) || [];
         const newTrips = [...existingTrips, updatedTripData];
         await AsyncStorage.setItem('tripLogs', JSON.stringify(newTrips));
 
+        // Load updated trips into Zustand state
         set({
           tripLogs: newTrips.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)),
           tripActive: false,
@@ -87,7 +88,7 @@ export const useBluetoothStore = create((set, get) => ({
       if (!state.tripActive || !state.tripData) return state;
       const updatedData = {
         ...state.tripData,
-        crashEvents: [...state.tripData.crashEvents, event], // Append crash events to trip data
+        crashEvents: [...state.tripData.crashEvents, event], // Ensure crash data is properly appended
       };
       return { tripData: updatedData };
     });
@@ -119,7 +120,7 @@ export const useBluetoothStore = create((set, get) => ({
     await AsyncStorage.setItem('crashLogs', JSON.stringify(updatedLogs));
   },
 
-  // Clear all logs
+  // Clear all crash logs
   clearCrashLogs: async () => {
     set({ crashLogs: [] });
     await AsyncStorage.removeItem('crashLogs');
@@ -152,8 +153,15 @@ export const useBluetoothStore = create((set, get) => ({
       const logs = await AsyncStorage.getItem('tripLogs');
       if (logs) {
         const parsedLogs = JSON.parse(logs);
+
+        // Ensure crashEvents array exists for consistency
+        const sanitizedLogs = parsedLogs.map((trip) => ({
+          ...trip,
+          crashEvents: trip.crashEvents || [],
+        }));
+
         set({
-          tripLogs: parsedLogs.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)),
+          tripLogs: sanitizedLogs.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)),
         });
       }
     } catch (err) {
