@@ -7,177 +7,132 @@ import { useBluetoothStore } from '../store/bluetoothStore';
 export default function NavigationScreen() {
   const [region, setRegion] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [locationSubscription, setLocationSubscription] = useState(null);
   const [startTripAlertShown, setStartTripAlertShown] = useState(false);
   const [endTripAlertShown, setEndTripAlertShown] = useState(false);
   const [displayDistance, setDisplayDistance] = useState(0);
 
-  // Zustand state for trip status
   const tripActive = useBluetoothStore((state) => state.tripActive);
   const startTrip = useBluetoothStore((state) => state.startTrip);
   const stopTrip = useBluetoothStore((state) => state.stopTrip);
   const updateTripData = useBluetoothStore((state) => state.updateTripData);
-  const totalDistance = useRef(0); // stores running total of distance
+
+  const totalDistance = useRef(0);
+  const prevLocation = useRef(null);
+  const locationSubscription = useRef(null);
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission to access location was denied');
+        Alert.alert('Permission denied', 'Location permission is required.');
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
-      setRegion({
+
+      const initialRegion = {
         latitude,
         longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      });
-      if(tripActive)  {
-          
-        const distance = calculateDistance(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          latitude,
-          longitude
-        );
-          totalDistance.current += distance;
-          console.log('Distance:', distance);
+      };
 
-          setDisplayDistance(totalDistance.current);
-      }
+      setRegion(initialRegion);
       setCurrentLocation({ latitude, longitude });
+      prevLocation.current = { latitude, longitude };
     })();
   }, []);
 
   useEffect(() => {
-    const locationSubscription = Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 10 },
-      (location) => {
-        const { latitude, longitude } = location.coords;
-        // calculate the distance between the prev coord and the new coord
-        if(tripActive)  {
+    if (!tripActive) return;
 
-          const distance = calculateDistance(
-            currentLocation.latitude,
-            currentLocation.longitude,
-            latitude,
-            longitude
-          );
-            totalDistance.current += distance;
-            console.log('Distance:', distance);
-
-            setDisplayDistance(totalDistance.current);
-        }
-        setCurrentLocation({ latitude, longitude });
-      }
-    );
-
-    return () => locationSubscription.remove();
-  }, []);
-
-  // Handle Start/End Trip
-  const handleStartTrip = async () => {
-    if (tripActive) {
-      // Show alert the first time the user ends a trip
-      if (!endTripAlertShown) {
-        Alert.alert(
-          'Trip Ended',
-          'Trip tracking has been stopped. Your trip data will be saved and available in the trip history.'
-        );
-        setEndTripAlertShown(true);
-      }
-
-      stopTrip();
-
-      // Stop location updates
-      if (locationSubscription) {
-        locationSubscription.remove();
-        setLocationSubscription(null);
-      }
-    } else {
-      // Show alert the first time the user starts a trip
-      if (!startTripAlertShown) {
-        Alert.alert(
-          'Trip Started',
-          'Trip tracking has begun! Your location, speed, and distance will be recorded in real time.'
-        );
-        setStartTripAlertShown(true);
-      }
-
-      startTrip();
-
-      // Start location updates for trip tracking
+    const subscribe = async () => {
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000, // Update every second
-          distanceInterval: 1, // Minimum distance change to trigger an update
+          timeInterval: 1000,
+          distanceInterval: 1,
         },
         (position) => {
-          if (tripActive) {
-            const { speed, latitude, longitude } = position.coords;
+          const { latitude, longitude, speed } = position.coords;
+          const newLocation = { latitude, longitude };
 
-            // Calculate distance using Haversine formula
-            if (region) {
-              // const distance = calculateDistance(
-              //   region.latitude,
-              //   region.longitude,
-              //   latitude,
-              //   longitude
-              // );
+          if (tripActive && prevLocation.current) {
+            const distance = calculateDistance(
+              prevLocation.current.latitude,
+              prevLocation.current.longitude,
+              latitude,
+              longitude
+            );
 
-              // totalDistance.current += distance;
-              // setDisplayDistance(totalDistance.current);
+            totalDistance.current += distance;
+            setDisplayDistance(totalDistance.current);
 
-
-              updateTripData({
-                distance,
-                speed: speed || 0,
-              });
-
-              // Update the region for the next distance calculation
-              setRegion({
-                latitude,
-                longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              });
-            }
+            updateTripData({
+              distance,
+              speed: speed || 0,
+            });
           }
+
+          prevLocation.current = newLocation;
+          setCurrentLocation(newLocation);
+          setRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
         }
       );
 
-      setLocationSubscription(subscription);
+      locationSubscription.current = subscription;
+    };
+
+    subscribe();
+
+    return () => {
+      locationSubscription.current?.remove();
+      locationSubscription.current = null;
+    };
+  }, [tripActive]);
+
+  const handleStartTrip = async () => {
+    if (tripActive) {
+      if (!endTripAlertShown) {
+        Alert.alert('Trip Ended', 'Trip tracking has stopped and data will be saved.');
+        setEndTripAlertShown(true);
+      }
+      stopTrip();
+      locationSubscription.current?.remove();
+      locationSubscription.current = null;
+    } else {
+      if (!startTripAlertShown) {
+        Alert.alert('Trip Started', 'Your trip is now being tracked.');
+        setStartTripAlertShown(true);
+      }
+
+      totalDistance.current = 0;
+      setDisplayDistance(0);
+      prevLocation.current = currentLocation;
+      startTrip();
     }
   };
 
-  // Haversine formula to calculate distance between two coordinates
-  let locationPointCurr = {
-    latitude: null,
-    longitude: null,
-  };
-
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Radius of the earth in meters
+    const R = 6371e3; // meters
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
     const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) *
-        Math.cos(φ2) *
-        Math.sin(Δλ / 2) *
-        Math.sin(Δλ / 2);
+      Math.sin(Δφ / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) ** 2;
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    const distance = R * c; // Distance in meters
-    return distance;
+    return R * c;
   };
 
   if (!region) {
@@ -190,7 +145,6 @@ export default function NavigationScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Map */}
       <MapView
         style={styles.map}
         region={region}
@@ -200,7 +154,6 @@ export default function NavigationScreen() {
         {currentLocation && <Marker coordinate={currentLocation} title="You are here" />}
       </MapView>
 
-      {/* Overlay for current location */}
       <View style={styles.overlay}>
         {currentLocation && (
           <>
@@ -214,7 +167,6 @@ export default function NavigationScreen() {
         )}
       </View>
 
-      {/* Start Trip Button (Overlay) */}
       <TouchableOpacity
         style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
         onPress={handleStartTrip}
@@ -228,12 +180,8 @@ export default function NavigationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -259,8 +207,6 @@ const styles = StyleSheet.create({
   overlayText2: {
     color: '#fff',
     fontSize: 16,
-    alignContent: 'center',
-    justifyContent: 'center',
     textAlign: 'center',
   },
   startTripButton: {
@@ -274,10 +220,10 @@ const styles = StyleSheet.create({
     shadowColor: '#0A84FF',
     shadowOpacity: 0.5,
     shadowRadius: 10,
-    elevation: 5, // Shadow for Android
+    elevation: 5,
   },
   activeButton: {
-    backgroundColor: '#FF3B30', // Red color when trip is active
+    backgroundColor: '#FF3B30',
   },
   startTripText: {
     color: '#fff',

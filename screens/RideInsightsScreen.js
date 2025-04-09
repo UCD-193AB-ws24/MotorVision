@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import * as Location from 'expo-location';
 
 export default function RideInsightsScreen() {
   const [speedData, setSpeedData] = useState([0]);
+  const [accelData, setAccelData] = useState([0]);
   const [speed, setSpeed] = useState(0);
-  const speedRef = useRef(0); // Ref to store the latest speed value
+  const speedRef = useRef(0);
   const [leanAngleData, setLeanAngleData] = useState([0]);
   const [brakingForceData, setBrakingForceData] = useState([0]);
   const tripActive = useBluetoothStore((state) => state.tripActive);
@@ -23,15 +25,14 @@ export default function RideInsightsScreen() {
       await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000, // Update every second
+          timeInterval: 1000,
         },
         (position) => {
           if (position.coords.speed !== null) {
-            const speedMps = position.coords.speed; // Speed in meters per second
-            const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
+            const speedMps = position.coords.speed;
+            const speedMph = (speedMps * 2.23694).toFixed(1);
             setSpeed(speedMph);
-            speedRef.current = speedMph; // Update the ref with the latest speed
-            console.log('Speed:', speedMph);
+            speedRef.current = speedMph;
           }
         }
       );
@@ -41,26 +42,32 @@ export default function RideInsightsScreen() {
   }, []);
 
   useEffect(() => {
-    if (!tripActive) return; // Only record data when trip is active
+    if (!tripActive) return;
+
+    const accelSubscription = Accelerometer.addListener(({ x, y, z }) => {
+      const magnitude = Math.sqrt(x * x + y * y + z * z);
+      setAccelData((data) => [...data.slice(-20), parseFloat(magnitude.toFixed(2))]);
+    });
+
+    Accelerometer.setUpdateInterval(1000);
 
     const interval = setInterval(() => {
-      if(speedRef.current < 0) {
-        speedRef.current = 0; // Ensure speed is not negative
-      }
-      console.log('speed2', speedRef.current); // Use speedRef to get the latest speed
+      if (speedRef.current < 0) speedRef.current = 0;
       setSpeedData((data) => [...data.slice(-20), parseFloat(speedRef.current)]);
       setLeanAngleData((data) => [...data.slice(-20), Math.random() * 45]);
       setBrakingForceData((data) => [...data.slice(-20), Math.random() * 100]);
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      accelSubscription && accelSubscription.remove();
+    };
   }, [tripActive]);
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Ride Insights</Text>
 
-      {/* Speed Chart */}
       <Text style={styles.chartLabel}>Speed (mph)</Text>
       <LineChart
         data={{
@@ -75,7 +82,20 @@ export default function RideInsightsScreen() {
         style={styles.chart}
       />
 
-      {/* Lean Angle Chart */}
+      <Text style={styles.chartLabel}>Acceleration (m/s²)</Text>
+      <LineChart
+        data={{
+          labels: Array(accelData.length).fill(''),
+          datasets: [{ data: accelData }],
+        }}
+        width={350}
+        height={200}
+        yAxisSuffix=" m/s²"
+        chartConfig={chartConfig}
+        bezier
+        style={styles.chart}
+      />
+
       <Text style={styles.chartLabel}>Lean Angle (°)</Text>
       <LineChart
         data={{
@@ -90,7 +110,6 @@ export default function RideInsightsScreen() {
         style={styles.chart}
       />
 
-      {/* Braking Force Chart */}
       <Text style={styles.chartLabel}>Braking Force (%)</Text>
       <LineChart
         data={{
