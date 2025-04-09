@@ -227,16 +227,16 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    fontSize: 35,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 20,
     marginTop: 10,
   },
   helmet: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
+    width: 140,
+    height: 140,
+    marginBottom: 10,
   },
   statusContainer: {
     flexDirection: 'row',
