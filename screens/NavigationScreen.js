@@ -35,6 +35,19 @@ export default function NavigationScreen() {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
+      if(tripActive)  {
+          
+        const distance = calculateDistance(
+          currentLocation.latitude,
+          currentLocation.longitude,
+          latitude,
+          longitude
+        );
+          totalDistance.current += distance;
+          console.log('Distance:', distance);
+
+          setDisplayDistance(totalDistance.current);
+      }
       setCurrentLocation({ latitude, longitude });
     })();
   }, []);
@@ -54,6 +67,7 @@ export default function NavigationScreen() {
             longitude
           );
             totalDistance.current += distance;
+            console.log('Distance:', distance);
 
             setDisplayDistance(totalDistance.current);
         }
