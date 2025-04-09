@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
   Easing, Alert, ScrollView
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 
 export default function HomeScreen({ navigation }) {
@@ -21,16 +22,18 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const stored = await AsyncStorage.getItem('userInfo');
-      if (stored) {
-        const { name } = JSON.parse(stored);
-        setUserName(name);
-      }
-    };
-    loadUser();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadUser = async () => {
+        const stored = await AsyncStorage.getItem('userInfo');
+        if (stored) {
+          const { name } = JSON.parse(stored);
+          setUserName(name);
+        }
+      };
+      loadUser();
+    }, [])
+  );
 
   const handleConnect = async () => {
     setLoading(true);
@@ -60,7 +63,7 @@ export default function HomeScreen({ navigation }) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -86,7 +89,7 @@ export default function HomeScreen({ navigation }) {
     requestLocationPermission();
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
@@ -110,24 +113,6 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const rotateValue = useRef(new Animated.Value(0)).current;
-
-  // useEffect(() => {
-  //   const startRotation = () => {
-  //     Animated.timing(rotateValue, {
-  //       toValue: 1,
-  //       duration: 8000, // Slow down rotation to 8 seconds
-  //       easing: Easing.linear,
-  //       useNativeDriver: true,
-  //     }).start(() => {
-  //       rotateValue.setValue(0);
-  //       setTimeout(startRotation, 5000); // Longer delay between rotations
-  //     });
-  //   };
-
-  //   setTimeout(startRotation, 2000);
-
-  //   return () => rotateValue.setValue(0);
-  // }, []);
 
   const rotateInterpolation = rotateValue.interpolate({
     inputRange: [0, 1],
