@@ -95,6 +95,7 @@ def traj_image_live(request):
     print("Stop button pressed - backend processing for trajectory image...", data)
 
     locations_array = data["locations"]
+    print("this is the locations_array as seen in the backend ", locations_array)
     if len(locations_array) == 0:
         # print("Cannot create mock or real trajectory image. Please try again.")
         # return Response({"message": "Nothing generated because nothing found"})
@@ -122,7 +123,7 @@ def traj_image_live(request):
     print("Determining if there is enough data to create a trajectory image...")
     print()
 
-    timestamp = timestamps[0].replace("T", "_Time_").replace(":", "-").replace(".", "_")
+    timestamp = str(timestamps[0]).replace("T", "_Time_").replace(":", "-").replace(".", "_")
     csv_name = "Recording_Capture_" + timestamp + ".csv"
     html_name = "Recording_Capture_Map_HTML_" + timestamp + ".html"
     screenshot_name =  "Recording_Capture_Map_Image_" + timestamp + ".png"
@@ -150,6 +151,8 @@ def traj_image_live(request):
                 # TODO: change list function
                 # TODO: change how to call it?
                 print("There exists enough data to create a trajectory image. Creating trajectory image...")
+                for i in range(0, len(timestamps)):
+                    timestampes[i] = str(timestamps[i]).replace("T", "_Time_").replace(":", "-").replace(".", "_")
                 res = image_generator_live_list(csv_name, html_name, screenshot_name, timestamps, latitudes, longitudes)
                 print("Created real image with real data")
                 with open(res, 'rb') as img_file:

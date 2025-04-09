@@ -289,19 +289,23 @@ def image_generator_live_list(csv_input_name, html_output_name, png_output_name,
         "Longitude": longitudes
     })
     # 1 - create the csv storage
+    # Run the html/image generators -> this doesn't change
+    
+    # 1 - create the csv storage
     # Run the html/image generators -> this doesn't change\
     print("This is the name I have chosen for csv input", csv_input_name)
 
-    folder_name = f"{csv_input_name}"
-    folder_path = os.path.join(os.getcwd(), folder_name)
-    os.makedirs(folder_path, exist_ok=True)
+    base_dir = "/home/ubuntu" # possible create a new folder for everytime i make a connection?
+    folder_name = f"{csv_input_name[:-4]}"
+    folder_path = os.path.join(base_dir, folder_name)
+    os.makedirs(folder_path, exist_ok=True) # creating the directory for this recording
 
     # adding to a folder
     csv_file = os.path.join(folder_path, csv_input_name)  # Saves in current working directory
     print("This is the total name before I call to_csv", csv_file)
     df.to_csv(csv_file, index=False, encoding="utf-8", mode="w")
 
-    full_path = os.path.abspath(csv_file)
+    full_path = os.path.abspath(csv_file) 
     print("CSV file saved at:", full_path)
 
     if not html_output_name.endswith(".html"):
@@ -340,14 +344,14 @@ def image_generator_live_list(csv_input_name, html_output_name, png_output_name,
 
     print(f"Blank PNG file '{png_file}' created successfully.")
 
-    output_html_file = os.path.join(os.path.dirname(__file__), html_output_name)
-    output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
+    # output_html_file = os.path.join(folder_path, html_output_name)
+    # output_png_file =  os.path.join(os.path.dirname(__file__), png_output_name)
 
-    plotHtmlMapFromDataframe(df, output_html_file)
-    convertHtmlToPng(input_html=output_html_file, output_png=output_png_file)
+    plotHtmlMapFromDataframe(df, html_file)
+    convertHtmlToPng(input_html=html_file, output_png=png_file)
 
-    return output_png_file
-
+    return png_file
+   
 
 """
 # Get the trajectory dataframe
