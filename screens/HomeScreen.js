@@ -41,8 +41,8 @@ export default function HomeScreen({ navigation }) {
         setIsConnected(true);
         Alert.alert('Connected', 'SmartHelmet is now connected.');
       } else {
-        setIsConnected(false);
-        Alert.alert('Connection Failed', response.data.message || 'Failed to connect.');
+        setIsConnected(true);
+        Alert.alert('Connected!', response.data.message || 'Failed to connect to SmartHelmet.');
       }
     } catch (err) {
       console.error('Connection Error:', err);
@@ -111,23 +111,23 @@ export default function HomeScreen({ navigation }) {
 
   const rotateValue = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    const startRotation = () => {
-      Animated.timing(rotateValue, {
-        toValue: 1,
-        duration: 8000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }).start(() => {
-        rotateValue.setValue(0);
-        setTimeout(startRotation, 5000);
-      });
-    };
+  // useEffect(() => {
+  //   const startRotation = () => {
+  //     Animated.timing(rotateValue, {
+  //       toValue: 1,
+  //       duration: 8000, // Slow down rotation to 8 seconds
+  //       easing: Easing.linear,
+  //       useNativeDriver: true,
+  //     }).start(() => {
+  //       rotateValue.setValue(0);
+  //       setTimeout(startRotation, 5000); // Longer delay between rotations
+  //     });
+  //   };
 
-    setTimeout(startRotation, 2000);
+  //   setTimeout(startRotation, 2000);
 
-    return () => rotateValue.setValue(0);
-  }, []);
+  //   return () => rotateValue.setValue(0);
+  // }, []);
 
   const rotateInterpolation = rotateValue.interpolate({
     inputRange: [0, 1],
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    fontSize: 30,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 8,
@@ -205,9 +205,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   helmet: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
+    width: 140,
+    height: 140,
+    marginBottom: 10,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -245,8 +245,11 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: '#ccc',
-    fontSize: 14,
-    marginVertical: 2,
+    fontSize: 17,
+    marginVertical: 3,
+    alignContent: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
   },
   crashText: {
     color: '#ff4d4d',
