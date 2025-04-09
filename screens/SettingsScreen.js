@@ -4,63 +4,50 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function SettingsScreen({ navigation }) {
   const settingsOptions = [
-    { 
-      title: "Account", 
-      icon: "person-circle-outline", 
-      onPress: () => alert('Account Settings coming soon!') 
+    {
+      title: "Account",
+      icon: "person-circle-outline",
+      onPress: () => navigation.navigate('SettingsTab', { screen: 'EditProfile' }) // ✅ Correct nested navigation
     },
-    { 
-      title: "Notifications", 
-      icon: "notifications-outline", 
-      onPress: () => alert('Notifications Settings coming soon!') 
+    {
+      title: "Notifications",
+      icon: "notifications-outline",
+      onPress: () => alert('Notifications Settings coming soon!')
     },
-    { 
-      title: "Privacy & Security", 
-      icon: "shield-outline", 
-      onPress: () => alert('Privacy & Security Settings coming soon!') 
+    {
+      title: "Privacy & Security",
+      icon: "shield-outline",
+      onPress: () => alert('Privacy & Security Settings coming soon!')
     },
-    { 
-      title: "Sensor and Location Services", 
-      icon: "location-outline", 
-      onPress: () => alert('Sensor and Location Settings coming soon!') 
+    {
+      title: "Sensor and Location Services",
+      icon: "location-outline",
+      onPress: () => alert('Sensor and Location Settings coming soon!')
     },
-    { 
-      title: "Appearance", 
-      icon: "color-palette-outline", 
-      onPress: () => alert('Appearance Settings coming soon!') 
+    {
+      title: "Appearance",
+      icon: "color-palette-outline",
+      onPress: () => alert('Appearance Settings coming soon!')
     },
-    { 
-      title: "Help & Support", 
-      icon: "help-circle-outline", 
-      onPress: () => alert('Help & Support coming soon!') 
+    {
+      title: "Help & Support",
+      icon: "help-circle-outline",
+      onPress: () => alert('Help & Support coming soon!')
     },
-  ];  
+  ];
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Settings</Text>
 
-      {/* Render List of Settings */}
       <FlatList
         data={settingsOptions}
         keyExtractor={(item) => item.title}
         renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.settingItem} 
-            onPress={item.onPress}
-          >
-            <Ionicons 
-              name={item.icon} 
-              size={24} 
-              color="#0A84FF" 
-              style={styles.icon}
-            />
+          <TouchableOpacity style={styles.settingItem} onPress={item.onPress}>
+            <Ionicons name={item.icon} size={24} color="#0A84FF" style={styles.icon} />
             <Text style={styles.settingText}>{item.title}</Text>
-            <Ionicons 
-              name="chevron-forward-outline" 
-              size={20} 
-              color="#888" 
-            />
+            <Ionicons name="chevron-forward-outline" size={20} color="#888" />
           </TouchableOpacity>
         )}
       />
@@ -68,12 +55,12 @@ export default function SettingsScreen({ navigation }) {
       {/* Pairing Guide Button */}
       <TouchableOpacity
         style={styles.guideButton}
-        onPress={() => navigation.navigate('PairingGuide')}
+        onPress={() => navigation.navigate('SettingsTab', { screen: 'PairingGuide' })}
       >
-        <Ionicons 
-          name="bluetooth-outline" 
-          size={24} 
-          color="#ffffff" 
+        <Ionicons
+          name="bluetooth-outline"
+          size={24}
+          color="#ffffff"
           style={styles.icon}
         />
         <Text style={styles.buttonText}>How to Pair a Device</Text>

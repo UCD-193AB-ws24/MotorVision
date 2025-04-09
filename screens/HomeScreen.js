@@ -1,56 +1,58 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert, ScrollView } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
+  Easing, Alert, ScrollView
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import { useCrashDetection } from '../hooks/useCrashDetection';
 import * as Location from 'expo-location';
-
-
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCrashDetection } from '../hooks/useCrashDetection';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
   const [tripDuration, setTripDuration] = useState(0);
   const isCrashed = useCrashDetection();
+  const [userName, setUserName] = useState('');
+  const [location, setLocation] = useState(null);
 
-  // Connection state
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Handle Bluetooth Connection
+  useEffect(() => {
+    const loadUser = async () => {
+      const stored = await AsyncStorage.getItem('userInfo');
+      if (stored) {
+        const { name } = JSON.parse(stored);
+        setUserName(name);
+      }
+    };
+    loadUser();
+  }, []);
+
   const handleConnect = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await axios.get('http://3.147.83.156:8000/connect/');
-      console.log('Helmet connection response:', response.data);
-
       if (response.data.success) {
         setIsConnected(true);
         Alert.alert('Connected', 'SmartHelmet is now connected.');
       } else {
         setIsConnected(false);
-        Alert.alert('Connection Failed', response.data.message || 'Failed to connect to SmartHelmet.');
+        Alert.alert('Connection Failed', response.data.message || 'Failed to connect.');
       }
     } catch (err) {
       console.error('Connection Error:', err);
       setError('Connection failed. Please try again.');
-      Alert.alert('Error', 'Unable to connect to SmartHelmet. Please try again later.');
+      Alert.alert('Error', 'Unable to connect to SmartHelmet.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Crash Reporting
-  const sendCrashReport = () => {
-    console.log('🚨 Sending crash report...');
-    Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
-  };
-
-  // Format Duration
   const formatDuration = (secs) => {
     const hrs = Math.floor(secs / 3600);
     const mins = Math.floor((secs % 3600) / 60);
@@ -58,42 +60,32 @@ export default function HomeScreen({ navigation }) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  // 🌍 Live Location
-  const [location, setLocation] = useState(null);
-
-
   useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required to track speed.');
+        Alert.alert('Permission Denied', 'Location permission is required.');
         return;
       }
-  
+
       await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000, // Update every second
-          // distanceInterval: 1, // Update when moved at least 1 meter
+          timeInterval: 1000,
         },
         (position) => {
           if (position.coords.speed !== null) {
-            const speedMps = position.coords.speed; // Speed in meters per second
-            const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
-            if(speedMph < 0) {
-              setSpeed(0); // Ensure speed is not negative
-            }
-            else {
-              setSpeed(speedMph);
-            }
+            const speedMps = position.coords.speed;
+            const speedMph = (speedMps * 2.23694).toFixed(1);
+            setSpeed(speedMph < 0 ? 0 : speedMph);
           }
         }
       );
     };
-  
+
     requestLocationPermission();
   }, []);
-  
+
   useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -117,38 +109,18 @@ export default function HomeScreen({ navigation }) {
     requestLocationPermission();
   }, []);
 
-  // Bluetooth Connection Button
-  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
-  // const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState(null);
-
-  const handleButtonPress = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.get('http://3.147.83.156:8000/connect');
-      setButtonText(response.data.message);
-    } catch (err) {
-      setError('Error with API/Bluetooth Connection: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
   const rotateValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const startRotation = () => {
       Animated.timing(rotateValue, {
         toValue: 1,
-        duration: 8000, // Slow down rotation to 8 seconds
+        duration: 8000,
         easing: Easing.linear,
         useNativeDriver: true,
       }).start(() => {
         rotateValue.setValue(0);
-        setTimeout(startRotation, 5000); // Longer delay between rotations
+        setTimeout(startRotation, 5000);
       });
     };
 
@@ -159,23 +131,24 @@ export default function HomeScreen({ navigation }) {
 
   const rotateInterpolation = rotateValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['360deg', '0deg'], // Reverse direction (counterclockwise)
+    outputRange: ['360deg', '0deg'],
   });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="light" />
-
-      {/* Header */}
+      
       <Text style={styles.header}>MotorVision</Text>
+      
+      {userName !== '' && (
+        <Text style={styles.greeting}>Welcome back, {userName}!</Text>
+      )}
 
-      {/* Helmet Animation */}
       <Animated.Image
         source={require('../assets/helmet.png')}
         style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
       />
 
-      {/* Connection Status */}
       <View style={styles.statusContainer}>
         <Ionicons
           name={isConnected ? 'checkmark-circle' : 'alert-circle'}
@@ -187,7 +160,6 @@ export default function HomeScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Speed + Battery */}
       <View style={styles.statCard}>
         <Text style={styles.mainStat}>{speed}</Text>
         <Text style={styles.unit}>mph</Text>
@@ -197,23 +169,18 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
         <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
         {location && (
-          <Text style={styles.infoText}>
-            🌍 {location.latitude}°, {location.longitude}°
-          </Text>
+          <Text style={styles.infoText}>🌍 {location.latitude}°, {location.longitude}°</Text>
         )}
       </View>
 
-      {/* Crash Alert */}
       {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
 
-      {/* Bluetooth Connection Button */}
       <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
         <Text style={styles.buttonText}>
           {loading ? 'Connecting...' : isConnected ? 'Connected' : 'Connect Helmet'}
         </Text>
       </TouchableOpacity>
 
-      {/* Error Message */}
       {error && <Text style={styles.errorText}>{error}</Text>}
     </ScrollView>
   );
@@ -230,7 +197,12 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#ccc',
+    marginBottom: 12,
   },
   helmet: {
     width: 120,
