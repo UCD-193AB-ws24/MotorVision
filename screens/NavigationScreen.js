@@ -10,12 +10,14 @@ export default function NavigationScreen() {
   const [locationSubscription, setLocationSubscription] = useState(null);
   const [startTripAlertShown, setStartTripAlertShown] = useState(false);
   const [endTripAlertShown, setEndTripAlertShown] = useState(false);
+  const [displayDistance, setDisplayDistance] = useState(0);
 
   // Zustand state for trip status
   const tripActive = useBluetoothStore((state) => state.tripActive);
   const startTrip = useBluetoothStore((state) => state.startTrip);
   const stopTrip = useBluetoothStore((state) => state.stopTrip);
   const updateTripData = useBluetoothStore((state) => state.updateTripData);
+  const totalDistance = useRef(0); // stores running total of distance
 
   useEffect(() => {
     (async () => {
@@ -100,6 +102,10 @@ export default function NavigationScreen() {
                 longitude
               );
 
+              totalDistance.current += distance;
+              setDisplayDistance(totalDistance.current);
+
+
               updateTripData({
                 distance,
                 speed: speed || 0,
@@ -122,6 +128,11 @@ export default function NavigationScreen() {
   };
 
   // Haversine formula to calculate distance between two coordinates
+  let locationPointCurr = {
+    latitude: null,
+    longitude: null,
+  };
+
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3; // Radius of the earth in meters
     const φ1 = (lat1 * Math.PI) / 180;
@@ -165,9 +176,14 @@ export default function NavigationScreen() {
       {/* Overlay for current location */}
       <View style={styles.overlay}>
         {currentLocation && (
-          <Text style={styles.overlayText}>
-            Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
-          </Text>
+          <>
+            <Text style={styles.overlayText}>
+              Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
+            </Text>
+            <Text style={styles.overlayText}>
+              Distance Traveled: {(displayDistance / 1000).toFixed(2)} km
+            </Text>
+          </>
         )}
       </View>
 
