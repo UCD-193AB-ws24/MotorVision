@@ -15,6 +15,8 @@ export default function NavigationScreen() {
   const startTrip = useBluetoothStore((state) => state.startTrip);
   const stopTrip = useBluetoothStore((state) => state.stopTrip);
   const updateTripData = useBluetoothStore((state) => state.updateTripData);
+  const addTripLocation = useBluetoothStore((state) => state.addTripLocation); // added to bluetooth store
+
 
   const totalDistance = useRef(0);
   const prevLocation = useRef(null);
@@ -57,6 +59,8 @@ export default function NavigationScreen() {
         (position) => {
           const { latitude, longitude, speed } = position.coords;
           const newLocation = { latitude, longitude };
+          addTripLocation({latitude, longitude, timestamp: Date.now() }); // adding to update to bluetooth
+          console.log("Location recorded - latitude: ", latitude) 
 
           if (tripActive && prevLocation.current) {
             const distance = calculateDistance(
