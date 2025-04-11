@@ -33,6 +33,7 @@ export const useBluetoothStore = create((set, get) => ({
         averageSpeed: 0,
         maxSpeed: 0,
         crashEvents: [], // Ensure crashEvents is initialized properly
+        locationArray: [],
       },
     });
   },
@@ -80,6 +81,29 @@ export const useBluetoothStore = create((set, get) => ({
       return { tripData: updatedData };
     });
   },
+
+  addTripLocation: (location) => {
+    set((state) => {
+      if (!state.tripActive || !state.tripData) return state;
+  
+      const updatedLocations = [
+        ...(state.tripData.locationArray || []),
+        {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timestamp: location.timestamp || new Date().toISOString(),
+        },
+      ];
+  
+      const updatedData = {
+        ...state.tripData,
+        locationArray: updatedLocations,
+      };
+  
+      return { tripData: updatedData };
+    });
+  },
+  
 
   // Record crash event during an active trip
   recordCrashEvent: (event) => {
