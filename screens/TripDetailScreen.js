@@ -13,6 +13,37 @@ export default function TripDetailScreen({ navigation }) {
   const route = useRoute();
   const { trip } = route.params;
 
+  const [locationSummary, setLocationSummary] = useState(null); // variable
+  const [loadingSummary, setLoadingSummary] = useState(true); // boolean
+  const [trajectoryImage, setTrajectoryImage] = useState(null);
+
+  const locations = trip.locations;
+  useEffect(() => {
+    const sendLocationsToAPI = async () => {
+      console.log("Sending locations to backend for image generation in details screen", locations);
+      const url = `http://3.147.83.156:8000/traj_image_live/`;
+      try {
+        const response = await axios.post(url, { locations});
+        console.log("Server response for image generation in details screen", response.data);
+        let base64 = response.data.image_data;
+        let imageUrl = `data:image/png;base64,${base64}`;
+        setTrajectoryImage(imageUrl); // Example: result.summaryText
+        console.log("Sucessfully got image from API ")
+      } catch (error) {
+        console.error('Error fetching location summary:', error);
+        setLocationSummary(null);
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+
+    if (trip.locations.length > 0) {
+      sendLocationsToAPI();
+    } else {
+      setLoadingSummary(false);
+    }
+  }, [trip.locations]);
+
   const formatDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 'Unknown';
     const start = new Date(startTime);
@@ -140,6 +171,18 @@ export default function TripDetailScreen({ navigation }) {
         <Text style={styles.noCrashesText}>
           No crashes detected during this trip.
         </Text>
+      )}
+
+        {/* Location Summary Image */}
+        {loadingSummary ? (
+        <Text style={styles.noCrashesText}>Analyzing location data...</Text>
+      ) : trajectoryImage ? (
+        <>
+          <Text style={styles.sectionHeader}>Location Analysis</Text>
+          <Image source={{ uri: trajectoryImage }} style={styles.image} resizeMode="contain" />
+        </>
+      ) : (
+        <Text style={styles.noCrashesText}>No location image generation available.</Text>
       )}
 
       <TouchableOpacity
