@@ -3,6 +3,8 @@ from rest_framework.decorators import api_view
 import base64
 
 from django.http import FileResponse
+from django.conf import settings
+import requests
 
 # import serial
 import threading # import from BluetoothReaderSimulation
@@ -192,7 +194,7 @@ def trip_weather(request):
 
     trip_points = data["locations"]
     weather_summaries = [] # intiailizing the weather summary array
-    print("this is the locations_array as seen in the backend ", locations_array)
+    print("this is the locations_array as seen in the backend ", trip_points)
 
     for point in trip_points:
         lat = point["latitude"]
@@ -200,6 +202,7 @@ def trip_weather(request):
         time_iso = point["timestamp"]  # Format: "2025-04-10T15:00:00Z"
 
         # prepping the api call
+        print("Doing an api call")
         url = "https://api.tomorrow.io/v4/weather/history/recent"
 
         # creating the params to send to ami
@@ -211,12 +214,14 @@ def trip_weather(request):
             "apikey": settings.TOMORROW_API_KEY
         }
 
-        # a
         response = requests.get(url, params=params)
+        print("this is the response I have recieved from tomorrow")
+
         if response.ok:
             data = response.json()
             interval = data.get("timelines", {}).get("hourly", [])[0]
             values = interval["values"]
+            print("this is the data", data)
 
             weather_summaries.append({
                 "lat": lat,
@@ -229,7 +234,7 @@ def trip_weather(request):
                     "icon": map_weather_code_to_icon(values.get("weatherCode")) 
                 }
             })
-
+        print("this is weather summaries: ", weather_summaries)
         return Response({'weather_summary': weather_summaries})
 
 

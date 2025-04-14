@@ -9,7 +9,6 @@ import scipy.signal
 import folium
 import csv
 from PIL import Image
-from playwright.sync_api import sync_playwright
 
 
 # these are all the predefined functions

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-=2s4cw=uru$&cw%6jh_9i+e!j7u6$371*mcyu*vvufnpu)o^(w"
 
 
-TOMORROW_API_KEY=os.getenv("TOMORROW_API_KEY")
+TOMORROW_API_KEY=config("TOMORROW_API_KEY", default="")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 

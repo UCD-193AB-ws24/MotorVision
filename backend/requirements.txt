@@ -9,4 +9,6 @@ numpy
 selenium
 Pillow
 
+python-decouple
+
 # pip install -r requirements.txt
