@@ -9,5 +9,6 @@ urlpatterns = [
     path("live_loc/", views.live_loc),
     path("location_array/", views.location_array),
     path("traj_image_live/", views.traj_image_live),
+    path("trip_weather/", views.trip_weather),
     path("", views.home_page)
 ]

@@ -183,4 +183,69 @@ def crash_prediction(request):
     - have to figure out a way to read through the array
     """
 
+@api_view(['POST'])
+def trip_weather(request):
+    
+    data = request.data  # Extract JSON payload from request body
+    print()
+    print("Starting weather overview...", data)
+
+    trip_points = data["locations"]
+    weather_summaries = [] # intiailizing the weather summary array
+    print("this is the locations_array as seen in the backend ", locations_array)
+
+    for point in trip_points:
+        lat = point["latitude"]
+        lon = point["longitude"]
+        time_iso = point["timestamp"]  # Format: "2025-04-10T15:00:00Z"
+
+        # prepping the api call
+        url = "https://api.tomorrow.io/v4/weather/history/recent"
+
+        # creating the params to send to ami
+        params = {
+            "location": f"{lat},{lon}",
+            "timesteps": "1h",
+            "startTime": time_iso,
+            "endTime": time_iso,
+            "apikey": settings.TOMORROW_API_KEY
+        }
+
+        # a
+        response = requests.get(url, params=params)
+        if response.ok:
+            data = response.json()
+            interval = data.get("timelines", {}).get("hourly", [])[0]
+            values = interval["values"]
+
+            weather_summaries.append({
+                "lat": lat,
+                "lon": lon,
+                "timestamp": time_iso,
+                "summary": {
+                    "temp": values.get("temperature"),
+                    "precipType": values.get("precipitationType"),
+                    "wind": values.get("windSpeed"),
+                    "icon": map_weather_code_to_icon(values.get("weatherCode")) 
+                }
+            })
+
+        return Response({'weather_summary': img_data})
+
+
+def map_weather_code_to_icon(code):
+    # Map weatherCode to emoji or app-specific icon keys
+    return {
+        1000: "☀️",
+        1100: "🌤",
+        1101: "🌥",
+        1102: "☁️",
+        4000: "🌧",
+        4200: "🌦",
+        4201: "🌧",
+        5000: "❄️",
+        5100: "🌨",
+        6000: "🌫",
+        6200: "🌁",
+    }.get(code, "❓")
 
