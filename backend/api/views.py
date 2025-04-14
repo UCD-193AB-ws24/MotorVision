@@ -230,7 +230,7 @@ def trip_weather(request):
                 }
             })
 
-        return Response({'weather_summary': img_data})
+        return Response({'weather_summary': weather_summaries})
 
 
 def map_weather_code_to_icon(code):
