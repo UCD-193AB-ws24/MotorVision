@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LocationSubscriber } from 'expo-location/build/LocationSubscribers';
 
 export const useBluetoothStore = create((set, get) => ({
   connectedDevice: null,
@@ -33,7 +34,7 @@ export const useBluetoothStore = create((set, get) => ({
         averageSpeed: 0,
         maxSpeed: 0,
         crashEvents: [], // Ensure crashEvents is initialized properly
-        locationArray: [],
+        locations: [],
       },
     });
   },
@@ -87,7 +88,7 @@ export const useBluetoothStore = create((set, get) => ({
       if (!state.tripActive || !state.tripData) return state;
   
       const updatedLocations = [
-        ...(state.tripData.locationArray || []),
+        ...(state.tripData.locations || []),
         {
           latitude: location.latitude,
           longitude: location.longitude,
@@ -97,7 +98,7 @@ export const useBluetoothStore = create((set, get) => ({
   
       const updatedData = {
         ...state.tripData,
-        locationArray: updatedLocations,
+        locations: updatedLocations,
       };
   
       return { tripData: updatedData };

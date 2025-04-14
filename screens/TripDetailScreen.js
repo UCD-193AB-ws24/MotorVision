@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,16 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { Image } from 'react-native';
+import axios from 'axios';
+
 
 export default function TripDetailScreen({ navigation }) {
   const route = useRoute();
   const { trip } = route.params;
 
-  const [locationSummary, setLocationSummary] = useState(null); // variable
   const [loadingSummary, setLoadingSummary] = useState(true); // boolean
+  const [locationSummary, setLocationSummary] = useState(null);
   const [trajectoryImage, setTrajectoryImage] = useState(null);
 
   const locations = trip.locations;
@@ -24,7 +27,6 @@ export default function TripDetailScreen({ navigation }) {
       const url = `http://3.147.83.156:8000/traj_image_live/`;
       try {
         const response = await axios.post(url, { locations});
-        console.log("Server response for image generation in details screen", response.data);
         let base64 = response.data.image_data;
         let imageUrl = `data:image/png;base64,${base64}`;
         setTrajectoryImage(imageUrl); // Example: result.summaryText
@@ -37,8 +39,9 @@ export default function TripDetailScreen({ navigation }) {
       }
     };
 
-    if (trip.locations.length > 0) {
+    if (trip.locations?.length > 0) {
       sendLocationsToAPI();
+      console.log("Just sent the locations to the API for testing")
     } else {
       setLoadingSummary(false);
     }
@@ -185,6 +188,9 @@ export default function TripDetailScreen({ navigation }) {
         <Text style={styles.noCrashesText}>No location image generation available.</Text>
       )}
 
+      { /* Weather and Road Conditions Summary */}
+
+
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -266,5 +272,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#ffffff',
+  },
+  image: {
+    width: '100%',
+    height: 200, // or more if needed
+    marginBottom: 20,
   },
 });
