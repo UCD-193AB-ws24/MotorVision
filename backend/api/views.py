@@ -154,6 +154,7 @@ def traj_image_live(request):
                 # TODO: change how to call it?
                 print("There exists enough data to create a trajectory image. Creating trajectory image...")
                 for i in range(0, len(timestamps)):
+                    print("Original timestamp value", timestamps[i]) 
                     timestamps[i] = str(timestamps[i]).replace("T", "_Time_").replace(":", "-").replace(".", "_")
                 res = image_generator_live_list(csv_name, html_name, screenshot_name, timestamps, latitudes, longitudes)
                 print("Created real image with real data")
