@@ -187,6 +187,12 @@ def crash_prediction(request):
 
 @api_view(['POST'])
 def trip_weather(request):
+
+    """"
+    Refinements/Tasks:
+    - reduce number of api calls
+    - build averages to call in the frontend     
+    """
     
     data = request.data  # Extract JSON payload from request body
     print()
@@ -195,6 +201,11 @@ def trip_weather(request):
     trip_points = data["locations"]
     weather_summaries = [] # intiailizing the weather summary array
     print("this is the locations_array as seen in the backend ", trip_points)
+
+    average_temperature = 0
+    average_precipitation = 0
+    average_wind_speed = 0
+
 
     for point in trip_points:
         lat = point["latitude"]
@@ -234,7 +245,10 @@ def trip_weather(request):
                     "icon": map_weather_code_to_icon(values.get("weatherCode")) 
                 }
             })
+        # has the coding/information for each latitude/longitude
         print("this is weather summaries: ", weather_summaries)
+
+
         return Response({'weather_summary': weather_summaries})
 
 
