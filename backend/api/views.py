@@ -228,6 +228,7 @@ def trip_weather(request):
         }
 
         response = requests.get(url, params=params)
+        print(response.json())
 
         if response.ok:
             data = response.json()
@@ -250,12 +251,13 @@ def trip_weather(request):
             api_calls += 1
             average_temperature += values.get("temperature")
             average_wind_speed += values.get("windSpeed")
-            icon_collections[weather_summaries["icon"]] += 1
+            icon_collections[map_weather_code_to_icon(values.get("weatherCode")) ] += 1
         # has the coding/information for each latitude/longitude
     
-    print("this is weather summaries: ", weather_summaries)
+    # print("this is weather summaries: ", weather_summaries)
     print("Developing the weather overview return...")
-    return_array = []
+    #return_array = []
+
     if (api_calls > 0):
         average_temperature = (average_temperature/float(api_calls))
         average_wind_speed = (average_wind_speed/float(api_calls))
@@ -265,12 +267,12 @@ def trip_weather(request):
     
     popular_icon = max(icon_collections, key=icon_collections.get)
 
-    return_array.append([{"average_temperature": average_temperature, 
-                        "average_wind_speed": average_wind_speed,
-                        "icons": popular_icon}])
+    # return_array.append([{"average_temperature": average_temperature, 
+    #                   "average_wind_speed": average_wind_speed,
+    #                    "icons": popular_icon}])
     
-    # would remove sendingthe weather 
-    return_array.append(weather_summaries)
+    # would remove sendi ngthe weather 
+    #return_array.append(weather_summaries)
     return_summary = {"average_temperature": average_temperature, 
                         "average_wind_speed": average_wind_speed,
                         "icons": popular_icon}
