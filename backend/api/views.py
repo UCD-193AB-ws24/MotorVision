@@ -190,8 +190,10 @@ def trip_weather(request):
 
     """"
     Refinements/Tasks:
-    - reduce number of api calls
-    - build averages to call in the frontend     
+    - reduce number of api calls: done
+        - max number of 500 api calls a day
+        - need to 
+    - build averages to call in the frontend: DONE     
     """
     
     data = request.data  # Extract JSON payload from request body
