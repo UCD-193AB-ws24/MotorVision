@@ -17,6 +17,8 @@ import SignUpScreen from './SignUpScreen';
 const LoginScreen = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
 
   const handleLogin = async () => {
     try {
@@ -28,13 +30,15 @@ const LoginScreen = ({navigation}) => {
       if (userDoc.exists()) {
         console.log('User data:', userDoc.data());
         Alert.alert('Welcome', `Hello, ${userDoc.data().name || user.email}`);
+        await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
       } else {
         console.log('No user data found.');
         Alert.alert('Login Successful', 'But no user data found.');
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('Login Error', error.message);
+      setError('Sorry, your email or password was incorrect.');
+      // console.error(error);
+      // Alert.alert('Login Error', error.message);
     }
   };
 
@@ -47,7 +51,10 @@ const LoginScreen = ({navigation}) => {
         placeholder="Email"
         placeholderTextColor="#ccc"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (error) setError('');
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -56,16 +63,27 @@ const LoginScreen = ({navigation}) => {
         placeholder="Password"
         placeholderTextColor="#ccc"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (error) setError('');
+        }}        
         secureTextEntry
       />
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
+
+
       <TouchableOpacity style={styles.buttonNoBackground} onPress={() => navigation.navigate('SignUp')}>
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
+
+      <View style={styles.errorContainer}>
+        <Text style={[styles.errorText, { opacity: error ? 1 : 0 }]}>
+          {error || ' '}
+        </Text>
+      </View>
 
     </View>
   );
@@ -97,6 +115,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#111',
   },
+
+  errorContainer: {
+  height: 30, 
+  justifyContent: 'center',
+},
+
   button: {
     width: '100%',
     backgroundColor: '#0A84FF', // Tesla red
@@ -105,6 +129,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
+  errorText: {
+  color: '#FF3B30',
+  fontSize: 14,
+  marginBottom: 10,
+  textAlign: 'center',
+},
 
   buttonNoBackground: {
     width: '100%',

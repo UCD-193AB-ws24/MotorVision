@@ -25,12 +25,17 @@ export default function HomeScreen({ navigation }) {
   useFocusEffect(
     React.useCallback(() => {
       const loadUser = async () => {
-        const stored = await AsyncStorage.getItem('userInfo');
-        if (stored) {
-          const { name } = JSON.parse(stored);
-          setUserName(name);
+        try {
+          const stored = await AsyncStorage.getItem('userInfo');
+          if (stored) {
+            const { name } = JSON.parse(stored);
+            setUserName(name); // Should trigger rerender
+          }
+        } catch (e) {
+          console.error('Failed to load user info:', e);
         }
       };
+  
       loadUser();
     }, [])
   );
