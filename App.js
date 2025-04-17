@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {auth} from './config/firebase';
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
@@ -16,6 +17,9 @@ import TripHistoryScreen from './screens/TripHistoryScreen';
 import TripDetailScreen from './screens/TripDetailScreen';
 import LandingScreen from './screens/LandingScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
+import LoginScreen from './screens/LoginScreen';
+import SignUpScreen from './screens/SignUpScreen';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -31,6 +35,15 @@ const DarkTheme = {
     notification: '#0A84FF',
   },
 };
+
+function LoginStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SignUp" component={SignUpScreen} />
+    </Stack.Navigator>
+  );
+}
 
 function TripStack() {
   return (
@@ -82,25 +95,27 @@ function MainTabs() {
 }
 
 export default function App() {
-  const [isFirstLaunch, setIsFirstLaunch] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkFirstLaunch = async () => {
-      const userInfo = await AsyncStorage.getItem('userInfo');
-      setIsFirstLaunch(!userInfo);
-    };
-    checkFirstLaunch();
+    const unsubscribe = onAuthStateChanged(auth, currentUser => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
-  if (isFirstLaunch === null) return null;
+  if (loading) return null;
 
   return (
     <NavigationContainer theme={DarkTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isFirstLaunch ? (
-          <Stack.Screen name="Landing" component={LandingScreen} />
-        ) : (
+        {user ? (
           <Stack.Screen name="MainTabs" component={MainTabs} />
+        ) : (
+          <Stack.Screen name="LoginStack" component={LoginStack} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
