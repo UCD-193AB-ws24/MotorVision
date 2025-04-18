@@ -26,15 +26,18 @@ const LoginScreen = ({navigation}) => {
       const user = userCredential.user;
 
       // Fetch user data from Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        console.log('User data:', userDoc.data());
-        Alert.alert('Welcome', `Hello, ${userDoc.data().name || user.email}`);
-        await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
-      } else {
-        console.log('No user data found.');
-        Alert.alert('Login Successful', 'But no user data found.');
-      }
+      // const userDoc = await getDoc(doc(db, 'users', user.uid));
+      // if (userDoc.exists()) {
+      //   console.log('User data:', userDoc.data());
+      //   // await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
+      //   // await AsyncStorage.setItem('userInfo', JSON.stringify({ userDoc.data().name }));
+
+      //   Alert.alert('Welcome', `Hello, ${userDoc.data().name || user.email}`);
+
+      // } else {
+      //   console.log('No user data found.');
+      //   Alert.alert('Login Successful', 'But no user data found.');
+      // }
     } catch (error) {
       setError('Sorry, your email or password was incorrect.');
       // console.error(error);

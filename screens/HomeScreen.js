@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect} from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
   Easing, Alert, ScrollView
@@ -9,6 +9,9 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCrashDetection } from '../hooks/useCrashDetection';
+import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
+import { signInWithEmailAndPasswor, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
@@ -22,23 +25,29 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const loadUser = async () => {
-        try {
-          const stored = await AsyncStorage.getItem('userInfo');
-          if (stored) {
-            const { name } = JSON.parse(stored);
-            setUserName(name); // Should trigger rerender
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      try {
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            console.log('User data:', userDoc.data());
+            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
           }
-        } catch (e) {
-          console.error('Failed to load user info:', e);
         }
-      };
   
-      loadUser();
-    }, [])
-  );
+        const stored = await AsyncStorage.getItem('userInfo');
+        if (stored) {
+          const { name } = JSON.parse(stored);
+          setUserName(name);
+        }
+      } catch (e) {
+        console.error('Failed to load user info:', e);
+      }
+    });
+  
+    return () => unsubscribe(); // Clean up on unmount
+  }, []);
 
   const handleConnect = async () => {
     setLoading(true);
