@@ -28,6 +28,9 @@ const SignUpScreen = ({navigation}) => {
         name,
         email,
         createdAt: new Date(),
+        friends: [],
+        pending: [],
+        requested: [],
       });
 
       Alert.alert('Success', 'Account created!');
