@@ -4,39 +4,25 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 
-
 // Import Screens
 import HomeScreen from "./screens/HomeScreen";
 import CrashLogsScreen from "./screens/CrashLogsScreen";
 import CrashDetailScreen from "./screens/CrashDetailScreen";
 import StatsScreen from "./screens/StatsScreen";
 import CrashRecordingScreen from "./screens/CrashRecordingScreen";
-import { LineGraph } from "./screens/LineGraph";
-import StatDetails from "./screens/StatsDetails";
+
 // Create Stack Navigator for Crash Data (Crash Logs + Crash Recording)
 const CrashStack = createStackNavigator();
 function CrashStackNavigator() {
   return (
     <CrashStack.Navigator screenOptions={{ headerShown: false }}>
-      <CrashStack.Screen name="CrashLogs" component={CrashLogsScreen} />
       <CrashStack.Screen name="CrashRecording" component={CrashRecordingScreen} />
+      <CrashStack.Screen name="CrashLogs" component={CrashLogsScreen} />
       <CrashStack.Screen name="CrashDetail" component={CrashDetailScreen} />
     </CrashStack.Navigator>
   );
 }
 
-
-const StatsStack = createStackNavigator(); 
-
-function StatsStackNavigator() {
-  return (
-    <StatsStack.Navigator screenOptions={{ headerShown: false }}>
-      <StatsStack.Screen name="Stats" component={StatsScreen} />
-      <StatsStack.Screen name="LineGraph" component={LineGraph} />
-      <StatsStack.Screen name="StatDetails" component={StatDetails} />
-    </StatsStack.Navigator>
-  );
-}
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
@@ -65,7 +51,7 @@ export default function App() {
           headerShown: false,
         })}
       >
-        <Tab.Screen name="Stats" component={StatsStackNavigator} />
+        <Tab.Screen name="Stats" component={StatsScreen} />
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Crash Data" component={CrashStackNavigator} />
       </Tab.Navigator>
