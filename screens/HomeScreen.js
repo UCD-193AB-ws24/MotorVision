@@ -4,6 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 import * as Location from 'expo-location';
+import { useBluetoothStore } from '../store/bluetoothStore';
+
+
+
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
@@ -38,11 +42,13 @@ export default function HomeScreen({ navigation }) {
       Alert.alert('Error', 'Unable to connect to SmartHelmet. Please try again later.');
     } finally {
       setLoading(false);
-    }
-  };
 
+  
+  
+  
   useEffect(() => {
     const interval = setInterval(() => {
+      // setSpeed((Math.random() * 60).toFixed(1));
       setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
       setTripDuration((prev) => prev + 1);
     }, 1500);
@@ -61,13 +67,15 @@ export default function HomeScreen({ navigation }) {
         ]
       );
     }
-  }, [isCrashed]); // Ensures this effect runs only when isCrashed changes.
+  };
 
+  // Handle Crash Reporting
   const sendCrashReport = () => {
     console.log('🚨 Sending crash report...');
     Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
   };
 
+  // Format Duration
   const formatDuration = (secs) => {
     const hrs = Math.floor(secs / 3600);
     const mins = Math.floor((secs % 3600) / 60);
@@ -75,7 +83,9 @@ export default function HomeScreen({ navigation }) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
+  // 🌍 Live Location
   const [location, setLocation] = useState(null);
+
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -84,42 +94,81 @@ export default function HomeScreen({ navigation }) {
         Alert.alert('Permission Denied', 'Location permission is required to track speed.');
         return;
       }
-
+  
       await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
+          timeInterval: 1000, // Update every second
+          // distanceInterval: 1, // Update when moved at least 1 meter
         },
         (position) => {
           if (position.coords.speed !== null) {
-            const speedMps = position.coords.speed;
+            const speedMps = position.coords.speed; // Speed in meters per second
             const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
             setSpeed(speedMph);
           }
-
-          setLocation({
-            latitude: position.coords.latitude.toFixed(2),
-            longitude: position.coords.longitude.toFixed(2),
-          });
         }
       );
     };
+  
+    requestLocationPermission();
+  }, []);
+  
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 5000,
+            distanceInterval: 2,
+          },
+          (position) => {
+            setLocation({
+              latitude: position.coords.latitude.toFixed(2),
+              longitude: position.coords.longitude.toFixed(2),
+            });
+          }
+        );
+      }
+    };
 
     requestLocationPermission();
-  }, []); // Runs only once when the component mounts
+  }, []);
 
+  // Bluetooth Connection Button
+  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleButtonPress = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.get('http://3.147.83.156:8000/connect');
+      setButtonText(response.data.message);
+    } catch (err) {
+      setError('Error with API/Bluetooth Connection: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
   const rotateValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const startRotation = () => {
       Animated.timing(rotateValue, {
         toValue: 1,
-        duration: 8000,
+        duration: 8000, // Slow down rotation to 8 seconds
         easing: Easing.linear,
         useNativeDriver: true,
       }).start(() => {
         rotateValue.setValue(0);
-        setTimeout(startRotation, 5000);
+        setTimeout(startRotation, 5000); // Longer delay between rotations
       });
     };
 
@@ -130,20 +179,23 @@ export default function HomeScreen({ navigation }) {
 
   const rotateInterpolation = rotateValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['360deg', '0deg'],
+    outputRange: ['360deg', '0deg'], // Reverse direction (counterclockwise)
   });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="light" />
 
+      {/* Header */}
       <Text style={styles.header}>MotorVision</Text>
 
+      {/* Helmet Animation */}
       <Animated.Image
         source={require('../assets/helmet.png')}
         style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
       />
 
+      {/* Connection Status */}
       <View style={styles.statusContainer}>
         <Ionicons
           name={isConnected ? 'checkmark-circle' : 'alert-circle'}
@@ -155,6 +207,7 @@ export default function HomeScreen({ navigation }) {
         </Text>
       </View>
 
+      {/* Speed + Battery */}
       <View style={styles.statCard}>
         <Text style={styles.mainStat}>{speed}</Text>
         <Text style={styles.unit}>mph</Text>
@@ -170,14 +223,17 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
+      {/* Crash Alert */}
       {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
 
+      {/* Bluetooth Connection Button */}
       <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
         <Text style={styles.buttonText}>
           {loading ? 'Connecting...' : isConnected ? 'Connected' : 'Connect Helmet'}
         </Text>
       </TouchableOpacity>
 
+      {/* Error Message */}
       {error && <Text style={styles.errorText}>{error}</Text>}
     </ScrollView>
   );
