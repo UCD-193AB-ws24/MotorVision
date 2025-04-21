@@ -193,7 +193,9 @@ def trip_weather(request):
     Refinements/Tasks:
     - reduce number of api calls: done
         - max number of 500 api calls a day
-        - need to 
+        - so if someone goes on about 5 rides a day, that means that we have
+        - 100 api calls allowed, with about 20 for each ride.
+    - add something for rain detection (and a lot more features )
     - build averages to call in the frontend: DONE     
     """
     
@@ -210,9 +212,15 @@ def trip_weather(request):
     average_precipitation = 0
     average_wind_speed = 0
     icon_collections = {"☀️": 0, "🌤": 0, "🌥": 0, "☁️": 0, "🌧": 0, "🌦": 0, "🌧": 0, "❄️": 0, "🌨": 0, "🌫": 0, "🌁": 0}
+    
+    # value to iterate through 
+    step = 0
+    p = 0
 
+    # stepping through array rather than 
+    for p in range(0, len(trip_points)):
 
-    for point in trip_points:
+        point = trip_points[p]
         lat = point["latitude"]
         lon = point["longitude"]
         time_iso = point["timestamp"]  # Format: "2025-04-10T15:00:00Z"
@@ -256,7 +264,8 @@ def trip_weather(request):
             average_wind_speed += values.get("windSpeed")
             icon_collections[map_weather_code_to_icon(values.get("weatherCode")) ] += 1
         # has the coding/information for each latitude/longitude
-    
+
+        p += step
     # print("this is weather summaries: ", weather_summaries)
     print("Developing the weather overview return...")
     #return_array = []
