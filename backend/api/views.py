@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+import base64
 
 from django.http import FileResponse
 
@@ -59,7 +60,12 @@ def connect(request):
 
 @api_view(['GET'])
 def traj_image(request):
+    # res = simulation("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5)
+    # return FileResponse(open(res, 'rb'), content_type='image/png')
+
     res = simulation("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5)
-    return FileResponse(open(res, 'rb'), content_type='image/png')
+    with open(res, 'rb') as img_file:
+        img_data = base64.b64encode(img_file.read()).decode('utf-8')
+    return Response({'image_data': img_data})
     
 
