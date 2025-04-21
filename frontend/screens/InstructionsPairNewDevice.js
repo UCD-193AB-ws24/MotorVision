@@ -29,7 +29,7 @@ export default function InstructionsPairNewDevice({navigation }) {
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.logItem}>
+          <View style={styles.item}>
             <Text style={styles.instructionsText}>{item.name}</Text>
           </View>
         )}
@@ -106,17 +106,5 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 50,
     justifyContent: 'center',
-  },
-  logItem: {
-    backgroundColor: "#1E1E1E",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    flexDirection: "row", // Allow side-by-side alignment
-    justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#00bfff",
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-  },
+  }
 });

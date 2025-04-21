@@ -11,8 +11,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
-
 
 export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState("");
@@ -21,8 +19,7 @@ export default function CrashDetailScreen({ route, navigation }) {
 
   const { crash } = route.params;
 
-
-  {/*const fetchTrajectoryImage = async () => {
+  const fetchTrajectoryImage = async () => {
     setIsLoading(true);
     console.log('Fetching trajectory image...');
     const url = 'http://127.0.0.1:8000/traj_image/';
@@ -34,26 +31,6 @@ export default function CrashDetailScreen({ route, navigation }) {
       setIsImageVisible(true);
     } catch (error) {
       console.error('Error fetching trajectory image:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }; */}
-
-  const fetchTrajectoryImage = async (locations) => {
-    setIsLoading(true);
-    console.log("Sending locations to backend for image generation in details screen", locations);
-    const url = `http://3.147.83.156:8000/traj_image_live/`;
-    try {
-      const response = await axios.post(url, { locations});
-      console.log("Server response for image generation in details screen", response.data);
-      let base64 = response.data.image_data;
-      let imageUrl = `data:image/png;base64,${base64}`;
-      setTrajectoryImage(imageUrl);
-      setIsImageVisible(true);
-      // setServerResponse(response.data);
-    } catch (error) {
-      console.error("Error sending location for image generation in details screen:", error);
-      // setServerResponse("Error sending location for image generation in details screen");
     } finally {
       setIsLoading(false);
     }
@@ -77,18 +54,17 @@ export default function CrashDetailScreen({ route, navigation }) {
           <Text style={styles.info}>⚠️ Details: {crash.details}</Text>
         </View>
 
-        
         {/* Load Image Button */}
         {!trajectoryImage && (
           <TouchableOpacity 
             style={styles.button} 
-            onPress={() => fetchTrajectoryImage(crash.location)}
+            onPress={fetchTrajectoryImage}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>SHOW IMAGE</Text>
+              <Text style={styles.buttonText}>LOAD IMAGE</Text>
             )}
           </TouchableOpacity>
         )}
