@@ -15,7 +15,7 @@ import {
 
 // AI Generation used to resolve syntax issues, and to develop template for script.
 import React, { useEffect, useRef, useState } from "react";
-import Geolocation from "react-native-geolocation-service";
+// import Geolocation from "react-native-geolocation-service";
 
 // Rotating image component
 function RotatingImageComponent({ isRotating, stopRotation }) {
@@ -75,34 +75,34 @@ function LocationView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const requestPermissionAndGetLocation = async () => {
-      const hasPermission = await requestLocationPermission();
-      if (!hasPermission) {
-        setError("Location permission denied");
-        setLoading(false);
-        return;
-      }
+  // useEffect(() => {
+  //   const requestPermissionAndGetLocation = async () => {
+  //     const hasPermission = await requestLocationPermission();
+  //     if (!hasPermission) {
+  //       setError("Location permission denied");
+  //       setLoading(false);
+  //       return;
+  //     }
 
-      Geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: parseFloat(position.coords.latitude.toFixed(2)),
-            longitude: parseFloat(position.coords.longitude.toFixed(2)),
-            accuracy: position.coords.accuracy,
-          });
-          setLoading(false);
-        },
-        (error) => {
-          setError(error.message);
-          setLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-    };
+    //   Geolocation.getCurrentPosition(
+    //     (position) => {
+    //       setLocation({
+    //         latitude: parseFloat(position.coords.latitude.toFixed(2)),
+    //         longitude: parseFloat(position.coords.longitude.toFixed(2)),
+    //         accuracy: position.coords.accuracy,
+    //       });
+    //       setLoading(false);
+    //     },
+    //     (error) => {
+    //       setError(error.message);
+    //       setLoading(false);
+    //     },
+    //     { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    //   );
+    // };
 
-    requestPermissionAndGetLocation();
-  }, []);
+  //   requestPermissionAndGetLocation();
+  // }, []);
 
   const requestLocationPermission = async () => {
     if (Platform.OS === "android") {
