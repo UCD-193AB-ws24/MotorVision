@@ -1,59 +1,67 @@
-import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
+import React from 'react';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-// Import Screens
-import HomeScreen from "./screens/HomeScreen";
-import CrashLogsScreen from "./screens/CrashLogsScreen";
-import CrashDetailScreen from "./screens/CrashDetailScreen";
-import StatsScreen from "./screens/StatsScreen";
-import CrashRecordingScreen from "./screens/CrashRecordingScreen";
+import HomeScreen from './screens/HomeScreen';
+import NavigationScreen from './screens/NavigationScreen';
+import RideInsightsScreen from './screens/RideInsightsScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import CrashLogsScreen from './screens/CrashLogsScreen';
+import CrashDetailScreen from './screens/CrashDetailScreen'; // Import Crash Detail Screen
 
-// Create Stack Navigator for Crash Data (Crash Logs + Crash Recording)
-const CrashStack = createStackNavigator();
-function CrashStackNavigator() {
+const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+const DarkTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#121212',
+    card: '#1E1E1E',       // Footer color
+    text: '#FFFFFF',
+    border: '#272727',
+    notification: '#0A84FF',
+  },
+};
+
+// Stack for Crash Logs + Crash Detail
+function CrashStack() {
   return (
-    <CrashStack.Navigator screenOptions={{ headerShown: false }}>
-      <CrashStack.Screen name="CrashRecording" component={CrashRecordingScreen} />
-      <CrashStack.Screen name="CrashLogs" component={CrashLogsScreen} />
-      <CrashStack.Screen name="CrashDetail" component={CrashDetailScreen} />
-    </CrashStack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CrashLogs" component={CrashLogsScreen} />
+      <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
+    </Stack.Navigator>
   );
 }
 
-// Create Bottom Tab Navigator
-const Tab = createBottomTabNavigator();
-
 export default function App() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={DarkTheme}>
       <Tab.Navigator
-        initialRouteName="Home"
         screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
+          tabBarIcon: ({ focused, color, size }) => {
             let iconName;
-
-            if (route.name === "Home") {
-              iconName = "home-outline";
-            } else if (route.name === "Stats") {
-              iconName = "bar-chart-outline";
-            } else if (route.name === "Crash Data") {
-              iconName = "alert-circle-outline";
+            switch (route.name) {
+              case 'Home': iconName = 'home'; break;
+              case 'Navigation': iconName = 'map'; break;
+              case 'Insights': iconName = 'stats-chart'; break;
+              case 'Settings': iconName = 'settings'; break;
+              case 'Crash Logs': iconName = 'alert-circle'; break;
+              default: iconName = 'ellipse'; break;
             }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
+            return <Ionicons name={iconName} size={24} color={color} />;
           },
-          tabBarStyle: { backgroundColor: "#1E1E1E", borderTopColor: "transparent" },
-          tabBarActiveTintColor: "#00bfff",
-          tabBarInactiveTintColor: "#bbb",
-          headerShown: false,
+          tabBarActiveTintColor: '#0A84FF',
+          tabBarStyle: { height: 70, paddingBottom: 10 },
         })}
       >
-        <Tab.Screen name="Stats" component={StatsScreen} />
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Crash Data" component={CrashStackNavigator} />
+        <Tab.Screen name="Navigation" component={NavigationScreen} />
+        <Tab.Screen name="Insights" component={RideInsightsScreen} />
+        <Tab.Screen name="Crash Logs" component={CrashStack} />
+        <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

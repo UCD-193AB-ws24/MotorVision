@@ -1,91 +1,262 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Easing, Alert } from 'react-native';
+import { useCrashDetection } from '../hooks/useCrashDetection';
+import { useBluetoothStore } from '../store/bluetoothStore';
+import * as Location from 'expo-location';
+import axios from 'axios';
+
+
+
 
 export default function HomeScreen({ navigation }) {
+  const [speed, setSpeed] = useState(0);
+  const [battery, setBattery] = useState(100);
+  const [tripDuration, setTripDuration] = useState(0);
+  const isCrashed = useCrashDetection();
+
+  
+  
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // setSpeed((Math.random() * 60).toFixed(1));
+      setBattery((prev) => (prev > 0 ? (prev - 0.1).toFixed(1) : 100));
+      setTripDuration((prev) => prev + 1);
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (isCrashed) {
+      Alert.alert(
+        'Crash Detected!',
+        'A crash-like event was detected. Do you want to report it?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Report', onPress: () => sendCrashReport() }
+        ]
+      );
+    }
+  }, [isCrashed]);
+
+  const sendCrashReport = () => {
+    console.log('🚨 Sending crash report...');
+    Alert.alert('Crash Report Sent', 'Your crash report has been submitted.');
+  };
+
+  const formatDuration = (secs) => {
+    const hrs = Math.floor(secs / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    const sec = secs % 60;
+    return `${hrs}:${mins.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+  };
+
+  // 🌍 Live Location
+  const [location, setLocation] = useState(null);
+
+
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to track speed.');
+        return;
+      }
+  
+      await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000, // Update every second
+          // distanceInterval: 1, // Update when moved at least 1 meter
+        },
+        (position) => {
+          if (position.coords.speed !== null) {
+            const speedMps = position.coords.speed; // Speed in meters per second
+            const speedMph = (speedMps * 2.23694).toFixed(1); // Convert to mph
+            setSpeed(speedMph);
+          }
+        }
+      );
+    };
+  
+    requestLocationPermission();
+  }, []);
+  
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 5000,
+            distanceInterval: 2,
+          },
+          (position) => {
+            setLocation({
+              latitude: position.coords.latitude.toFixed(2),
+              longitude: position.coords.longitude.toFixed(2),
+            });
+          }
+        );
+      }
+    };
+
+    requestLocationPermission();
+  }, []);
+
+  // Bluetooth Connection Button
+  const [buttonText, setButtonText] = useState('Connect to SmartHelmet?');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleButtonPress = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.get('http://3.147.83.156:8000/connect');
+      setButtonText(response.data.message);
+    } catch (err) {
+      setError('Error with API/Bluetooth Connection: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🎯 Helmet Rotation (Slower + Reverse + Longer Delay)
+  const rotateValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const startRotation = () => {
+      Animated.timing(rotateValue, {
+        toValue: 1,
+        duration: 8000, // Slow down rotation to 8 seconds
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(() => {
+        // Reset and wait 5 seconds before next rotation
+        rotateValue.setValue(0);
+        setTimeout(startRotation, 5000); // Longer delay between rotations
+      });
+    };
+
+    // Start the first rotation after a brief delay
+    setTimeout(startRotation, 2000);
+
+    return () => rotateValue.setValue(0);
+  }, []);
+
+  const rotateInterpolation = rotateValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['360deg', '0deg'], // Reverse direction (counterclockwise)
+  });
+
   return (
-    <LinearGradient
-      colors={["#121212", "#1E1E1E", "#292929"]} // Gradient Background
-      style={styles.container}
-    >
-      {/* Helmet Status */}
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>🔋 Helmet Battery: 85%</Text>
-        <Text style={[styles.statusText, { color: "#00ff00" }]}>🟢 Connected</Text>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
+      {/* Header */}
+      <Text style={styles.header}>MotorVision</Text>
+
+      {/* Speed + Battery */}
+      <View style={styles.statCard}>
+        <Text style={styles.mainStat}>{speed}</Text>
+        <Text style={styles.unit}>mph</Text>
       </View>
 
-      {/* Voice Control */}
-      <View style={styles.voiceContainer}>
-        <Text style={styles.label}>Tap to Speak</Text>
-        <TouchableOpacity style={styles.voiceButton}>
-          <Ionicons name="mic-outline" size={40} color="white" />
-        </TouchableOpacity>
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
+        <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
+        {location && (
+          <Text style={styles.infoText}>
+            🌍 {location.latitude}°, {location.longitude}°
+          </Text>
+        )}
       </View>
-    </LinearGradient>
+
+      {/* Crash Alert */}
+      {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
+
+      {/* Helmet Animation */}
+      <Animated.Image
+        source={require('../assets/helmet.png')}
+        style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
+      />
+
+      {/* Bluetooth Button */}
+      <TouchableOpacity style={styles.connectButton} onPress={handleButtonPress}>
+        <Text style={styles.buttonText}>
+          {loading ? 'Connecting...' : error || buttonText}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#121212',
+    padding: 20,
   },
-  statusContainer: {
-    position: "absolute",
-    top: 60,
-    alignItems: "center",
+  header: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
-  statusText: {
-    color: "#fff",
+  statCard: {
+    alignItems: 'center',
+    padding: 40,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    width: '80%',
+    marginBottom: 20,
+  },
+  mainStat: {
+    color: '#ffffff',
+    fontSize: 60,
+  },
+  unit: {
+    color: '#888',
     fontSize: 18,
-    marginVertical: 5,
   },
-  voiceContainer: {
-    alignItems: "center",
-    marginBottom: 40,
+  infoContainer: {
+    backgroundColor: '#1E1E1E',
+    padding: 20,
+    borderRadius: 15,
+    width: '80%',
+    marginBottom: 20,
   },
-  label: {
-    color: "#bbb",
+  infoText: {
+    color: '#ccc',
     fontSize: 18,
+    marginVertical: 4,
+  },
+  crashText: {
+    color: '#ff3b30',
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 10,
   },
-  voiceButton: {
-    backgroundColor: "#007bff",
-    padding: 20,
-    borderRadius: 50,
-    shadowColor: "#007bff",
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 5,
+  helmet: {
+    width: 120,
+    height: 120,
+    marginVertical: 20,
   },
-  controls: {
-    position: "absolute",
-    bottom: 60,
-    width: "100%",
-    alignItems: "center",
-  },
-  button: {
-    backgroundColor: "#4caf50",
-    padding: 15,
-    width: "80%",
-    borderRadius: 12,
-    alignItems: "center",
-    marginVertical: 10,
-    shadowColor: "#4caf50",
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  crashButton: {
-    backgroundColor: "#d32f2f",
-    shadowColor: "#d32f2f",
+  connectButton: {
+    backgroundColor: '#0A84FF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "bold",
   },
 });
-
