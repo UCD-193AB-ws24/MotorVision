@@ -1,47 +1,38 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Button, PermissionsAndroid, Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// this page is good
 
-// this is the instructions
-const data = [
-  {id: '1', name: "1. Turn on your mobile phone's bluetooth feature."},
-  {id: '2', name: "2. Navigate to your mobile phone's bluetooth device settings."},
-  {id: '3', name: "3. Identify a bluetooth device titled HC-05."},
-  {id: '4', name: "4. Connect to the bluetooth device, and enter the password for the device if prompted."},
-  {id: '5', name: "5. Go back to the Change Device screen to see if the device showed up."},
-]
-
-export default function InstructionsPairNewDevice({navigation }) {
+export default function SettingsScreen({navigation }) {
+    const settingsOptions = [
+        { title: "Account", onPress: () => navigation.navigate("AccountSettings") },
+        { title: "Notifications", onPress: () => navigation.navigate("NotificationSettings") },
+        { title: "Privacy & Security", onPress: () => navigation.navigate("PrivacySettings") },
+        { title: "Sensor and Location Services", onPress: () => navigation.navigate("SensorAndLocationSettings") },
+        { title: "Appearance", onPress: () => navigation.navigate("AppearanceSettings") },
+        { title: "Help & Support", onPress: () => navigation.navigate("HelpSupport") },
+      ];
 
   return (
     <LinearGradient
       colors={['#121212', '#1E1E1E', '#292929']} // Gradient effect
       style={styles.container}
     >
-      <View style={styles.paddingTop}>
-      <Text style={styles.title}> How to Pair a New Device to Phone</Text>
-      <Text style={styles.title}> </Text>
+      <View style={styles.paddingContatiner}>
+      <Text style={styles.title}>Settings</Text>
+      {settingsOptions.map((option, index) => (
+          <TouchableOpacity key={index} style={styles.logItem} onPress={option.onPress}>
+            <Text style={styles.buttonText}>{option.title}</Text>
+          </TouchableOpacity>
+        ))}
 
-      <View style={styles.container}>
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.logItem}>
-            <Text style={styles.instructionsText}>{item.name}</Text>
-          </View>
-        )}
-      />
-    </View>
 
-    
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.goBack()}
       >
-        <Text style={styles.buttonText}>Back to Change New Device</Text>
+        <Text style={styles.buttonText}>Back to Home Screen</Text>
       </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -51,7 +42,12 @@ export default function InstructionsPairNewDevice({navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  paddingContainer: {
+    flex: 1,
+    paddingTop: 50,
     justifyContent: 'center',
   },
   title: {
@@ -91,21 +87,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  item: {
-    padding: 15,
-    marginVertical: 5,
-    borderRadius: 8,
-  },
-  instructionsText: {
-    fontSize: 18,
+  connectText: {
+    fontSize: 16,
     color: '#fff',
-    fontWeight: 'bold',
-
-  },
-  paddingContainer: {
-    flex: 1,
-    paddingTop: 50,
-    justifyContent: 'center',
+    textAlign: "center"
   },
   logItem: {
     backgroundColor: "#1E1E1E",
