@@ -24,7 +24,7 @@ export default function InstructionsPairNewDevice({navigation }) {
       <Text style={styles.title}> How to Pair a New Device to Phone</Text>
       <Text style={styles.title}> </Text>
 
-      {/* <View style={styles.container}> */}
+      <View style={styles.container}>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
@@ -34,7 +34,7 @@ export default function InstructionsPairNewDevice({navigation }) {
           </View>
         )}
       />
-    {/* </View> */}
+    </View>
 
     
       <TouchableOpacity
@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    paddingTop: 40,
     justifyContent: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+    marginBottom: 20,
     textAlign: 'center',
   },
   detailBox: {
@@ -92,17 +92,9 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   item: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
     padding: 15,
     marginVertical: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#00bfff', // Border color to make the box pop
+    borderRadius: 8,
   },
   instructionsText: {
     fontSize: 18,

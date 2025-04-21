@@ -1,10 +1,14 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
+from django.http import FileResponse
+
 # import serial
 import threading # import from BluetoothReaderSimulation
-# from .bluetooth_reader_sim import BluetoothReaderSimulation
-# from . import ,sim13.csv
+from .bluetooth_reader_sim import BluetoothReaderSimulation
+from .trajectoryImgGenerator import simulation
+
+
 
 
 @api_view(['GET'])
@@ -52,5 +56,10 @@ def connect(request):
         message = "Connection not successful. Please try again."
     return Response({"message": message, "res": res})
 
-def start(request):
-    bt_reader_sim.start_sim()
+
+@api_view(['GET'])
+def traj_image(request):
+    res = simulation("Motorcyclist_Trajectory.csv", "motorcyclist_trajectory_map.html", "motorcyclist_trajectory_map_screenshot.png", 10, 5)
+    return FileResponse(open(res, 'rb'), content_type='image/png')
+    
+
