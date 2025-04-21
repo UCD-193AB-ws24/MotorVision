@@ -1,54 +1,98 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ActivityIndicator,
+  ScrollView
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import { useState } from 'react';
-import { Image } from 'react-native';
-
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isImageVisible, setIsImageVisible] = useState(false);
+
   const { crash } = route.params;
+
   const fetchTrajectoryImage = async () => {
+    setIsLoading(true);
     console.log('Fetching trajectory image...');
     const url = 'http://127.0.0.1:8000/traj_image/';
     try {
       const response = await axios.get(url);
-      console.log('Response:', response.data);
       let base64 = response.data.image_data;
-      console.log('Base64:', base64);
       let imageUrl = `data:image/png;base64,${base64}`;
       setTrajectoryImage(imageUrl);
-      return response.data; // Return the data for further use
+      setIsImageVisible(true);
     } catch (error) {
       console.error('Error fetching trajectory image:', error);
-      return null; // Return null in case of an error
+    } finally {
+      setIsLoading(false);
     }
-
   };
 
   return (
-    <LinearGradient
-      colors={['#121212', '#1E1E1E', '#292929']} // Gradient effect
-      style={styles.container}
-    >
-      <Text style={styles.title}>Crash Details</Text>
+    <LinearGradient colors={['#121212', '#1E1E1E', '#292929']} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={28} color="#00bfff" />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
 
-      <View style={styles.detailBox}>
-        <Text style={styles.info}>🕒 Time: {crash.timestamp}</Text>
-        <Text style={styles.info}>⚠️ Details: {crash.details}</Text>
-      </View>
+        {/* Title */}
+        <Text style={styles.title}>Crash Details</Text>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={fetchTrajectoryImage}
-      >
-        <Text style={styles.buttonText}>Back to Crash Logs</Text>
-      </TouchableOpacity>
+        {/* Details */}
+        <View style={styles.detailBox}>
+          <Text style={styles.info}>🕒 Time: {crash.timestamp}</Text>
+          <Text style={styles.info}>⚠️ Details: {crash.details}</Text>
+        </View>
 
-      {trajectoryImage !== "" && (
-        <Image source={{ uri: trajectoryImage }} style={styles.image} />
-      )}
+        {/* Load Image Button */}
+        {!trajectoryImage && (
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={fetchTrajectoryImage}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>LOAD IMAGE</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* Toggle Image Button */}
+        {trajectoryImage ? (
+          <>
+            <TouchableOpacity 
+              style={[styles.button, styles.toggleButton]} 
+              onPress={() => setIsImageVisible(!isImageVisible)}
+            >
+              <Text style={styles.buttonText}>
+                {isImageVisible ? "HIDE IMAGE" : "SHOW IMAGE"}
+              </Text>
+            </TouchableOpacity>
+
+            {isImageVisible && (
+              <Image 
+                source={{ uri: trajectoryImage }} 
+                style={styles.image} 
+                resizeMode="contain" 
+              />
+            )}
+          </>
+        ) : (
+          <Text style={styles.noImageText}>No image loaded yet.</Text>
+        )}
+      </ScrollView>
     </LinearGradient>
   );
 }
@@ -56,15 +100,28 @@ export default function CrashDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
+  },
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingTop: 40, // Reduced top padding to align closer to the top
+    paddingBottom: 30,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10, // Closer to the top
+  },
+  backText: {
+    fontSize: 18,
+    color: '#00bfff',
+    marginLeft: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 15,
+    textAlign: 'left',
   },
   detailBox: {
     backgroundColor: '#1E1E1E',
@@ -73,25 +130,44 @@ const styles = StyleSheet.create({
     shadowColor: '#00bfff',
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    marginBottom: 15,
   },
   info: {
     fontSize: 16,
     color: '#fff',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   button: {
-    marginTop: 20,
+    marginTop: 10,
     backgroundColor: '#00bfff',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 30,
     alignItems: 'center',
     shadowColor: '#00bfff',
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
+  toggleButton: {
+    backgroundColor: '#444',
+    marginTop: 10,
+  },
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  image: {
+    width: '100%',
+    height: 250,
+    marginTop: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  noImageText: {
+    fontSize: 16,
+    color: '#bbb',
+    marginTop: 20,
+    textAlign: 'center',
   },
 });
