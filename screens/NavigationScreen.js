@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal } from 'react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
@@ -17,7 +17,24 @@ export default function NavigationScreen() {
 
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
-
+  const openMaps = (place) => {
+    console.log("THISSSSS");
+    const lat = place.geometry.location.lat;
+    const lng = place.geometry.location.lng;
+    const name = place.name;
+  
+    // Using the platform-specific URL schemes for Apple Maps and Google Maps
+    const appleMapsUrl = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d&t=h`;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  
+    // Choose the appropriate URL based on platform
+    const url = Platform.OS === 'ios' ? appleMapsUrl : googleMapsUrl;
+  
+    // Attempt to open the maps app with the specified URL
+    Linking.openURL(url).catch(err => {
+      Alert.alert('Error', 'Unable to open maps application.');
+    });
+  };
 
   const tripActive = useBluetoothStore((state) => state.tripActive);
   const startTrip = useBluetoothStore((state) => state.startTrip);
@@ -221,10 +238,13 @@ export default function NavigationScreen() {
               longitude: place.geometry.location.lng,
             }}
           >
-            <Callout>
+           <Callout onPress={() => openMaps(place)}>
+            <View>
               <Text style={{ fontWeight: 'bold' }}>{place.name}</Text>
               <Text>{place.vicinity}</Text>
-            </Callout>
+              <Text style={{ color: 'blue', marginTop: 5 }}>Tap here to get directions</Text>
+            </View>
+          </Callout>
           </Marker>
         ))}
       
@@ -277,6 +297,7 @@ export default function NavigationScreen() {
                 <TouchableOpacity
                   style={styles.listItem}
                   onPress={() => {
+                    openMaps(item);
                     focusOnPlace(item, index);
                     setShowPlacesList(false); 
                   }}                >
