@@ -1,0 +1,821 @@
++++ b/App.js
+@@ -1 +1 @@
++import React, { useEffect, useState } from 'react';
+@@ -5,0 +6,2 @@ import Ionicons from '@expo/vector-icons/Ionicons';
++import AsyncStorage from '@react-native-async-storage/async-storage';
++import {auth} from './config/firebase';
+@@ -6,0 +9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
++// Screens
+@@ -14 +17,6 @@ import TripHistoryScreen from './screens/TripHistoryScreen';
++import TripDetailScreen from './screens/TripDetailScreen';
++import LandingScreen from './screens/LandingScreen';
++import EditProfileScreen from './screens/EditProfileScreen';
++import LoginScreen from './screens/LoginScreen';
++import SignUpScreen from './screens/SignUpScreen';
++import { onAuthStateChanged } from 'firebase/auth';
+@@ -31 +39,9 @@ const DarkTheme = {
++function LoginStack() {
++  return (
++    <Stack.Navigator screenOptions={{ headerShown: false }}>
++      <Stack.Screen name="Login" component={LoginScreen} />
++      <Stack.Screen name="SignUp" component={SignUpScreen} />
++    </Stack.Navigator>
++  );
++}
+@@ -42 +57,0 @@ function TripStack() {
+@@ -47,5 +62,2 @@ function SettingsStack() {
++      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
++      <Stack.Screen name="PairingGuide" component={PairingGuideScreen} options={{ tabBarButton: () => null }} />
+@@ -55,0 +68,29 @@ function SettingsStack() {
++function MainTabs() {
++  return (
++    <Tab.Navigator
++      screenOptions={({ route }) => ({
++        tabBarIcon: ({ color }) => {
++          let iconName;
++          switch (route.name) {
++            case 'Home': iconName = 'home'; break;
++            case 'Navigation': iconName = 'map'; break;
++            case 'Insights': iconName = 'stats-chart'; break;
++            case 'Trip History': iconName = 'time'; break;
++            case 'SettingsTab': iconName = 'settings'; break;
++            default: iconName = 'ellipse';
++          }
++          return <Ionicons name={iconName} size={24} color={color} />;
++        },
++        tabBarActiveTintColor: '#0A84FF',
++        tabBarStyle: { height: 70, paddingBottom: 10 },
++      })}
++    >
++      <Tab.Screen name="Home" component={HomeScreen} />
++      <Tab.Screen name="Navigation" component={NavigationScreen} />
++      <Tab.Screen name="Insights" component={RideInsightsScreen} />
++      <Tab.Screen name="Trip History" component={TripStack} />
++      <Tab.Screen name="SettingsTab" component={SettingsStack} options={{ title: 'Settings' }} />
++    </Tab.Navigator>
++  );
++}
+@@ -56,0 +98,14 @@ export default function App() {
++  const [user, setUser] = useState(null);
++  const [loading, setLoading] = useState(true);
++  useEffect(() => {
++    const unsubscribe = onAuthStateChanged(auth, currentUser => {
++      setUser(currentUser);
++      setLoading(false);
++    });
++    return unsubscribe;
++  }, []);
++  if (loading) return null;
+@@ -59,24 +114,7 @@ export default function App() {
++      <Stack.Navigator screenOptions={{ headerShown: false }}>
++        {user ? (
++          <Stack.Screen name="MainTabs" component={MainTabs} />
++        ) : (
++          <Stack.Screen name="LoginStack" component={LoginStack} />
++        )}
++      </Stack.Navigator>
++++ b/config/firebase.js
+@@ -0,0 +1,25 @@
++// config/firebase.js
++import { initializeApp } from 'firebase/app';
++import { getFirestore } from 'firebase/firestore';
++import { getAuth, initializeAuth, getReactNativePersistence, } from 'firebase/auth';
++import AsyncStorage from '@react-native-async-storage/async-storage';
++// Initialize Firebase
++const firebaseConfig = {
++    apiKey: "AIzaSyAgkbN5aBR-xNswI2uo8WUNhs5E2dOykCI",
++    authDomain: "motor-vision-backend.firebaseapp.com",
++    projectId: "motor-vision-backend",
++    storageBucket: "motor-vision-backend.firebasestorage.app",
++    messagingSenderId: "1015734436024",
++    appId: "1:1015734436024:web:88cdadc74f40ad91f7f44d",
++    measurementId: "G-2EJHJC6QLF"
++};
++const app = initializeApp(firebaseConfig);
++const db = getFirestore(app)
++const auth = initializeAuth(app, {
++    persistence: getReactNativePersistence(AsyncStorage),
++});
++export { db, auth };
++// see the Firebase documentation: https://firebase.google.com/docs/web/setup#access-firebase
++++ b/screens/EditProfileScreen.js
+@@ -0,0 +1,88 @@
++// screens/EditProfileScreen.js
++import React, { useState, useEffect } from 'react';
++import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
++import AsyncStorage from '@react-native-async-storage/async-storage';
++import { signOut } from 'firebase/auth';
++import { auth } from '../config/firebase'; // Adjust the import path as necessary
++import { onAuthStateChanged } from 'firebase/auth';
++export default function EditProfileScreen({ navigation }) {
++  const [name, setName] = useState('');
++  
++  
++  const handleSignOut = async () => {
++    try {
++      await signOut(auth);
++      console.log('User signed out!');
++      // Navigate to login screen if using navigation
++    } catch (error) {
++      console.error('Sign out error:', error);
++    }
++  }
++  useEffect(() => {
++    const loadUserInfo = async () => {
++      const stored = await AsyncStorage.getItem('userInfo');
++      if (stored) {
++        const { name } = JSON.parse(stored);
++        setName(name);
++      }
++    };
++    loadUserInfo();
++  }, []);
++  const handleSave = async () => {
++    if (name.trim()) {
++      await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
++      Alert.alert('Saved', 'Your name has been updated.');
++      navigation.goBack();
++    }
++  };
++  return (
++    <View style={styles.container}>
++      <Text style={styles.title}>Edit Profile</Text>
++      <TextInput
++        style={styles.input}
++        value={name}
++        onChangeText={setName}
++        placeholder="Enter your name"
++        placeholderTextColor="#aaa"
++      />
++      <TouchableOpacity style={styles.button} onPress={handleSave}>
++        <Text style={styles.buttonText}>Save Changes</Text>
++      </TouchableOpacity>
++      <TouchableOpacity style={styles.buttonNoBackground} onPress={handleSignOut}>
++        <Text style={styles.buttonText}>Sign Out</Text>
++      </TouchableOpacity>
++    </View>
++  );
++}
++const styles = StyleSheet.create({
++  container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', padding: 20 },
++  title: { color: 'white', fontSize: 24, textAlign: 'center', marginBottom: 20 },
++  input: {
++    backgroundColor: '#1E1E1E',
++    color: 'white',
++    padding: 12,
++    borderRadius: 10,
++    marginBottom: 20,
++  },
++  button: {
++    backgroundColor: '#0A84FF',
++    paddingVertical: 12,
++    borderRadius: 30,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  buttonNoBackground: {
++    paddingVertical: 12,
++    alignItems: 'center',
++    borderRadius: 10,
++    marginTop: 10,
++  },
++  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
++});
++++ b/screens/FriendsService.js
+@@ -0,0 +1,116 @@
++// friendService.js
++import { db } from "./firebase"; // adjust this path if needed
++import {
++  doc,
++  updateDoc,
++  arrayUnion,
++  arrayRemove,
++  collection,
++  query,
++  where,
++  getDocs
++} from "firebase/firestore";
++/**
++ * Get a user by their email
++ * @param {string} email
++ * @returns {Promise<{uid: string, ...userData}>}
++ */
++export async function getUserByEmail(email) {
++  const usersRef = collection(db, "users");
++  const q = query(usersRef, where("email", "==", email));
++  const snapshot = await getDocs(q);
++  if (!snapshot.empty) {
++    const doc = snapshot.docs[0];
++    return { uid: doc.id, ...doc.data() };
++  } else {
++    return null;
++  }
++}
++/**
++ * Send a friend request from currentUser to friend by email
++ * @param {string} currentUserUid
++ * @param {string} friendEmail
++ * @returns {Promise<boolean>}
++ */
++export async function sendFriendRequest(currentUserUid, friendEmail) {
++  const friend = await getUserByEmail(friendEmail);
++  if (!friend) throw new Error("No user found with that email.");
++  const friendUid = friend.uid;
++  if (currentUserUid === friendUid) throw new Error("You can't add yourself.");
++  await updateDoc(doc(db, `users/${currentUserUid}`), {
++    requested: arrayUnion(friendUid)
++  });
++  await updateDoc(doc(db, `users/${friendUid}`), {
++    pending: arrayUnion(currentUserUid)
++  });
++  return true;
++}
++/**
++ * Accept a friend request from requester
++ * @param {string} currentUserUid
++ * @param {string} requesterUid
++ * @returns {Promise<boolean>}
++ */
++export async function acceptFriendRequest(currentUserUid, requesterUid) {
++  await updateDoc(doc(db, `users/${currentUserUid}`), {
++    friends: arrayUnion(requesterUid),
++    pending: arrayRemove(requesterUid)
++  });
++  await updateDoc(doc(db, `users/${requesterUid}`), {
++    friends: arrayUnion(currentUserUid),
++    requested: arrayRemove(currentUserUid)
++  });
++  return true;
++}
++/**
++ * Update a user's current location in Firestore
++ * @param {string} uid - The UID of the user
++ * @param {{lat: number, lng: number}} location - The location object
++ * @returns {Promise<void>}
++ */
++export async function updateUserLocation(uid, location) {
++    const userRef = doc(db, "users", uid);
++  
++    await updateDoc(userRef, {
++      location: {
++        lat: location.lat,
++        lng: location.lng,
++        timestamp: Date.now() // optional: track last updated
++      }
++    });
++}
++/**
++ * Get a user's location by their email
++ * @param {string} email
++ * @returns {Promise<{lat: number, lng: number, timestamp?: number} | null>}
++ */
++export async function getUserLocationByEmail(email) {
++    const user = await getUserByEmail(email);
++  
++    if (!user) throw new Error("User not found.");
++  
++    if (user.location && user.location.lat && user.location.lng) {
++      return {
++        lat: user.location.lat,
++        lng: user.location.lng,
++        timestamp: user.location.timestamp || null
++      };
++    } else {
++      return null; // location not set yet
++    }
++  }
++/**
++++ b/screens/HomeScreen.js
+@@ -1,2 +1,5 @@
++import React, { useState, useRef, useEffect} from 'react';
++import {
++  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
++  Easing, Alert, ScrollView
++} from 'react-native';
+@@ -5 +7,0 @@ import axios from 'axios';
+@@ -7,3 +9,6 @@ import * as Location from 'expo-location';
++import AsyncStorage from '@react-native-async-storage/async-storage';
++import { useFocusEffect } from '@react-navigation/native';
++import { useCrashDetection } from '../hooks/useCrashDetection';
++import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
++import { signInWithEmailAndPasswor, onAuthStateChanged } from 'firebase/auth';
++import { doc, getDoc } from 'firebase/firestore';
+@@ -15,0 +21,2 @@ export default function HomeScreen({ navigation }) {
++  const [userName, setUserName] = useState('');
++  const [location, setLocation] = useState(null);
+@@ -17 +23,0 @@ export default function HomeScreen({ navigation }) {
+@@ -22 +28,24 @@ export default function HomeScreen({ navigation }) {
++  useEffect(() => {
++    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
++      try {
++        if (currentUser) {
++          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
++          if (userDoc.exists()) {
++            console.log('User data:', userDoc.data());
++            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
++          }
++        }
++  
++        const stored = await AsyncStorage.getItem('userInfo');
++        if (stored) {
++          const { name } = JSON.parse(stored);
++          setUserName(name);
++        }
++      } catch (e) {
++        console.error('Failed to load user info:', e);
++      }
++    });
++  
++    return () => unsubscribe(); // Clean up on unmount
++  }, []);
+@@ -26 +54,0 @@ export default function HomeScreen({ navigation }) {
+@@ -29,2 +56,0 @@ export default function HomeScreen({ navigation }) {
+@@ -41 +67 @@ export default function HomeScreen({ navigation }) {
++      Alert.alert('Error', 'Unable to connect to SmartHelmet.');
+@@ -47,7 +72,0 @@ export default function HomeScreen({ navigation }) {
+@@ -61,5 +80 @@ export default function HomeScreen({ navigation }) {
++  React.useEffect(() => {
+@@ -69 +84 @@ export default function HomeScreen({ navigation }) {
++        Alert.alert('Permission Denied', 'Location permission is required.');
+@@ -72 +87 @@ export default function HomeScreen({ navigation }) {
+@@ -76,2 +91 @@ export default function HomeScreen({ navigation }) {
++          timeInterval: 1000,
+@@ -81,8 +95,3 @@ export default function HomeScreen({ navigation }) {
++            const speedMps = position.coords.speed;
++            const speedMph = (speedMps * 2.23694).toFixed(1);
++            setSpeed(speedMph < 0 ? 0 : speedMph);
+@@ -93 +102 @@ export default function HomeScreen({ navigation }) {
+@@ -96,2 +105,2 @@ export default function HomeScreen({ navigation }) {
++  React.useEffect(() => {
+@@ -120,20 +128,0 @@ export default function HomeScreen({ navigation }) {
+@@ -142,18 +130,0 @@ export default function HomeScreen({ navigation }) {
+@@ -162 +133 @@ export default function HomeScreen({ navigation }) {
++    outputRange: ['360deg', '0deg'],
+@@ -168,2 +139 @@ export default function HomeScreen({ navigation }) {
++      
+@@ -170,0 +141,4 @@ export default function HomeScreen({ navigation }) {
++      
++      {userName !== '' && (
++        <Text style={styles.greeting}>Welcome back, {userName}!</Text>
++      )}
+@@ -172 +145,0 @@ export default function HomeScreen({ navigation }) {
+@@ -178 +150,0 @@ export default function HomeScreen({ navigation }) {
+@@ -190 +161,0 @@ export default function HomeScreen({ navigation }) {
+@@ -200,3 +171 @@ export default function HomeScreen({ navigation }) {
++          <Text style={styles.infoText}>🌍 {location.latitude}°, {location.longitude}°</Text>
+@@ -206 +174,0 @@ export default function HomeScreen({ navigation }) {
+@@ -209 +176,0 @@ export default function HomeScreen({ navigation }) {
+@@ -216 +182,0 @@ export default function HomeScreen({ navigation }) {
+@@ -233,2 +199,6 @@ const styles = StyleSheet.create({
++    marginBottom: 8,
++  },
++  greeting: {
++    fontSize: 16,
++    color: '#ccc',
++    marginBottom: 12,
++++ b/screens/LandingScreen.js
+@@ -0,0 +1,51 @@
++// screens/LandingScreen.js
++import React, { useState } from 'react';
++import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
++import AsyncStorage from '@react-native-async-storage/async-storage';
++export default function LandingScreen({ navigation }) {
++  const [name, setName] = useState('');
++  const handleSubmit = async () => {
++    if (name.trim()) {
++      await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
++      navigation.replace('MainTabs');
++    }
++  };
++  return (
++    <View style={styles.container}>
++      <Text style={styles.title}>Welcome to MotorVision</Text>
++      <TextInput
++        style={styles.input}
++        placeholder="Enter your name"
++        placeholderTextColor="#aaa"
++        value={name}
++        onChangeText={setName}
++      />
++      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
++        <Text style={styles.buttonText}>Continue</Text>
++      </TouchableOpacity>
++    </View>
++  );
++}
++const styles = StyleSheet.create({
++  container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center' },
++  title: { color: 'white', fontSize: 24, marginBottom: 20 },
++  input: {
++    width: '80%',
++    backgroundColor: '#1E1E1E',
++    color: 'white',
++    padding: 12,
++    borderRadius: 10,
++    marginBottom: 20,
++  },
++  button: {
++    backgroundColor: '#0A84FF',
++    paddingVertical: 12,
++    paddingHorizontal: 40,
++    borderRadius: 12,
++  },
++  buttonText: { color: 'white', fontWeight: 'bold' },
++});
++++ b/screens/LoginScreen.js
+@@ -0,0 +1,156 @@
++// LoginScreen.js
++import React, { useState } from 'react';
++import {
++  View,
++  Text,
++  TextInput,
++  TouchableOpacity,
++  StyleSheet,
++  StatusBar,
++  Alert,
++} from 'react-native';
++import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
++import { signInWithEmailAndPassword } from 'firebase/auth';
++import { doc, getDoc } from 'firebase/firestore';
++import SignUpScreen from './SignUpScreen';
++const LoginScreen = ({navigation}) => {
++  const [email, setEmail] = useState('');
++  const [password, setPassword] = useState('');
++  const [error, setError] = useState('');
++  const handleLogin = async () => {
++    try {
++      const userCredential = await signInWithEmailAndPassword(auth, email, password);
++      const user = userCredential.user;
++      // Fetch user data from Firestore
++      // const userDoc = await getDoc(doc(db, 'users', user.uid));
++      // if (userDoc.exists()) {
++      //   console.log('User data:', userDoc.data());
++      //   // await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
++      //   // await AsyncStorage.setItem('userInfo', JSON.stringify({ userDoc.data().name }));
++      //   Alert.alert('Welcome', `Hello, ${userDoc.data().name || user.email}`);
++      // } else {
++      //   console.log('No user data found.');
++      //   Alert.alert('Login Successful', 'But no user data found.');
++      // }
++    } catch (error) {
++      setError('Sorry, your email or password was incorrect.');
++      // console.error(error);
++      // Alert.alert('Login Error', error.message);
++    }
++  };
++  return (
++    <View style={styles.container}>
++      <StatusBar barStyle="light-content" />
++      <Text style={styles.title}>MotorVision</Text>
++      <TextInput
++        style={styles.input}
++        placeholder="Email"
++        placeholderTextColor="#ccc"
++        value={email}
++        onChangeText={(text) => {
++          setEmail(text);
++          if (error) setError('');
++        }}
++        keyboardType="email-address"
++        autoCapitalize="none"
++      />
++      <TextInput
++        style={styles.input}
++        placeholder="Password"
++        placeholderTextColor="#ccc"
++        value={password}
++        onChangeText={(text) => {
++          setPassword(text);
++          if (error) setError('');
++        }}        
++        secureTextEntry
++      />
++      <TouchableOpacity style={styles.button} onPress={handleLogin}>
++        <Text style={styles.buttonText}>Sign In</Text>
++      </TouchableOpacity>
++      <TouchableOpacity style={styles.buttonNoBackground} onPress={() => navigation.navigate('SignUp')}>
++        <Text style={styles.buttonText}>Sign Up</Text>
++      </TouchableOpacity>
++      <View style={styles.errorContainer}>
++        <Text style={[styles.errorText, { opacity: error ? 1 : 0 }]}>
++          {error || ' '}
++        </Text>
++      </View>
++    </View>
++  );
++};
++const styles = StyleSheet.create({
++  container: {
++    flex: 1,
++    backgroundColor: '#000', // Tesla black
++    alignItems: 'center',
++    justifyContent: 'center',
++    padding: 24,
++  },
++  title: {
++    fontSize: 45,
++    color: '#fff',
++    fontWeight: '700',
++    letterSpacing: 8,
++    marginBottom: 40,
++  },
++  input: {
++    width: '100%',
++    height: 50,
++    borderColor: '#333',
++    borderWidth: 1,
++    borderRadius: 8,
++    paddingHorizontal: 16,
++    marginBottom: 16,
++    color: '#fff',
++    backgroundColor: '#111',
++  },
++  errorContainer: {
++  height: 30, 
++  justifyContent: 'center',
++},
++  button: {
++    width: '100%',
++    backgroundColor: '#0A84FF', // Tesla red
++    padding: 15,
++    borderRadius: 30,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  errorText: {
++  color: '#FF3B30',
++  fontSize: 14,
++  marginBottom: 10,
++  textAlign: 'center',
++},
++  buttonNoBackground: {
++    width: '100%',
++    padding: 15,
++    borderRadius: 8,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  buttonText: {
++    color: '#fff',
++    fontSize: 18,
++    fontWeight: '600',
++  },
++});
++export default LoginScreen;
++++ b/screens/NavigationScreen.js
+@@ -13 +13,2 @@ export default function NavigationScreen() {
++  const [startTripAlertShown, setStartTripAlertShown] = useState(false);
++  const [endTripAlertShown, setEndTripAlertShown] = useState(false);
+@@ -15 +16,4 @@ export default function NavigationScreen() {
++  const [hasClosestSpots, setHasClosestSpots] = useState(false);
++  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+@@ -17,2 +20,0 @@ export default function NavigationScreen() {
+@@ -20,0 +23,2 @@ export default function NavigationScreen() {
++  const startTrip = useBluetoothStore((state) => state.startTrip);
++  const stopTrip = useBluetoothStore((state) => state.stopTrip);
+@@ -22,0 +27,6 @@ export default function NavigationScreen() {
++  const [showPlacesList, setShowPlacesList] = useState(false);
++  const mapRef = useRef(null);
++  const markersRef = useRef([]);
+@@ -25,0 +36,19 @@ export default function NavigationScreen() {
++  
++  const fetchNearbyPlaces = async (lat, lng) => {
++    try {
++      const radius = 5000;
++      const keyword = 'motorcycle';
++      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${keyword}&key=${GOOGLE_MAPS_API_KEY}`;
++      const response = await fetch(url);
++      const data = await response.json();
++      if (data.results && data.results.length > 0) {
++        setNearbyPlaces(data.results);
++      } else {
++        Alert.alert('No nearby places found.');
++      }
++    } catch (error) {
++      Alert.alert('Error fetching places', error.message);
++    }
++  };
+@@ -47,0 +77,4 @@ export default function NavigationScreen() {
++      if (!hasClosestSpots) {
++        fetchNearbyPlaces(latitude, longitude);
++        setHasClosestSpots(true);
++      }
+@@ -49 +81,0 @@ export default function NavigationScreen() {
+@@ -106,13 +138,5 @@ export default function NavigationScreen() {
++  const handleStartTrip = async () => {
++    if (tripActive) {
++      if (!endTripAlertShown) {
++        Alert.alert('Trip Ended', 'Trip tracking has stopped and data will be saved.');
++        setEndTripAlertShown(true);
+@@ -120,2 +144,13 @@ export default function NavigationScreen() {
++      stopTrip();
++      locationSubscription.current?.remove();
++      locationSubscription.current = null;
++    } else {
++      if (!startTripAlertShown) {
++        Alert.alert('Trip Started', 'Your trip is now being tracked.');
++        setStartTripAlertShown(true);
++      }
++      totalDistance.current = 0;
++      setDisplayDistance(0);
++      prevLocation.current = currentLocation;
++      startTrip();
+@@ -126,3 +161,6 @@ export default function NavigationScreen() {
++    const R = 6371e3; // meters
++    const φ1 = (lat1 * Math.PI) / 180;
++    const φ2 = (lat2 * Math.PI) / 180;
++    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
++    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+@@ -130,4 +168,4 @@ export default function NavigationScreen() {
++      Math.sin(Δφ / 2) ** 2 +
++      Math.cos(φ1) * Math.cos(φ2) *
++      Math.sin(Δλ / 2) ** 2;
+@@ -157,0 +196 @@ export default function NavigationScreen() {
+@@ -169 +207,0 @@ export default function NavigationScreen() {
+@@ -175,0 +214 @@ export default function NavigationScreen() {
++      
+@@ -190,0 +230 @@ export default function NavigationScreen() {
++      
+@@ -197,2 +237 @@ export default function NavigationScreen() {
++              Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
+@@ -207 +245,0 @@ export default function NavigationScreen() {
+@@ -215 +252,0 @@ export default function NavigationScreen() {
+@@ -218,3 +255 @@ export default function NavigationScreen() {
++        onPress={handleStartTrip}
+@@ -227 +261,0 @@ export default function NavigationScreen() {
+@@ -257,0 +292,2 @@ export default function NavigationScreen() {
++    
+@@ -278 +314 @@ const styles = StyleSheet.create({
++    backgroundColor: 'rgba(0,0,0,0.7)',
+@@ -290 +325,0 @@ const styles = StyleSheet.create({
++++ b/screens/SettingsScreen.js
+@@ -7,4 +7,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Account",
++      icon: "person-circle-outline",
++      onPress: () => navigation.navigate('SettingsTab', { screen: 'EditProfile' }) // ✅ Correct nested navigation
+@@ -12,4 +12,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Notifications",
++      icon: "notifications-outline",
++      onPress: () => alert('Notifications Settings coming soon!')
+@@ -17,4 +17,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Privacy & Security",
++      icon: "shield-outline",
++      onPress: () => alert('Privacy & Security Settings coming soon!')
+@@ -22,4 +22,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Sensor and Location Services",
++      icon: "location-outline",
++      onPress: () => alert('Sensor and Location Settings coming soon!')
+@@ -27,4 +27,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Appearance",
++      icon: "color-palette-outline",
++      onPress: () => alert('Appearance Settings coming soon!')
+@@ -32,4 +32,4 @@ export default function SettingsScreen({ navigation }) {
++    {
++      title: "Help & Support",
++      icon: "help-circle-outline",
++      onPress: () => alert('Help & Support coming soon!')
+@@ -37 +37 @@ export default function SettingsScreen({ navigation }) {
++  ];
+@@ -43 +42,0 @@ export default function SettingsScreen({ navigation }) {
+@@ -48,10 +47,2 @@ export default function SettingsScreen({ navigation }) {
++          <TouchableOpacity style={styles.settingItem} onPress={item.onPress}>
++            <Ionicons name={item.icon} size={24} color="#0A84FF" style={styles.icon} />
+@@ -59,5 +50 @@ export default function SettingsScreen({ navigation }) {
++            <Ionicons name="chevron-forward-outline" size={20} color="#888" />
+@@ -71 +58 @@ export default function SettingsScreen({ navigation }) {
++        onPress={() => navigation.navigate('SettingsTab', { screen: 'PairingGuide' })}
+@@ -73,4 +60,4 @@ export default function SettingsScreen({ navigation }) {
++        <Ionicons
++          name="bluetooth-outline"
++          size={24}
++          color="#ffffff"
++++ b/screens/SignUpScreen.js
+@@ -0,0 +1,131 @@
++import React, { useState } from 'react';
++import {
++  View,
++  Text,
++  TextInput,
++  TouchableOpacity,
++  StyleSheet,
++  Alert,
++  StatusBar,
++} from 'react-native';
++import { createUserWithEmailAndPassword } from 'firebase/auth';
++import { doc, setDoc } from 'firebase/firestore';
++import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
++const SignUpScreen = ({navigation}) => {
++  const [name, setName] = useState('');
++  const [email, setEmail] = useState('');
++  const [password, setPassword] = useState('');
++  const handleSignUp = async () => {
++    try {
++      // 1. Create user in Firebase Auth
++      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
++      const user = userCredential.user;
++      // 2. Store additional data in Firestore
++      await setDoc(doc(db, 'users', user.uid), {
++        name,
++        email,
++        createdAt: new Date(),
++        friends: [],
++        pending: [],
++        requested: [],
++      });
++      Alert.alert('Success', 'Account created!');
++    } catch (error) {
++      console.error(error);
++      Alert.alert('Sign Up Error', error.message);
++    }
++  };
++  return (
++    <View style={styles.container}>
++      <StatusBar barStyle="light-content" />
++      <Text style={styles.title}>MotorVision</Text>
++      <TextInput
++        style={styles.input}
++        placeholder="Full Name"
++        placeholderTextColor="#ccc"
++        value={name}
++        onChangeText={setName}
++      />
++      <TextInput
++        style={styles.input}
++        placeholder="Email"
++        placeholderTextColor="#ccc"
++        value={email}
++        onChangeText={setEmail}
++        keyboardType="email-address"
++        autoCapitalize="none"
++      />
++      <TextInput
++        style={styles.input}
++        placeholder="Password"
++        placeholderTextColor="#ccc"
++        value={password}
++        onChangeText={setPassword}
++        secureTextEntry
++      />
++      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
++        <Text style={styles.buttonText}>Create Account</Text>
++      </TouchableOpacity>
++      <TouchableOpacity style={styles.buttonNoBackground} onPress={() => navigation.navigate('Login')}>
++        <Text style={styles.buttonText}>Back to Login</Text>
++      </TouchableOpacity>
++    </View>
++  );
++};
++const styles = StyleSheet.create({
++  container: {
++    flex: 1,
++    backgroundColor: '#000',
++    alignItems: 'center',
++    justifyContent: 'center',
++    padding: 24,
++  },
++  title: {
++    fontSize: 45,
++    color: '#fff',
++    fontWeight: '700',
++    letterSpacing: 8,
++    marginBottom: 40,
++  },
++  input: {
++    width: '100%',
++    height: 50,
++    borderColor: '#333',
++    borderWidth: 1,
++    borderRadius: 8,
++    paddingHorizontal: 16,
++    marginBottom: 16,
++    color: '#fff',
++    backgroundColor: '#111',
++  },
++ button: {
++    width: '100%',
++    backgroundColor: '#0A84FF', // Tesla red
++    padding: 15,
++    borderRadius: 30,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  buttonNoBackground: {
++    width: '100%',
++    padding: 15,
++    borderRadius: 8,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  buttonText: {
++    color: '#fff',
++    fontSize: 18,
++    fontWeight: '600',
++  },
++});
++export default SignUpScreen;

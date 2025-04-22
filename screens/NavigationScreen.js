@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal } from 'react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
@@ -10,19 +10,65 @@ const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
 export default function NavigationScreen() {
   const [region, setRegion] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  const [startTripAlertShown, setStartTripAlertShown] = useState(false);
+  const [endTripAlertShown, setEndTripAlertShown] = useState(false);
   const [displayDistance, setDisplayDistance] = useState(0);
+  const [hasClosestSpots, setHasClosestSpots] = useState(false);
+
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+
+  const openMaps = (place) => {
+    console.log("THISSSSS");
+    const lat = place.geometry.location.lat;
+    const lng = place.geometry.location.lng;
+    const name = place.name;
+  
+    // Using the platform-specific URL schemes for Apple Maps and Google Maps
+    const appleMapsUrl = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d&t=h`;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  
+    // Choose the appropriate URL based on platform
+    const url = Platform.OS === 'ios' ? appleMapsUrl : googleMapsUrl;
+  
+    // Attempt to open the maps app with the specified URL
+    Linking.openURL(url).catch(err => {
+      Alert.alert('Error', 'Unable to open maps application.');
+    });
+  };
+
+  const tripActive = useBluetoothStore((state) => state.tripActive);
+  const startTrip = useBluetoothStore((state) => state.startTrip);
+  const stopTrip = useBluetoothStore((state) => state.stopTrip);
+  const updateTripData = useBluetoothStore((state) => state.updateTripData);
+
+
   const [showPlacesList, setShowPlacesList] = useState(false);
 
   const mapRef = useRef(null);
   const markersRef = useRef([]);
 
-  const tripActive = useBluetoothStore((state) => state.tripActive);
-  const updateTripData = useBluetoothStore((state) => state.updateTripData);
-
   const totalDistance = useRef(0);
   const prevLocation = useRef(null);
   const locationSubscription = useRef(null);
+  
+  const fetchNearbyPlaces = async (lat, lng) => {
+    try {
+      const radius = 5000;
+      const keyword = 'motorcycle';
+
+      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${keyword}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        setNearbyPlaces(data.results);
+      } else {
+        Alert.alert('No nearby places found.');
+      }
+    } catch (error) {
+      Alert.alert('Error fetching places', error.message);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -45,8 +91,11 @@ export default function NavigationScreen() {
       setRegion(initialRegion);
       setCurrentLocation({ latitude, longitude });
       prevLocation.current = { latitude, longitude };
+      if (!hasClosestSpots) {
+        fetchNearbyPlaces(latitude, longitude);
+        setHasClosestSpots(true);
+      }
 
-      fetchNearbyPlaces(latitude, longitude);
     })();
   }, []);
 
@@ -103,34 +152,40 @@ export default function NavigationScreen() {
     };
   }, [tripActive]);
 
-  const fetchNearbyPlaces = async (lat, lng) => {
-    try {
-      const radius = 5000;
-      const keyword = 'motorcycle';
-
-      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${keyword}&key=${GOOGLE_MAPS_API_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.results && data.results.length > 0) {
-        setNearbyPlaces(data.results);
-      } else {
-        Alert.alert('No nearby places found.');
+  const handleStartTrip = async () => {
+    if (tripActive) {
+      if (!endTripAlertShown) {
+        Alert.alert('Trip Ended', 'Trip tracking has stopped and data will be saved.');
+        setEndTripAlertShown(true);
       }
-    } catch (error) {
-      Alert.alert('Error fetching places', error.message);
+      stopTrip();
+      locationSubscription.current?.remove();
+      locationSubscription.current = null;
+    } else {
+      if (!startTripAlertShown) {
+        Alert.alert('Trip Started', 'Your trip is now being tracked.');
+        setStartTripAlertShown(true);
+      }
+
+      totalDistance.current = 0;
+      setDisplayDistance(0);
+      prevLocation.current = currentLocation;
+      startTrip();
     }
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const R = 6371e3; // meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
     const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
+      Math.sin(Δφ / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) ** 2;
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -155,6 +210,7 @@ export default function NavigationScreen() {
     }, 1000);
   };
 
+
   if (!region) {
     return (
       <View style={styles.center}>
@@ -166,13 +222,13 @@ export default function NavigationScreen() {
   return (
     <View style={styles.container}>
       <MapView
-        ref={mapRef}
         style={styles.map}
         region={region}
         showsUserLocation={true}
         followsUserLocation={true}
       >
         {currentLocation && <Marker coordinate={currentLocation} title="You are here" />}
+      
         {nearbyPlaces.map((place, index) => (
           <Marker
             key={index}
@@ -182,20 +238,23 @@ export default function NavigationScreen() {
               longitude: place.geometry.location.lng,
             }}
           >
-            <Callout>
+           <Callout onPress={() => openMaps(place)}>
+            <View>
               <Text style={{ fontWeight: 'bold' }}>{place.name}</Text>
               <Text>{place.vicinity}</Text>
-            </Callout>
+              <Text style={{ color: 'blue', marginTop: 5 }}>Tap here to get directions</Text>
+            </View>
+          </Callout>
           </Marker>
         ))}
+      
       </MapView>
 
       <View style={styles.overlay}>
         {currentLocation && (
           <>
             <Text style={styles.overlayText}>
-              Lat: {currentLocation.latitude.toFixed(6)}, Lng:{' '}
-              {currentLocation.longitude.toFixed(6)}
+              Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
             </Text>
             <Text style={styles.overlayText2}>
               Distance Traveled: {(displayDistance / 1000).toFixed(2)} km
@@ -204,7 +263,6 @@ export default function NavigationScreen() {
         )}
       </View>
 
-      {/* Floating Motorcycle Button */}
       <TouchableOpacity
         style={styles.floatingButton}
         onPress={() => setShowPlacesList(true)}
@@ -212,19 +270,15 @@ export default function NavigationScreen() {
         <MaterialCommunityIcons name="motorbike" size={28} color="#fff" />
       </TouchableOpacity>
 
-      {/* Trip Start/End Button */}
       <TouchableOpacity
         style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
-        onPress={() => {
-          // Optional toggle tripActive logic
-        }}
+        onPress={handleStartTrip}
       >
         <Text style={styles.startTripText}>
           {tripActive ? 'End Trip' : 'Start Trip'}
         </Text>
       </TouchableOpacity>
 
-      {/* Modal Overlay for Nearby Places List */}
       <Modal visible={showPlacesList} transparent={true} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -243,6 +297,7 @@ export default function NavigationScreen() {
                 <TouchableOpacity
                   style={styles.listItem}
                   onPress={() => {
+                    openMaps(item);
                     focusOnPlace(item, index);
                     setShowPlacesList(false); 
                   }}                >
@@ -255,6 +310,8 @@ export default function NavigationScreen() {
         </View>
       </Modal>
     </View>
+
+    
   );
 }
 
@@ -275,7 +332,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     padding: 10,
     borderRadius: 10,
   },
@@ -287,7 +344,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     textAlign: 'center',
-    marginTop: 5,
   },
   startTripButton: {
     position: 'absolute',
