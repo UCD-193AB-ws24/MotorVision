@@ -93,6 +93,8 @@ export async function updateUserLocation(uid, location) {
     });
 }
 
+
+
 /**
  * Get a user's location by their email
  * @param {string} email
