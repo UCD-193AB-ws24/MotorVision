@@ -1,6 +1,7 @@
 // friendService.js
 
-import { db } from "./firebase"; // adjust this path if needed
+import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
+
 import {
   doc,
   updateDoc,
@@ -54,7 +55,43 @@ export async function sendFriendRequest(currentUserUid, friendEmail) {
 
   return true;
 }
-
+/**
+ * Accept a friend request using emails
+ * @param {string} currentUserEmail
+ * @param {string} requesterEmail
+ * @returns {Promise<boolean>}
+ */
+/**
+ * Accept a friend request from requester using their email
+ * @param {string} requesterEmail
+ * @returns {Promise<boolean>}
+ */
+export async function acceptFriendRequestByEmail(requesterEmail) {
+    const currentUserUid = auth.currentUser?.uid;
+    if (!currentUserUid) throw new Error("Not authenticated.");
+  
+    const requester = await getUserByEmail(requesterEmail);
+    if (!requester) throw new Error("Requester not found.");
+  
+    const requesterUid = requester.uid;
+  
+    if (currentUserUid === requesterUid) {
+      throw new Error("You can't accept a request from yourself.");
+    }
+  
+    await updateDoc(doc(db, `users/${currentUserUid}`), {
+      friends: arrayUnion(requesterUid),
+      pending: arrayRemove(requesterUid)
+    });
+  
+    await updateDoc(doc(db, `users/${requesterUid}`), {
+      friends: arrayUnion(currentUserUid),
+      requested: arrayRemove(currentUserUid)
+    });
+  
+    return true;
+  }
+  
 /**
  * Accept a friend request from requester
  * @param {string} currentUserUid
@@ -115,4 +152,3 @@ export async function getUserLocationByEmail(email) {
       return null; // location not set yet
     }
   }
-/**
