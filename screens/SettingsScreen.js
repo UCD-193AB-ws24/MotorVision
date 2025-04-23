@@ -7,37 +7,37 @@ export default function SettingsScreen({ navigation }) {
     {
       title: "Profile",
       icon: "person-circle-outline",
-      onPress: () => navigation.navigate('SettingsTab', { screen: 'EditProfile' })
+      onPress: () => navigation.navigate('SettingsTab', { screen: 'Profile' }),
     },
     {
       title: "Friends",
       icon: "people-outline",
-      onPress: () => navigation.navigate('Friends')
+      onPress: () => navigation.navigate('Friends'),
     },
     {
       title: "Notifications",
       icon: "notifications-outline",
-      onPress: () => alert('Notifications Settings coming soon!')
+      onPress: () => alert('Notifications Settings coming soon!'),
     },
     {
       title: "Privacy & Security",
       icon: "shield-outline",
-      onPress: () => alert('Privacy & Security Settings coming soon!')
+      onPress: () => alert('Privacy & Security Settings coming soon!'),
     },
     {
       title: "Sensor and Location Services",
       icon: "location-outline",
-      onPress: () => alert('Sensor and Location Settings coming soon!')
+      onPress: () => alert('Sensor and Location Settings coming soon!'),
     },
     {
       title: "Appearance",
       icon: "color-palette-outline",
-      onPress: () => alert('Appearance Settings coming soon!')
+      onPress: () => alert('Appearance Settings coming soon!'),
     },
     {
       title: "Help & Support",
       icon: "help-circle-outline",
-      onPress: () => alert('Help & Support coming soon!')
+      onPress: () => alert('Help & Support coming soon!'),
     },
   ];
 
@@ -65,10 +65,7 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.buttonText}>How to Pair a Device</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Back to Home Screen</Text>
       </TouchableOpacity>
     </View>
@@ -96,11 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-    shadowColor: '#0A84FF',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
+    elevation: 2,
   },
   icon: {
     marginRight: 12,
