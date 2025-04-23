@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking } from 'react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking, Image} from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { db, auth } from '../config/firebase';
+import {getFriendsLocations} from './FriendsService'; 
+import { doc, getDoc } from 'firebase/firestore';
+
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
 
@@ -14,8 +18,33 @@ export default function NavigationScreen() {
   const [endTripAlertShown, setEndTripAlertShown] = useState(false);
   const [displayDistance, setDisplayDistance] = useState(0);
   const [hasClosestSpots, setHasClosestSpots] = useState(false);
+  const [mapMarkers, setMapMarkers] = useState([]);
+
+  const [showFriendsList, setShowFriendsList] = useState(false);
+  const [friendsLocations, setFriendsLocations] = useState([]);
+
 
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
+
+
+  
+
+const loadFriendsLocations = async () => {
+  try {
+    const locations = await getFriendsLocations(auth.currentUser.uid);
+    setFriendsLocations(locations);
+
+    // Clear old friend pins (optional: if you track friend markers separately)
+    clearFriendPins();
+
+    // Drop new pins
+    locations.forEach(({ email, location }) => {
+      dropFriendPin(location, email);
+    });
+  } catch (error) {
+    console.error("Error fetching friend locations:", error);
+  }
+};
 
   const openMaps = (place) => {
     console.log("THISSSSS");
@@ -46,11 +75,55 @@ export default function NavigationScreen() {
 
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const friendsMarkersRef = useRef([]);
+
 
   const totalDistance = useRef(0);
   const prevLocation = useRef(null);
   const locationSubscription = useRef(null);
   
+
+  const focusOnFriend = (location, index) => {
+    const lat = parseFloat(location.lat);
+    const lng = parseFloat(location.lng);
+  
+    mapRef.current?.animateToRegion(
+      {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      1000
+    );
+  
+    setTimeout(() => {
+      friendsMarkersRef.current[index]?.showCallout();
+    }, 1000);
+  };
+
+  const dropFriendPin = (location, email) => {
+    setMapMarkers((prev) => [
+      ...prev,
+      {
+        id: `friend-${email}`,
+        coordinate: {
+          latitude: location.lat,
+          longitude: location.lng,
+        },
+        title: email,
+      },
+    ]);
+  };
+
+  const clearFriendPins = () => {
+    setMapMarkers((prev) =>
+      prev.filter(marker => !marker.id?.startsWith("friend-"))
+    );
+  };
+  
+
+
   const fetchNearbyPlaces = async (lat, lng) => {
     try {
       const radius = 5000;
@@ -247,6 +320,47 @@ export default function NavigationScreen() {
           </Callout>
           </Marker>
         ))}
+
+        {friendsLocations.map((friend, index) => (
+            <Marker
+              key={`friend-${index}`}
+              ref={(ref) => (friendsMarkersRef.current[index] = ref)}
+              coordinate={{
+                latitude: friend.location.lat,
+                longitude: friend.location.lng,
+              }}
+            >
+              <View style={{ alignItems: 'center' }}>
+                <Image
+                  source={{
+                    uri: friend.profilePicUrl || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
+                  }}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    backgroundColor: '#ccc',
+                  }}
+                />
+              </View>
+              <Callout>
+                <View style={{ maxWidth: 600 }}>
+                  <Text
+                    style={{
+                      fontWeight: 'bold',
+                      flexWrap: 'wrap',
+                    }}
+                    // numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {friend.email}
+                  </Text>
+                </View>
+              </Callout>
+            </Marker>
+          ))}
       
       </MapView>
 
@@ -269,6 +383,19 @@ export default function NavigationScreen() {
       >
         <MaterialCommunityIcons name="motorbike" size={28} color="#fff" />
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.floatingButton2}
+
+        onPress={() => {
+          loadFriendsLocations(); // Fetch updated data
+          setShowFriendsList(true); // Show modal
+          loadFriendsLocations(); // refresh + drop pins
+        }}
+      >
+        <MaterialCommunityIcons name="account-multiple" size={28} color="#fff" />
+      </TouchableOpacity>
+      
 
       <TouchableOpacity
         style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
@@ -303,6 +430,40 @@ export default function NavigationScreen() {
                   }}                >
                   <Text style={styles.placeName}>{item.name}</Text>
                   <Text style={styles.placeAddress}>{item.vicinity}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+
+      <Modal visible={showFriendsList} transparent={true} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowFriendsList(false)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Friends' Locations</Text>
+            <FlatList
+              data={friendsLocations}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={styles.listItem}
+                  onPress={() => {
+                    focusOnFriend(item.location, index); // create this function like focusOnPlace
+                    setShowFriendsList(false);
+                  }}
+                >
+                  <Text style={styles.placeName}>{item.email}</Text>
+                  <Text style={styles.placeAddress}>
+                    Location: {item.location.lat}, {item.location.lng}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
@@ -369,6 +530,18 @@ const styles = StyleSheet.create({
   floatingButton: {
     position: 'absolute',
     bottom: 110,
+    right: 25,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 50,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  floatingButton2: {
+    position: 'absolute',
+    bottom: 180,
     right: 25,
     backgroundColor: '#2C2C2E',
     borderRadius: 50,
