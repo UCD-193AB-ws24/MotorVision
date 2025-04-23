@@ -12,7 +12,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../store/profileStore';
 
+const TAB_FRIENDS = 'friends';
+const TAB_REQUESTS = 'requests';
+const TAB_SENT = 'sent';
+
 export default function FriendsScreen() {
+  const [activeTab, setActiveTab] = useState(TAB_FRIENDS);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+
   const friends = useProfileStore((state) => state.friends);
   const pending = useProfileStore((state) => state.pending);
   const requested = useProfileStore((state) => state.requested);
@@ -22,9 +30,6 @@ export default function FriendsScreen() {
   const removeFriend = useProfileStore((state) => state.removeFriend);
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
   const cleanUpRequested = useProfileStore((state) => state.cleanUpRequested);
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
     const hydrateAndClean = async () => {
@@ -45,73 +50,102 @@ export default function FriendsScreen() {
   };
 
   const confirmRemoveFriend = (email) => {
-    Alert.alert(
-      'Remove Friend',
-      `Are you sure you want to remove ${email}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => removeFriend(email) },
-      ]
-    );
+    Alert.alert('Remove Friend', `Are you sure you want to remove ${email}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => removeFriend(email) },
+    ]);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case TAB_FRIENDS:
+        return (
+          <FlatList
+            data={friends}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onLongPress={() => confirmRemoveFriend(item)}
+                delayLongPress={600}
+                style={styles.card}
+              >
+                <Text style={styles.name}>{item}</Text>
+                <Text style={styles.pendingText}>Long-press to remove</Text>
+              </TouchableOpacity>
+            )}
+          />
+        );
+      case TAB_REQUESTS:
+        return (
+          <FlatList
+            data={pending}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.name}>{item}</Text>
+                <View style={styles.actions}>
+                  <TouchableOpacity style={styles.accept} onPress={() => acceptRequest(item)}>
+                    <Ionicons name="checkmark" size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.decline} onPress={() => declineRequest(item)}>
+                    <Ionicons name="close" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        );
+      case TAB_SENT:
+        return (
+          <FlatList
+            data={requested}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.name}>{item}</Text>
+                <Text style={styles.pendingText}>Pending...</Text>
+              </View>
+            )}
+          />
+        );
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Friends</Text>
 
-      <Text style={styles.sectionLabel}>Your Friends</Text>
-      <FlatList
-        data={friends}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onLongPress={() => confirmRemoveFriend(item)}
-            delayLongPress={600}
-            style={styles.card}
-          >
-            <Text style={styles.name}>{item}</Text>
-            <Text style={styles.pendingText}>Long-press to remove</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {/* Tab Menu */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === TAB_FRIENDS && styles.tabActive]}
+          onPress={() => setActiveTab(TAB_FRIENDS)}
+        >
+          <Text style={styles.tabText}>Friends</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === TAB_REQUESTS && styles.tabActive]}
+          onPress={() => setActiveTab(TAB_REQUESTS)}
+        >
+          <Text style={styles.tabText}>Requests</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === TAB_SENT && styles.tabActive]}
+          onPress={() => setActiveTab(TAB_SENT)}
+        >
+          <Text style={styles.tabText}>Sent</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.sectionLabel}>Friend Requests</Text>
-      <FlatList
-        data={pending}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item}</Text>
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.accept} onPress={() => acceptRequest(item)}>
-                <Ionicons name="checkmark" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.decline} onPress={() => declineRequest(item)}>
-                <Ionicons name="close" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      />
-
-      <Text style={styles.sectionLabel}>Requests You Sent</Text>
-      <FlatList
-        data={requested}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item}</Text>
-            <Text style={styles.pendingText}>Pending...</Text>
-          </View>
-        )}
-      />
+      {/* Tab Content */}
+      {renderContent()}
 
       <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
         <Ionicons name="person-add-outline" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Friend</Text>
       </TouchableOpacity>
 
-      {/* Modal for sending friend request */}
+      {/* Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -155,14 +189,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
-  sectionLabel: {
-    color: '#bbb',
+  tabs: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#0A84FF',
+  },
+  tabText: {
+    color: '#fff',
     fontSize: 16,
-    marginTop: 16,
-    marginBottom: 8,
   },
   card: {
     backgroundColor: '#1E1E1E',
@@ -199,7 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButton: {
-    marginTop: 30,
+    marginTop: 20,
     alignSelf: 'center',
     backgroundColor: '#0A84FF',
     flexDirection: 'row',
