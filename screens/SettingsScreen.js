@@ -5,9 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 export default function SettingsScreen({ navigation }) {
   const settingsOptions = [
     {
-      title: "Account",
+      title: "Profile",
       icon: "person-circle-outline",
-      onPress: () => navigation.navigate('SettingsTab', { screen: 'EditProfile' }) // ✅ Correct nested navigation
+      onPress: () => navigation.navigate('SettingsTab', { screen: 'EditProfile' })
+    },
+    {
+      title: "Friends",
+      icon: "people-outline",
+      onPress: () => navigation.navigate('Friends')
     },
     {
       title: "Notifications",
@@ -52,21 +57,14 @@ export default function SettingsScreen({ navigation }) {
         )}
       />
 
-      {/* Pairing Guide Button */}
       <TouchableOpacity
         style={styles.guideButton}
         onPress={() => navigation.navigate('SettingsTab', { screen: 'PairingGuide' })}
       >
-        <Ionicons
-          name="bluetooth-outline"
-          size={24}
-          color="#ffffff"
-          style={styles.icon}
-        />
+        <Ionicons name="bluetooth-outline" size={24} color="#ffffff" style={styles.icon} />
         <Text style={styles.buttonText}>How to Pair a Device</Text>
       </TouchableOpacity>
 
-      {/* Back Button */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}

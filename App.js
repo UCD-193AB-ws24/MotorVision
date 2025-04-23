@@ -4,7 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {auth} from './config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './config/firebase';
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
@@ -17,9 +18,9 @@ import TripHistoryScreen from './screens/TripHistoryScreen';
 import TripDetailScreen from './screens/TripDetailScreen';
 import LandingScreen from './screens/LandingScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
+import FriendsScreen from './screens/FriendsScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
-import { onAuthStateChanged } from 'firebase/auth';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -61,6 +62,7 @@ function SettingsStack() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} options={{ tabBarButton: () => null }} />
+      <Stack.Screen name="Friends" component={FriendsScreen} />
     </Stack.Navigator>
   );
 }

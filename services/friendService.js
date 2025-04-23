@@ -1,7 +1,6 @@
-// friendService.js
+// friendsService.js
 
-import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
-
+import { auth, db } from '../config/firebase';
 import {
   doc,
   updateDoc,
@@ -55,45 +54,40 @@ export async function sendFriendRequest(currentUserUid, friendEmail) {
 
   return true;
 }
+
 /**
  * Accept a friend request using emails
- * @param {string} currentUserEmail
- * @param {string} requesterEmail
- * @returns {Promise<boolean>}
- */
-/**
- * Accept a friend request from requester using their email
  * @param {string} requesterEmail
  * @returns {Promise<boolean>}
  */
 export async function acceptFriendRequestByEmail(requesterEmail) {
-    const currentUserUid = auth.currentUser?.uid;
-    if (!currentUserUid) throw new Error("Not authenticated.");
-  
-    const requester = await getUserByEmail(requesterEmail);
-    if (!requester) throw new Error("Requester not found.");
-  
-    const requesterUid = requester.uid;
-  
-    if (currentUserUid === requesterUid) {
-      throw new Error("You can't accept a request from yourself.");
-    }
-  
-    await updateDoc(doc(db, `users/${currentUserUid}`), {
-      friends: arrayUnion(requesterUid),
-      pending: arrayRemove(requesterUid)
-    });
-  
-    await updateDoc(doc(db, `users/${requesterUid}`), {
-      friends: arrayUnion(currentUserUid),
-      requested: arrayRemove(currentUserUid)
-    });
-  
-    return true;
+  const currentUserUid = auth.currentUser?.uid;
+  if (!currentUserUid) throw new Error("Not authenticated.");
+
+  const requester = await getUserByEmail(requesterEmail);
+  if (!requester) throw new Error("Requester not found.");
+
+  const requesterUid = requester.uid;
+
+  if (currentUserUid === requesterUid) {
+    throw new Error("You can't accept a request from yourself.");
   }
-  
+
+  await updateDoc(doc(db, `users/${currentUserUid}`), {
+    friends: arrayUnion(requesterUid),
+    pending: arrayRemove(requesterUid)
+  });
+
+  await updateDoc(doc(db, `users/${requesterUid}`), {
+    friends: arrayUnion(currentUserUid),
+    requested: arrayRemove(currentUserUid)
+  });
+
+  return true;
+}
+
 /**
- * Accept a friend request from requester
+ * Accept a friend request using UIDs
  * @param {string} currentUserUid
  * @param {string} requesterUid
  * @returns {Promise<boolean>}
@@ -113,24 +107,38 @@ export async function acceptFriendRequest(currentUserUid, requesterUid) {
 }
 
 /**
+ * Remove a friend (mutual removal from friends arrays)
+ * @param {string} uid1
+ * @param {string} uid2
+ * @returns {Promise<void>}
+ */
+export async function removeFriend(uid1, uid2) {
+  await updateDoc(doc(db, `users/${uid1}`), {
+    friends: arrayRemove(uid2)
+  });
+
+  await updateDoc(doc(db, `users/${uid2}`), {
+    friends: arrayRemove(uid1)
+  });
+}
+
+/**
  * Update a user's current location in Firestore
- * @param {string} uid - The UID of the user
- * @param {{lat: number, lng: number}} location - The location object
+ * @param {string} uid
+ * @param {{lat: number, lng: number}} location
  * @returns {Promise<void>}
  */
 export async function updateUserLocation(uid, location) {
-    const userRef = doc(db, "users", uid);
-  
-    await updateDoc(userRef, {
-      location: {
-        lat: location.lat,
-        lng: location.lng,
-        timestamp: Date.now() // optional: track last updated
-      }
-    });
+  const userRef = doc(db, "users", uid);
+
+  await updateDoc(userRef, {
+    location: {
+      lat: location.lat,
+      lng: location.lng,
+      timestamp: Date.now()
+    }
+  });
 }
-
-
 
 /**
  * Get a user's location by their email
@@ -138,17 +146,16 @@ export async function updateUserLocation(uid, location) {
  * @returns {Promise<{lat: number, lng: number, timestamp?: number} | null>}
  */
 export async function getUserLocationByEmail(email) {
-    const user = await getUserByEmail(email);
-  
-    if (!user) throw new Error("User not found.");
-  
-    if (user.location && user.location.lat && user.location.lng) {
-      return {
-        lat: user.location.lat,
-        lng: user.location.lng,
-        timestamp: user.location.timestamp || null
-      };
-    } else {
-      return null; // location not set yet
-    }
+  const user = await getUserByEmail(email);
+  if (!user) throw new Error("User not found.");
+
+  if (user.location && user.location.lat && user.location.lng) {
+    return {
+      lat: user.location.lat,
+      lng: user.location.lng,
+      timestamp: user.location.timestamp || null
+    };
+  } else {
+    return null;
   }
+}
