@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import {getFriendsLocations} from './FriendsService'; 
+import {getFriendsLocations, updateUserLocation} from './FriendsService'; 
 import { doc, getDoc } from 'firebase/firestore';
 
 
@@ -396,6 +396,29 @@ const loadFriendsLocations = async () => {
         <MaterialCommunityIcons name="account-multiple" size={28} color="#fff" />
       </TouchableOpacity>
       
+      <TouchableOpacity
+        style={styles.floatingButton3}
+
+        onPress={async () => {
+                  try {
+                    console.log('Updating location...');
+                    console.log("Current Location:", currentLocation);
+                    const locationUpdated = {
+                      lat: currentLocation.latitude,
+                      lng: currentLocation.longitude
+                    };
+
+                    await updateUserLocation(auth.currentUser.uid, locationUpdated);
+                    Alert.alert('Location Updated', 'Your location has been updated.');
+
+                    console.log('Location updated!');
+                  } catch (error) {
+                    console.error('Error updating location:', error);
+                  }
+                }}
+      >
+        <MaterialCommunityIcons name="crosshairs-gps" size={28} color="#fff" />
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
@@ -542,6 +565,18 @@ const styles = StyleSheet.create({
   floatingButton2: {
     position: 'absolute',
     bottom: 180,
+    right: 25,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 50,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  floatingButton3: {
+    position: 'absolute',
+    bottom: 250,
     right: 25,
     backgroundColor: '#2C2C2E',
     borderRadius: 50,
