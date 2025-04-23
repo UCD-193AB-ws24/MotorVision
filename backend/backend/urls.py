@@ -25,5 +25,6 @@ urlpatterns = [
     path("live_loc/", include('api.urls')),
     path("location_array/", include('api.urls')), 
     path("traj_image_live", include('api.urls')),
-    path("trip_weather/", include('api.urls'))
+    path("trip_weather/", include('api.urls')),
+    path("pre_route_analysis/", include('api.urls'))
 ]

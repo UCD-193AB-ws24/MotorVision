@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 import base64
+import datetime
 
 from django.http import FileResponse
 from django.conf import settings
@@ -285,7 +286,7 @@ def trip_weather(request):
     
     # would remove sendi ngthe weather 
     #return_array.append(weather_summaries)
-    return_summary = {"average_temperature": average_temperature, 
+    return_summary = {"average_temperature": (average_temperature*1.8) + 32, 
                         "average_wind_speed": average_wind_speed,
                         "icons": popular_icon}
 
@@ -308,3 +309,137 @@ def map_weather_code_to_icon(code):
         6200: "🌁",
     }.get(code, "❓")
 
+@api_view(['GET'])
+def pre_route_analysis(request):
+
+    """"
+    Refinements/Tasks for this 
+    - can send everything that we have for this 
+    - and then in the frontend take teh 
+
+    - return: 
+        - "instructions": [instructions]
+        - "curvature on the road": 
+
+    TODO: 
+    - don't understand what inputs/outputs are 
+    
+    """
+
+    print("Entering pre_route_analysis....")
+    data = request.data
+    print(data)
+
+    MAPBOX_ACCESS_TOKEN="pk.eyJ1Ijoic2FpbGkta2Fya2FyZSIsImEiOiJjbTl0OTZtOTIwOGpuMmlwenY5cHM5dDNlIn0.tSQUU1UtswIIfIPe7jBpzg"
+
+    
+    # if not in latitude, longtiude format
+    # convert to latitude, longitude format
+    # Origin and destination: [longitude, latitude]
+    origin = (-122.431297, 37.773972)     # San Francisco, CA
+    destination = (-121.886328, 37.338208)  # San Jose, CA
+
+    # Construct the API URL
+    base_url = "https://api.mapbox.com/directions/v5/mapbox/driving-traffic"
+    coordinates = f"{origin[0]},{origin[1]};{destination[0]},{destination[1]}"
+
+    params = {
+    "overview": "full",
+    "steps": "true",
+    "annotations": "distance,duration,speed,maxspeed,congestion",
+    "geometries": "geojson",
+    "voice_instructions": "true",
+    "banner_instructions": "true",
+    "access_token": MAPBOX_ACCESS_TOKEN
+    }
+
+    # Make the request
+    response = requests.get(f"{base_url}/{coordinates}", params=params)
+
+    analysis = {"instructions": "", 
+                "congestion": {
+                    "counts":
+                        {
+                            "low": 0,
+                            "moderate": 0,
+                            "high": 0,
+                            "severe": 0,
+                            "heavy": 0,
+                        },
+                    "locations": [
+                        ["congestion_value", "latitude", "longitude"]
+                    ]
+                },
+                "speed": 0,
+            }
+                
+    summary = {"max_congestion": "", "congestion_overview": [], "max_speed": 0, "max_speed_overview": []}
+    # Parse response
+    if response.status_code == 200:
+        data = response.json()
+        route = data["routes"][0]
+        leg_data = route["legs"][0]
+        annotations = leg_data["annotation"]
+        step_coordinates = route["geometry"]["coordinates"]
+        # print(annotations)
+
+        max_speeds = annotations["maxspeed"]
+        prev_max_speed = max_speeds[0]["speed"]*0.62
+
+        # get congestion overview - when to expect low, moderate 
+        congestions = annotations["congestion"]
+        summary["congestion_overview"].append([congestions[0], step_coordinates[0]])
+        prev_congestion = congestions[0]
+        
+        for i in range(0, len(congestions)):
+
+            # max speed analysis
+            if max_speeds != "null":
+                if (prev_max_speed != max_speeds[i]["speed"]*0.62):
+                    summary["max_speed_overview"].append([max_speeds[i]["speed"]*0.62, step_coordinates[i]])
+                    prev_max_speed = max_speeds[i]["speed"]*0.62
+                summary["max_speed"] = max(summary["max_speed"], max_speeds[i]["speed"]*0.62)
+
+            # congestion analysus
+            if prev_congestion != congestions[i]:
+                summary["congestion_overview"].append([congestions[i], step_coordinates[i]])
+                prev_congestion = congestions[i]
+            analysis["congestion"]["counts"][congestions[i]] += 1
+
+        max_congestion = max(analysis["congestion"]["counts"], key=analysis["congestion"]["counts"].get)
+        summary["max_congestion"] = "The most common congestion for this route is " + max_congestion
+
+        print("Results of congestion analysis: ", summary["max_congestion"])
+        print("Results of congestion overview: ", summary["congestion_overview"])
+        print("Results of max_speed analysis: ", summary["max_speed"])
+        print("Results of max_speed overview: ", summary["max_speed_overview"])
+
+
+        # speed overview - what the max speed everywhere is 
+
+
+        # get max speed overview
+
+        #print(route.keys())
+    
+        """
+        print("🛣️ Route Summary:")
+        print(f"- Distance: {route['distance'] / 1000:.2f} km")
+        print(f"- Duration: {route['duration'] / 60:.2f} minutes\n")
+
+        print("📍 Step-by-Step Directions:")
+        steps = route["legs"][0]["steps"]
+        for i, step in enumerate(steps):
+            instruction = step["maneuver"]["instruction"]
+            dist = step["distance"]
+            print(f"{i + 1}. {instruction} ({dist:.0f} m)")
+    """
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.text)
+
+    
+    return Response({'return_summary': summary })
+
+
+    # create an api call to mapbox to decide what the return value
