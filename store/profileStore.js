@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import {
   getUserByEmail,
   sendFriendRequest,
@@ -77,13 +77,17 @@ export const useProfileStore = create((set, get) => ({
     }
 
     try {
-      await sendFriendRequest(user.uid, friendEmail);
+      await sendFriendRequest(user.uid, friendEmail.trim().toLowerCase());
       set((state) => ({
         requested: [...state.requested, friendEmail],
       }));
     } catch (error) {
+      if (error.message === 'No user found with that email.') {
+        alert('No account is registered with that email.');
+      } else {
+        alert(error.message || 'Failed to send request.');
+      }
       console.error('Send request error:', error);
-      alert(error.message || 'Failed to send request.');
     }
   },
 
@@ -110,12 +114,34 @@ export const useProfileStore = create((set, get) => ({
   },
 
   /**
-   * Decline a pending friend request locally
+   * Decline a pending friend request (Firestore + local)
    */
-  declineRequest: (email) => {
-    set((state) => ({
-      pending: state.pending.filter((e) => e !== email),
-    }));
+  declineRequest: async (email) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const requester = await getUserByEmail(email);
+      if (!requester) throw new Error('User not found');
+
+      // Update both users in Firestore
+      await Promise.all([
+        updateDoc(doc(db, 'users', user.uid), {
+          pending: arrayRemove(requester.uid),
+        }),
+        updateDoc(doc(db, 'users', requester.uid), {
+          requested: arrayRemove(user.uid),
+        }),
+      ]);
+
+      // Update local state
+      set((state) => ({
+        pending: state.pending.filter((e) => e !== email),
+      }));
+    } catch (err) {
+      console.error('Decline request error:', err);
+      alert(err.message || 'Failed to decline request.');
+    }
   },
 
   /**
@@ -137,5 +163,30 @@ export const useProfileStore = create((set, get) => ({
       console.error('Remove friend error:', error);
       alert(error.message || 'Failed to remove friend.');
     }
+  },
+
+  /**
+   * Remove declined requests from your requested list
+   */
+  cleanUpRequested: async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const { requested } = get();
+    const valid = [];
+
+    for (const email of requested) {
+      try {
+        const target = await getUserByEmail(email);
+        if (!target) continue;
+
+        const stillPending = (target.pending || []).includes(user.uid);
+        if (stillPending) valid.push(email);
+      } catch (err) {
+        console.warn(`Could not verify pending status for ${email}`);
+      }
+    }
+
+    set({ requested: valid });
   },
 }));

@@ -21,12 +21,17 @@ export default function FriendsScreen() {
   const declineRequest = useProfileStore((state) => state.declineRequest);
   const removeFriend = useProfileStore((state) => state.removeFriend);
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
+  const cleanUpRequested = useProfileStore((state) => state.cleanUpRequested);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
-    hydrateProfile();
+    const hydrateAndClean = async () => {
+      await hydrateProfile();
+      await cleanUpRequested();
+    };
+    hydrateAndClean();
   }, []);
 
   const handleSendRequest = () => {
@@ -34,7 +39,7 @@ export default function FriendsScreen() {
       Alert.alert('Invalid', 'Please enter an email.');
       return;
     }
-    sendRequest(emailInput.trim());
+    sendRequest(emailInput.trim().toLowerCase());
     setEmailInput('');
     setModalVisible(false);
   };
