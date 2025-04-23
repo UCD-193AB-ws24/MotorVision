@@ -15,13 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function EditProfileScreen({ navigation }) {
   const tripLogs = useBluetoothStore(state => state.tripLogs);
-  const setProfileImage = useProfileStore(state => state.setProfileImage);
+  const setProfileImageGlobal = useProfileStore(state => state.setProfileImage);
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [email, setEmail] = useState('');
   const [createdAt, setCreatedAt] = useState('');
-  const [profileImage, setLocalProfileImage] = useState('');
+  const [profileImage, setProfileImageLocal] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -33,7 +33,7 @@ export default function EditProfileScreen({ navigation }) {
             setName(data.name || '');
             setEmail(data.email || '');
             setBio(data.bio || '');
-            setLocalProfileImage(data.profileImage || '');
+            setProfileImageLocal(data.profileImage || '');
             setCreatedAt(new Date(data.createdAt.seconds * 1000).toLocaleDateString());
             await AsyncStorage.setItem('userInfo', JSON.stringify({ name: data.name }));
           }
@@ -54,7 +54,7 @@ export default function EditProfileScreen({ navigation }) {
         profileImage,
       });
       await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
-      setProfileImage(profileImage);
+      setProfileImageGlobal(profileImage); // Update Zustand so ProfileScreen reflects it
       Alert.alert('Saved', 'Profile updated successfully.');
       navigation.goBack();
     } catch (err) {
@@ -78,7 +78,7 @@ export default function EditProfileScreen({ navigation }) {
 
     if (!result.canceled && result.assets?.[0]?.uri) {
       const uri = result.assets[0].uri;
-      setLocalProfileImage(uri);
+      setProfileImageLocal(uri);
     }
   };
 
