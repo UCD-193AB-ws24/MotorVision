@@ -22,6 +22,8 @@ import FriendsScreen from './screens/FriendsScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 
+import PreRouteAnalysis from './screens/PreRouteAnalysis';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
@@ -75,6 +77,7 @@ function MainTabs() {
           let iconName;
           switch (route.name) {
             case 'Home': iconName = 'home'; break;
+            case 'Pre Route Analysis': iconName = 'map'; break;
             case 'Navigation': iconName = 'map'; break;
             case 'Insights': iconName = 'stats-chart'; break;
             case 'Trip History': iconName = 'time'; break;
@@ -88,6 +91,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Pre Route Analysis" component={PreRouteAnalysis} />
       <Tab.Screen name="Navigation" component={NavigationScreen} />
       <Tab.Screen name="Insights" component={RideInsightsScreen} />
       <Tab.Screen name="Trip History" component={TripStack} />
