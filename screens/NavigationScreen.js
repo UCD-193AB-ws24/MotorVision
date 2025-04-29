@@ -333,7 +333,7 @@ const loadFriendsLocations = async () => {
               <View style={{ alignItems: 'center' }}>
                 <Image
                   source={{
-                    uri: friend.profilePicUrl || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
+                    uri: friend.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
                   }}
                   style={{
                     width: 40,
