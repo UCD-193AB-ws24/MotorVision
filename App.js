@@ -11,7 +11,8 @@ import SettingsScreen from './screens/SettingsScreen';
 import CrashDetailScreen from './screens/CrashDetailScreen';
 import PairingGuideScreen from './screens/PairingGuideScreen';
 import TripHistoryScreen from './screens/TripHistoryScreen';
-import TripDetailScreen from './screens/TripDetailScreen'; // Import Trip Detail Screen
+import TripDetailScreen from './screens/TripDetailScreen';
+import Crash3DView from './screens/Crash3DView'; // <-- NEW IMPORT
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -28,13 +29,14 @@ const DarkTheme = {
   },
 };
 
-// Stack for Trip History + Trip Detail
+// Stack for Trip History + Trip Detail + Crash screens
 function TripStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
       <Stack.Screen name="TripDetail" component={TripDetailScreen} />
       <Stack.Screen name="CrashDetail" component={CrashDetailScreen} />
+      <Stack.Screen name="Crash3DView" component={Crash3DView} />
     </Stack.Navigator>
   );
 }

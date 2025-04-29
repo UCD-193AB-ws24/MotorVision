@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isImageVisible, setIsImageVisible] = useState(false);
+  const [isGenerating3D, setIsGenerating3D] = useState(false);
 
   const { crash, locations } = route.params;
 
@@ -35,7 +37,6 @@ export default function CrashDetailScreen({ route, navigation }) {
       longitude: Number(loc.longitude),
       timestamp: String(loc.timestamp),
     }));
-  
 
     try {
       const response = await axios.post(url, { locations: payload });
@@ -47,6 +48,29 @@ export default function CrashDetailScreen({ route, navigation }) {
       console.error('Error fetching trajectory image:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generate3DCrashScene = async () => {
+    setIsGenerating3D(true);
+    try {
+      const response = await axios.post('http://3.147.83.156:8000/generate_crash_scene/', {
+        locations: (Array.isArray(locations) && locations.length > 0)
+          ? locations
+          : [{
+              latitude: Number(crash.location?.latitude),
+              longitude: Number(crash.location?.longitude),
+              timestamp: new Date(crash.timestamp || crash.time || new Date()).toISOString(),
+            }]
+      });
+
+      const htmlContent = response.data.html;
+      navigation.navigate('Crash3DView', { html: htmlContent });
+    } catch (error) {
+      console.error('Error generating 3D crash scene:', error);
+      Alert.alert('Error', 'Failed to generate 3D crash scene.');
+    } finally {
+      setIsGenerating3D(false);
     }
   };
 
@@ -98,7 +122,7 @@ export default function CrashDetailScreen({ route, navigation }) {
       {!trajectoryImage && (
         <TouchableOpacity
           style={styles.button}
-          onPress={fetchTrajectoryImage} // FIXED: correctly calling the function
+          onPress={fetchTrajectoryImage}
           disabled={isLoading}
         >
           {isLoading ? (
@@ -130,6 +154,19 @@ export default function CrashDetailScreen({ route, navigation }) {
           )}
         </>
       )}
+
+      {/* View 3D Crash Scene Button */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={generate3DCrashScene}
+        disabled={isGenerating3D}
+      >
+        {isGenerating3D ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>View 3D Crash Scene</Text>
+        )}
+      </TouchableOpacity>
     </ScrollView>
   );
 }

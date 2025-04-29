@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Accelerometer } from 'expo-sensors';
+import { Accelerometer, Gyroscope } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import * as Location from 'expo-location';
 
-const THRESHOLD = 5; // Adjusted to reduce sensitivity
+const THRESHOLD = 5; // Acceleration threshold for crash detection
 const CRASH_COOLDOWN_MS = 3000;
 
 export const useCrashDetection = () => {
@@ -14,10 +14,19 @@ export const useCrashDetection = () => {
   let lastCrashTime = 0;
 
   useEffect(() => {
-    let subscription;
+    let accelSubscription;
+    let gyroSubscription;
+    let latestGyroData = { x: 0, y: 0, z: 0 };
 
     const subscribe = () => {
-      subscription = Accelerometer.addListener(async ({ x, y, z }) => {
+      // Track latest gyroscope data in background
+      gyroSubscription = Gyroscope.addListener(({ x, y, z }) => {
+        latestGyroData = { x, y, z };
+      });
+      Gyroscope.setUpdateInterval(500); // Update every 0.5 seconds
+
+      // Monitor accelerometer for crash detection
+      accelSubscription = Accelerometer.addListener(async ({ x, y, z }) => {
         if (!tripActive) return;
 
         const acceleration = Math.sqrt(x * x + y * y + z * z);
@@ -26,7 +35,7 @@ export const useCrashDetection = () => {
           acceleration > THRESHOLD &&
           Date.now() - lastCrashTime > CRASH_COOLDOWN_MS
         ) {
-          console.log(`Crash detected! Acceleration: ${acceleration}`);
+          console.log(`🚨 Crash detected! Acceleration: ${acceleration}`);
           setIsCrashed(true);
           lastCrashTime = Date.now();
 
@@ -44,23 +53,30 @@ export const useCrashDetection = () => {
             console.error('Error getting location:', error);
           }
 
-          // Record crash event in the trip log
+          // Record crash event including gyroscope data
           recordCrashEvent({
             time: new Date().toISOString(),
-            speed: acceleration, // Treating acceleration as an estimate for speed
+            speed: acceleration, // Estimate
             acceleration: acceleration.toFixed(2),
             location,
+            gyroscope: {
+              x: latestGyroData.x.toFixed(4),
+              y: latestGyroData.y.toFixed(4),
+              z: latestGyroData.z.toFixed(4),
+            },
           });
 
           setTimeout(() => setIsCrashed(false), 5000);
         }
       });
+      Accelerometer.setUpdateInterval(500); // Update every 0.5 seconds
     };
 
     subscribe();
 
     return () => {
-      subscription && subscription.remove();
+      accelSubscription && accelSubscription.remove();
+      gyroSubscription && gyroSubscription.remove();
     };
   }, [tripActive]);
 

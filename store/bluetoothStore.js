@@ -14,12 +14,10 @@ export const useBluetoothStore = create((set, get) => ({
   tripData: null,
 
   // Connect to device
-  connectToDevice: (device) =>
-    set({ connectedDevice: device }),
+  connectToDevice: (device) => set({ connectedDevice: device }),
 
   // Disconnect from device
-  disconnectDevice: () =>
-    set({ connectedDevice: null }),
+  disconnectDevice: () => set({ connectedDevice: null }),
 
   // Start a new trip
   startTrip: () => {
@@ -32,7 +30,7 @@ export const useBluetoothStore = create((set, get) => ({
         totalDistance: 0,
         averageSpeed: 0,
         maxSpeed: 0,
-        crashEvents: [], // Ensure crashEvents is initialized properly
+        crashEvents: [], // Initialize crash events
       },
     });
   },
@@ -48,7 +46,6 @@ export const useBluetoothStore = create((set, get) => ({
       };
 
       try {
-        // Save trip to AsyncStorage and update Zustand state
         const existingTrips = JSON.parse(await AsyncStorage.getItem('tripLogs')) || [];
         const newTrips = [...existingTrips, updatedTripData];
         await AsyncStorage.setItem('tripLogs', JSON.stringify(newTrips));
@@ -81,15 +78,25 @@ export const useBluetoothStore = create((set, get) => ({
     });
   },
 
-  // Record crash event during an active trip
+  // Record crash event during an active trip (with gyroscope)
   recordCrashEvent: (event) => {
     set((state) => {
       if (!state.tripActive || !state.tripData) return state;
-      const updatedData = {
-        ...state.tripData,
-        crashEvents: [...state.tripData.crashEvents, event], // Append crash events to trip data
+
+      const updatedCrashEvents = [...state.tripData.crashEvents, {
+        time: event.time,
+        speed: event.speed,
+        acceleration: event.acceleration,
+        location: event.location,
+        gyroscope: event.gyroscope, // NEW: Save gyroscope data
+      }];
+
+      return {
+        tripData: {
+          ...state.tripData,
+          crashEvents: updatedCrashEvents,
+        }
       };
-      return { tripData: updatedData };
     });
   },
 
@@ -161,7 +168,6 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
-  // Set trip state
-  setTripActive: (active) =>
-    set({ tripActive: active }),
+  // Set trip active state
+  setTripActive: (active) => set({ tripActive: active }),
 }));
