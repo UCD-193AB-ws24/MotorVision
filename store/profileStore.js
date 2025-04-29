@@ -11,12 +11,14 @@ import {
 export const useProfileStore = create((set, get) => ({
   name: '',
   email: '',
+  profileImage: '',
   friends: [],
   pending: [],
   requested: [],
 
   setName: (newName) => set({ name: newName }),
   setEmail: (newEmail) => set({ email: newEmail }),
+  setProfileImage: (uri) => set({ profileImage: uri }),
 
   /**
    * Load user’s profile and friend-related info from Firestore
@@ -42,12 +44,13 @@ export const useProfileStore = create((set, get) => ({
     const [friendEmails, pendingEmails, requestedEmails] = await Promise.all([
       fetchEmails(data.friends || []),
       fetchEmails(data.pending || []),
-      fetchEmails(data.requested || [])
+      fetchEmails(data.requested || []),
     ]);
 
     set({
       name: data.name || '',
       email: data.email || '',
+      profileImage: data.profileImage || '',
       friends: friendEmails,
       pending: pendingEmails,
       requested: requestedEmails,
@@ -100,7 +103,7 @@ export const useProfileStore = create((set, get) => ({
 
     try {
       const requester = await getUserByEmail(requesterEmail);
-      if (!requester) throw new Error("Requester not found");
+      if (!requester) throw new Error('Requester not found');
 
       await acceptFriendRequest(user.uid, requester.uid);
       set((state) => ({
@@ -124,7 +127,6 @@ export const useProfileStore = create((set, get) => ({
       const requester = await getUserByEmail(email);
       if (!requester) throw new Error('User not found');
 
-      // Update both users in Firestore
       await Promise.all([
         updateDoc(doc(db, 'users', user.uid), {
           pending: arrayRemove(requester.uid),
@@ -134,7 +136,6 @@ export const useProfileStore = create((set, get) => ({
         }),
       ]);
 
-      // Update local state
       set((state) => ({
         pending: state.pending.filter((e) => e !== email),
       }));
@@ -153,7 +154,7 @@ export const useProfileStore = create((set, get) => ({
 
     try {
       const friend = await getUserByEmail(friendEmail);
-      if (!friend) throw new Error("User not found");
+      if (!friend) throw new Error('User not found');
 
       await removeFriend(user.uid, friend.uid);
       set((state) => ({
