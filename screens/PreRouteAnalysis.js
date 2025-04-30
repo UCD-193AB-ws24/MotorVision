@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  ScrollView,
+  ScrollView, findNodeHandle,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 
 
+
+const getCongestionColor = (level) => {
+    switch (level) {
+      case 'low':
+        return 'green';
+      case 'moderate':
+        return 'yellow';
+      case 'heavy':
+        return 'orange';
+      case 'severe':
+        return 'red';
+      default:
+        return 'gray';
+    }
+  };
 // PreRouteAnalysis function (previously done on Django backend)
 const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
@@ -104,7 +119,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
     );
     summary.max_congestion = `${maxCongestion}`;
 
-    return summary;
+    return { ...summary, congestion: analysis.congestion };
+
 
   } catch (error) {
     console.error('Error during preRouteAnalysis:', error);
@@ -196,7 +212,7 @@ export default function PreRouteAnalysis() {
         throw new Error('Please enter valid numbers for latitude and longitude.');
       }
 
-      // TODO: swap this out with 
+      // TODO: swap this out with live location
        const origin = [-122.431297, 37.773972]; // San Francisco
        const destination = [parsedLon, parsedLat]; // User input
 
@@ -218,6 +234,49 @@ export default function PreRouteAnalysis() {
       setLoading(false);
     }
   };
+
+  {/* Multi color polyline */}
+  const renderMultiColorPolyline = () => {
+    const segments = [];
+    const points = response?.congestion_overview;
+    if (!points || points.length < 2) return null;
+
+    for (let i = 1; i < points.length; i++) {
+      const [prevCongestion, prevCoord] = points[i - 1];
+      const [, currCoord] = points[i];
+
+      segments.push(
+        <Polyline
+          key={`segment-${i}`}
+          coordinates={[
+            { latitude: prevCoord[1], longitude: prevCoord[0] },
+            { latitude: currCoord[1], longitude: currCoord[0] },
+          ]}
+          strokeColor={getCongestionColor(prevCongestion)}
+          strokeWidth={6}
+        />
+      );
+    }
+    return segments;
+  };
+
+  const scrollViewRef = useRef(null);
+  const sectionRefs = useRef({
+    traffic: null,
+  });
+
+  const scrollToSection = (key) => {
+    const ref = sectionRefs.current[key];
+    if (ref && scrollViewRef.current) {
+      ref.measureLayout(
+        scrollViewRef.current.getInnerViewNode(),
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        }
+      );
+    }
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -254,50 +313,70 @@ export default function PreRouteAnalysis() {
         <View style={styles.resultBox}>
           {/* Summary Section */}
           <View style={styles.summaryContainer}>
-            <Text style={styles.sectionTitle}>Summary</Text>
+            <Text style={styles.headerTitle}>Summary</Text>
+            <View style={styles.resultBox}>
+            <TouchableOpacity onPress={() => scrollToSection('traffic')} >
             <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
             <Text style={styles.summaryText}>
-            Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
+                Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
             </Text>
             <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
+            <Text style={styles.summaryText}>Active Construction on Route: </Text>
+            </TouchableOpacity>
+            </View>
+            <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Weather Conditions</Text>
             <Text style={styles.summaryText}>Average Temperature: </Text>
             <Text style={styles.summaryText}>Average Precipitation Levels: </Text>
             <Text style={styles.summaryText}>Average Windspeed: </Text>
+            </View>
+            <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Roadside Resources</Text>
             <Text style={styles.summaryText}>Gas Stations Available: </Text>
             <Text style={styles.summaryText}>Fast Food and Coffee Available: </Text>
+            </View>
             {/* Stretch is adding scenic view */}
 
           </View>
           </View>
         
           {/* Congestion Overview Section TODO: change this to be more user friendly */}
-        <View style={styles.resultBox}>
-
+          <View
+          ref={(ref) => (sectionRefs.current.traffic = ref)} style={styles.resultBox}>
+        <Text style={styles.headerTitle}>Traffic and Road Information</Text>
           <View style={styles.overviewContainer}>
-            <Text style={styles.sectionTitle}>Traffic and Congestion Overview</Text>
-            {response.congestion_overview.map(([congestion, coords], index) => (
-              <Text key={`congestion-${index}`} style={styles.listText}>
-                • {congestion} at ({coords[1].toFixed(4)}, {coords[0].toFixed(4)})
-              </Text>
-            ))}
+            <Text style={styles.sectionTitle}>Congestion Overview</Text>
+            {/* New format for congestion overview */}
+            <View style={styles.congestionOverviewList}>
+                {Object.entries(response.congestion_overview.reduce((acc, [congestion]) => {
+                    acc[congestion] = (acc[congestion] || 0) + 1;
+                    return acc;
+                }, {})).map(([level, count], index) => {
+                const total = response.congestion_overview.length || 1;
+                const percentage = ((count / total) * 100).toFixed(2);
+
+                 return (
+                 <View key={index} style={styles.congestionItem}>
+                    <View style={[styles.legendColorBox, { backgroundColor: getCongestionColor(level) }]} />
+                    <Text style={styles.congestionText}>
+                    {level} {percentage}% 
+                    </Text>
+                </View>
+                );
+                })}
+            </View>
+
           </View>
-        </View>
 
         {/*Map Overlap for Speed */}
-        <View style={styles.resultBox}>
         <Text style={styles.sectionTitle}>Speed Overview</Text>
         <View style={styles.mapContainer}>
         <MapView style={{ flex: 1 }} region={region}  // Use dynamic region
-  onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
+        onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
         >
             {/* TODO: make polyline change according to congestion situtation*/}
-        <Polyline
-        coordinates={response.max_speed_overview.map(([speed, coords]) => ({ latitude: coords[1], longitude: coords[0] }))}
-        strokeColor="#FF0000"
-        strokeWidth={4}
-        />
+            {renderMultiColorPolyline()}
+
          {/* Speed Bubbles */}
          {response.max_speed_overview.map(([speed, coords], index) => (
          <SpeedBubble
@@ -310,6 +389,8 @@ export default function PreRouteAnalysis() {
         </MapView>
         </View>
         </View>
+
+        {/* Weather conditions */}
         
         {/* TODO: change this to select different routes */}
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
@@ -402,6 +483,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
   },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
   listText: {
     fontSize: 14,
     color: '#bbbbbb',
@@ -433,4 +520,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
+  congestionBarContainer: {
+    flexDirection: 'row',
+    height: 20,
+    marginVertical: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  
+  congestionSegment: {
+    height: '100%',
+  },
+  
+  congestionLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+    marginBottom: 5,
+  },
+  
+  legendColorBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  
+  legendText: {
+    color: '#ccc',
+    fontSize: 13,
+  },
+  congestionOverviewList: {
+    marginTop: 10,
+  },
+  congestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  congestionText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  
 });
