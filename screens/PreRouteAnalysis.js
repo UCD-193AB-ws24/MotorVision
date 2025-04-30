@@ -8,10 +8,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  ScrollView,
 } from 'react-native';
+import MapView, { Polyline, Marker } from 'react-native-maps';
+
 
 // PreRouteAnalysis function (previously done on Django backend)
 const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
+
+    // this is the the MapBox Call!
   try {
     const baseUrl = "https://api.mapbox.com/directions/v5/mapbox/driving-traffic";
     const coordinates = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
@@ -52,27 +58,35 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
       max_speed_overview: [],
     };
 
+    // processing the results from the MapBox call
     const route = data.routes[0];
     const legData = route.legs[0];
     const annotations = legData.annotation;
     const stepCoordinates = route.geometry.coordinates;
 
-    const maxSpeeds = annotations.maxspeed;
-    let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
-
     const congestions = annotations.congestion;
     summary.congestion_overview.push([congestions[0], stepCoordinates[0]]);
     let prevCongestion = congestions[0];
 
+    // updated with new code
+    const maxSpeeds = annotations.maxspeed;
+    let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
+    summary.max_speed_overview = [];  // Initialize an empty array for speed overview
+
+
     for (let i = 0; i < congestions.length; i++) {
-      if (maxSpeeds && maxSpeeds[i]?.speed !== null) {
-        const currentSpeed = maxSpeeds[i].speed * 0.62;
+    
+        // updated with new code
+      const currentSpeed = maxSpeeds[i].speed * 0.62;  // Convert to mph (assuming conversion factor of 0.62)
         if (prevMaxSpeed !== currentSpeed) {
           summary.max_speed_overview.push([currentSpeed, stepCoordinates[i]]);
           prevMaxSpeed = currentSpeed;
         }
-        summary.max_speed = Math.max(summary.max_speed, currentSpeed);
-      }
+
+        if (summary.max_speed < currentSpeed) {
+            summary.max_speed = currentSpeed;
+          }
+      
 
       if (prevCongestion !== congestions[i]) {
         summary.congestion_overview.push([congestions[i], stepCoordinates[i]]);
@@ -88,7 +102,7 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
     const maxCongestion = Object.keys(analysis.congestion.counts).reduce((a, b) =>
       analysis.congestion.counts[a] > analysis.congestion.counts[b] ? a : b
     );
-    summary.max_congestion = `The most common congestion for this route is ${maxCongestion}`;
+    summary.max_congestion = `${maxCongestion}`;
 
     return summary;
 
@@ -98,17 +112,77 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
   }
 };
 
+// Helper function to map congestion levels to emojis
+const getCongestionEmoji = (level) => {
+    switch (level) {
+      case 'low':
+        return '🟢'; // green circle
+      case 'moderate':
+        return '🟡'; // yellow circle
+      case 'heavy':
+        return '🟠'; // orange circle
+      case 'severe':
+        return '🔴'; // red circle
+      default:
+        return '⚪'; // unknown
+    }
+  };
+
+  const getSpeedColor = (speed) => {
+    if (speed < 30) return 'green';
+    if (speed < 60) return 'yellow';
+    return 'red';
+  };
+
+
+  // SpeedBubble Component
+  const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
+    // Function to determine the bubble color based on speed
+    if (speed === null || isNaN(speed)) {
+        return null; // No bubble rendered
+      }
+    
+      // Function to determine the bubble color based on speed
+      const getBubbleColor = (speed) => {
+        if (speed > 60) return '#2ecc71'; // green
+        if (speed > 30) return '#f1c40f'; // yellow
+        return '#e74c3c'; // red
+      };
+    const displaySpeed = speed === null ? 'N/A' : `${speed.toFixed(0)} ${unit}`;
+    const bubbleColor = getBubbleColor(speed);
+  
+    return (
+      <Marker coordinate={coordinate}>
+        <View style={[styles.speedBubble, { backgroundColor: bubbleColor }]}>
+          <Text style={styles.speedText}>{displaySpeed}</Text>
+        </View>
+      </Marker>
+    );
+  };
+  
+  
+  
+  
+
 export default function PreRouteAnalysis() {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
+  const [region, setRegion] = useState({
+    latitude: 37.773972,  // Default to San Francisco
+    longitude: -122.431297,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  
 
   const MAPBOX_ACCESS_TOKEN ='pk.eyJ1Ijoic2FpbGkta2Fya2FyZSIsImEiOiJjbTl0OTZtOTIwOGpuMmlwenY5cHM5dDNlIn0.tSQUU1UtswIIfIPe7jBpzg'; // <-- Replace this!
 
   const handleSubmit = async () => {
     setLoading(true);
+    Keyboard.dismiss();
     setError(null);
     setResponse(null);
 
@@ -122,10 +196,18 @@ export default function PreRouteAnalysis() {
         throw new Error('Please enter valid numbers for latitude and longitude.');
       }
 
+      // TODO: swap this out with 
        const origin = [-122.431297, 37.773972]; // San Francisco
        const destination = [parsedLon, parsedLat]; // User input
 
       const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+      
+      setRegion({
+        latitude: parsedLat,
+        longitude: parsedLon,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
 
       setResponse(result);
 
@@ -168,11 +250,76 @@ export default function PreRouteAnalysis() {
       {loading && <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />}
       {error && <Text style={styles.errorText}>{error}</Text>}
       {response && (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.resultBox}>
-          <Text style={styles.resultText}>Route Analysis:</Text>
-          <Text style={styles.resultDetail}>{JSON.stringify(response, null, 2)}</Text>
+          {/* Summary Section */}
+          <View style={styles.summaryContainer}>
+            <Text style={styles.sectionTitle}>Summary</Text>
+            <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
+            <Text style={styles.summaryText}>
+            Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
+            </Text>
+            <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
+            <Text style={styles.sectionTitle}>Weather Conditions</Text>
+            <Text style={styles.summaryText}>Average Temperature: </Text>
+            <Text style={styles.summaryText}>Average Precipitation Levels: </Text>
+            <Text style={styles.summaryText}>Average Windspeed: </Text>
+            <Text style={styles.sectionTitle}>Roadside Resources</Text>
+            <Text style={styles.summaryText}>Gas Stations Available: </Text>
+            <Text style={styles.summaryText}>Fast Food and Coffee Available: </Text>
+            {/* Stretch is adding scenic view */}
+
+          </View>
+          </View>
+        
+          {/* Congestion Overview Section TODO: change this to be more user friendly */}
+        <View style={styles.resultBox}>
+
+          <View style={styles.overviewContainer}>
+            <Text style={styles.sectionTitle}>Traffic and Congestion Overview</Text>
+            {response.congestion_overview.map(([congestion, coords], index) => (
+              <Text key={`congestion-${index}`} style={styles.listText}>
+                • {congestion} at ({coords[1].toFixed(4)}, {coords[0].toFixed(4)})
+              </Text>
+            ))}
+          </View>
         </View>
-      )}
+
+        {/*Map Overlap for Speed */}
+        <View style={styles.resultBox}>
+        <Text style={styles.sectionTitle}>Speed Overview</Text>
+        <View style={styles.mapContainer}>
+        <MapView style={{ flex: 1 }} region={region}  // Use dynamic region
+  onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
+        >
+            {/* TODO: make polyline change according to congestion situtation*/}
+        <Polyline
+        coordinates={response.max_speed_overview.map(([speed, coords]) => ({ latitude: coords[1], longitude: coords[0] }))}
+        strokeColor="#FF0000"
+        strokeWidth={4}
+        />
+         {/* Speed Bubbles */}
+         {response.max_speed_overview.map(([speed, coords], index) => (
+         <SpeedBubble
+            key={`speed-bubble-${index}`}
+            coordinate={{ latitude: coords[1], longitude: coords[0] }}
+            speed={speed}
+        />
+      
+        ))}
+        </MapView>
+        </View>
+        </View>
+        
+        {/* TODO: change this to select different routes */}
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+            <Text style={styles.buttonText}>Find a Different Route</Text>
+        </TouchableOpacity>
+
+
+
+      </ScrollView>
+    )}
     </KeyboardAvoidingView>
   );
 }
@@ -223,5 +370,67 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: 20,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  summaryContainer: {
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  summaryText: {
+    fontSize: 16,
+    color: '#cccccc',
+    marginBottom: 5,
+  },
+  overviewContainer: {
+    marginTop: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  listText: {
+    fontSize: 14,
+    color: '#bbbbbb',
+    marginBottom: 3,
+  },  
+  mapContainer: {
+    height: 300,  // <-- Explicit height
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    overflow: 'hidden',  // (optional: make it look cleaner)
+  },  
+  map: {
+    flex: 1,  // Map itself should fill the parent container
+  },
+  speedBubble: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20, // Rounded bubble
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5, // For Android shadow
+  },
+  speedText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
