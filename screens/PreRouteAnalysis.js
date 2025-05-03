@@ -260,23 +260,6 @@ export default function PreRouteAnalysis() {
     return segments;
   };
 
-  const scrollViewRef = useRef(null);
-  const sectionRefs = useRef({
-    traffic: null,
-  });
-
-  const scrollToSection = (key) => {
-    const ref = sectionRefs.current[key];
-    if (ref && scrollViewRef.current) {
-      ref.measureLayout(
-        scrollViewRef.current.getInnerViewNode(),
-        (x, y) => {
-          scrollViewRef.current.scrollTo({ y, animated: true });
-        }
-      );
-    }
-  };
-
 
   return (
     <KeyboardAvoidingView
@@ -315,14 +298,12 @@ export default function PreRouteAnalysis() {
           <View style={styles.summaryContainer}>
             <Text style={styles.headerTitle}>Summary</Text>
             <View style={styles.resultBox}>
-            <TouchableOpacity onPress={() => scrollToSection('traffic')} >
             <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
             <Text style={styles.summaryText}>
                 Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
             </Text>
             <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
             <Text style={styles.summaryText}>Active Construction on Route: </Text>
-            </TouchableOpacity>
             </View>
             <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Weather Conditions</Text>
@@ -341,8 +322,7 @@ export default function PreRouteAnalysis() {
           </View>
         
           {/* Congestion Overview Section TODO: change this to be more user friendly */}
-          <View
-          ref={(ref) => (sectionRefs.current.traffic = ref)} style={styles.resultBox}>
+          <View style={styles.resultBox}>
         <Text style={styles.headerTitle}>Traffic and Road Information</Text>
           <View style={styles.overviewContainer}>
             <Text style={styles.sectionTitle}>Congestion Overview</Text>

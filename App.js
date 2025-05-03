@@ -77,7 +77,7 @@ function MainTabs() {
           let iconName;
           switch (route.name) {
             case 'Home': iconName = 'home'; break;
-            case 'Pre Route Analysis': iconName = 'map'; break;
+            case 'Pre Route Analysis': iconName = 'location'; break;
             case 'Navigation': iconName = 'map'; break;
             case 'Insights': iconName = 'stats-chart'; break;
             case 'Trip History': iconName = 'time'; break;
