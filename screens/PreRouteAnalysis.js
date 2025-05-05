@@ -29,6 +29,89 @@ const getCongestionColor = (level) => {
         return 'gray';
     }
   };
+
+  const mapWeatherCodeToIcon = (code) => {
+    const iconMap = {
+      1000: "☀️",
+      1100: "🌤",
+      1101: "🌥",
+      1102: "☁️",
+      4000: "🌧",
+      4200: "🌦",
+      4201: "🌧",
+      5000: "❄️",
+      5100: "🌨",
+      6000: "🌫",
+      6200: "🌁",
+    };
+    return iconMap[code] || "❓";
+  };
+
+  const getTripWeatherSummary = async (locations, apiKey) => {
+    let averageTemp = 0;
+    let averageWind = 0;
+    let apiCalls = 0;
+    let minTemp = Infinity;
+    let maxTemp = -Infinity;
+  
+    const iconCounts = {
+      "☀️": 0, "🌤": 0, "🌥": 0, "☁️": 0, "🌧": 0,
+      "🌦": 0, "❄️": 0, "🌨": 0, "🌫": 0, "🌁": 0, "❓": 0,
+    };
+  
+    const snapshots = [];
+  
+    for (let i = 0; i < locations.length; i += 4) {
+      const point = locations[i];
+      const { latitude, longitude, timestamp } = point;
+  
+      const url = `https://api.tomorrow.io/v4/weather/history/recent?location=${latitude},${longitude}&timesteps=1h&startTime=${timestamp}&endTime=${timestamp}&apikey=${apiKey}`;
+  
+      try {
+        const response = await fetch(url);
+        const json = await response.json();
+  
+        const interval = json?.timelines?.hourly?.[0];
+        if (interval) {
+          const values = interval.values;
+          const temp = values.temperature;
+          const wind = values.windSpeed;
+          const icon = mapWeatherCodeToIcon(values.weatherCode);
+  
+          averageTemp += temp;
+          averageWind += wind;
+          minTemp = Math.min(minTemp, temp);
+          maxTemp = Math.max(maxTemp, temp);
+          iconCounts[icon] = (iconCounts[icon] || 0) + 1;
+          apiCalls++;
+  
+          snapshots.push({
+            lat: latitude,
+            lon: longitude,
+            timestamp,
+            temp: (temp * 1.8 + 32), // convert to °F
+            wind,
+            icon
+          });
+        }
+      } catch (error) {
+        console.error(`Weather API call failed for point ${i}:`, error);
+      }
+    }
+  
+    const popularIcon = Object.entries(iconCounts).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+  
+    return {
+      average_temperature: apiCalls ? (averageTemp / apiCalls) * 1.8 + 32 : 0,
+      min_temperature: minTemp !== Infinity ? (minTemp * 1.8 + 32) : null,
+      max_temperature: maxTemp !== -Infinity ? (maxTemp * 1.8 + 32) : null,
+      average_wind_speed: apiCalls ? averageWind / apiCalls : 0,
+      icons: popularIcon,
+      snapshots, // add snapshots array to the return
+    };
+  };
+  
+  
 // PreRouteAnalysis function (previously done on Django backend)
 const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
@@ -40,6 +123,7 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
     const params = new URLSearchParams({
       overview: "full",
       steps: "true",
+      alternatives: "true",
       annotations: "distance,duration,speed,maxspeed,congestion",
       geometries: "geojson",
       voice_instructions: "true",
@@ -56,72 +140,70 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
     }
 
     const data = await response.json();
+    const allRoutes = data.routes.map((route) => {
+      const legData = route.legs[0];
+      const annotations = legData.annotation;
+      const stepCoordinates = route.geometry.coordinates;
 
-    const analysis = {
-      instructions: "",
-      congestion: {
-        counts: { low: 0, moderate: 0, heavy: 0, severe: 0, unknown: 0 },
-        locations: [["congestion_value", "latitude", "longitude"]],
-      },
-      speed: 0,
-    };
+      const congestions = annotations.congestion;
+      const maxSpeeds = annotations.maxspeed;
 
-    const summary = {
-      max_congestion: "",
-      congestion_overview: [],
-      max_speed: 0,
-      max_speed_overview: [],
-    };
+      const analysis = {
+        instructions: "",
+        congestion: {
+          counts: { low: 0, moderate: 0, heavy: 0, severe: 0, unknown: 0 },
+          locations: [["congestion_value", "latitude", "longitude"]],
+        },
+        speed: 0,
+      };
 
-    // processing the results from the MapBox call
-    const route = data.routes[0];
-    const legData = route.legs[0];
-    const annotations = legData.annotation;
-    const stepCoordinates = route.geometry.coordinates;
+      const summary = {
+        max_congestion: "",
+        congestion_overview: [],
+        max_speed: 0,
+        max_speed_overview: [],
+      };
 
-    const congestions = annotations.congestion;
-    summary.congestion_overview.push([congestions[0], stepCoordinates[0]]);
-    let prevCongestion = congestions[0];
+      let prevCongestion = congestions[0];
+      summary.congestion_overview.push([congestions[0], stepCoordinates[0]]);
 
-    // updated with new code
-    const maxSpeeds = annotations.maxspeed;
-    let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
-    summary.max_speed_overview = [];  // Initialize an empty array for speed overview
+      let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
 
-
-    for (let i = 0; i < congestions.length; i++) {
-    
-        // updated with new code
-      const currentSpeed = maxSpeeds[i].speed * 0.62;  // Convert to mph (assuming conversion factor of 0.62)
+      for (let i = 0; i < congestions.length; i++) {
+        const currentSpeed = maxSpeeds[i].speed * 0.62;
         if (prevMaxSpeed !== currentSpeed) {
           summary.max_speed_overview.push([currentSpeed, stepCoordinates[i]]);
           prevMaxSpeed = currentSpeed;
         }
 
         if (summary.max_speed < currentSpeed) {
-            summary.max_speed = currentSpeed;
-          }
-      
+          summary.max_speed = currentSpeed;
+        }
 
-      if (prevCongestion !== congestions[i]) {
-        summary.congestion_overview.push([congestions[i], stepCoordinates[i]]);
-        prevCongestion = congestions[i];
+        if (prevCongestion !== congestions[i]) {
+          summary.congestion_overview.push([congestions[i], stepCoordinates[i]]);
+          prevCongestion = congestions[i];
+        }
+
+        if (analysis.congestion.counts[congestions[i]] !== undefined) {
+          analysis.congestion.counts[congestions[i]] += 1;
+        } else {
+          analysis.congestion.counts.unknown += 1;
+        }
       }
-      if (analysis.congestion.counts[congestions[i]] !== undefined) {
-        analysis.congestion.counts[congestions[i]] += 1;
-      } else {
-        analysis.congestion.counts.unknown += 1;
-      }
-    }
 
-    const maxCongestion = Object.keys(analysis.congestion.counts).reduce((a, b) =>
-      analysis.congestion.counts[a] > analysis.congestion.counts[b] ? a : b
-    );
-    summary.max_congestion = `${maxCongestion}`;
+      const maxCongestion = Object.keys(analysis.congestion.counts).reduce((a, b) =>
+        analysis.congestion.counts[a] > analysis.congestion.counts[b] ? a : b
+      );
+      summary.max_congestion = `${maxCongestion}`;
 
-    return { ...summary, congestion: analysis.congestion };
+      return { ...summary, congestion: analysis.congestion };
+    });
+
+    return allRoutes;
 
 
+    
   } catch (error) {
     console.error('Error during preRouteAnalysis:', error);
     throw error;
@@ -192,6 +274,28 @@ export default function PreRouteAnalysis() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const [routes, setRoutes] = useState([]);
+  const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
+  const [weatherSummary, setWeatherSummary] = useState(null);
+
+  const chartData = {
+    labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`), // or timestamp slices
+    datasets: [
+      {
+        data: weatherSummary.snapshots.map((snap) => snap.temp),
+        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // red for temp
+        strokeWidth: 2,
+      },
+      {
+        data: weatherSummary.snapshots.map((snap) => snap.wind),
+        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`, // blue for wind
+        strokeWidth: 2,
+      },
+    ],
+    legend: ["Temperature (°F)", "Wind Speed (mph)"],
+  };
+  
+
   
 
   const MAPBOX_ACCESS_TOKEN ='pk.eyJ1Ijoic2FpbGkta2Fya2FyZSIsImEiOiJjbTl0OTZtOTIwOGpuMmlwenY5cHM5dDNlIn0.tSQUU1UtswIIfIPe7jBpzg'; // <-- Replace this!
@@ -217,6 +321,7 @@ export default function PreRouteAnalysis() {
        const destination = [parsedLon, parsedLat]; // User input
 
       const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+
       
       setRegion({
         latitude: parsedLat,
@@ -225,7 +330,19 @@ export default function PreRouteAnalysis() {
         longitudeDelta: 0.0421,
       });
 
-      setResponse(result);
+      setRoutes(result);
+      setCurrentRouteIndex(0);
+      setResponse(result[0]); // show the first route
+
+      const locations = result[0].congestion_overview.map(([_, coords]) => ({
+        latitude: coords[1],
+        longitude: coords[0],
+        timestamp: new Date().toISOString(), // Replace with actual if available
+      }));
+      
+      const weather = await getTripWeatherSummary(locations, 'deccEn38JQr9odvVdVscQfjF2drvKMR5');
+      setWeatherSummary(weather);
+
 
     } catch (err) {
       setError('Error occurred while processing your request', err.message);
@@ -306,11 +423,18 @@ export default function PreRouteAnalysis() {
             <Text style={styles.summaryText}>Active Construction on Route: </Text>
             </View>
             <View style={styles.resultBox}>
-            <Text style={styles.sectionTitle}>Weather Conditions</Text>
-            <Text style={styles.summaryText}>Average Temperature: </Text>
-            <Text style={styles.summaryText}>Average Precipitation Levels: </Text>
-            <Text style={styles.summaryText}>Average Windspeed: </Text>
+              <Text style={styles.sectionTitle}>Weather Conditions</Text>
+              {weatherSummary ? (
+              <>
+              <Text style={styles.summaryText}>Average Temperature: {weatherSummary.average_temperature.toFixed(1)}°F</Text>
+              <Text style={styles.summaryText}>Average Windspeed: {weatherSummary.average_wind_speed.toFixed(1)} mph</Text>
+              <Text style={styles.summaryText}>Most Common Weather: {weatherSummary.icons}</Text>
+            </>
+            ) : (
+            <Text style={styles.summaryText}>Loading weather data...</Text>
+            )}
             </View>
+            
             <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Roadside Resources</Text>
             <Text style={styles.summaryText}>Gas Stations Available: </Text>
@@ -351,14 +475,14 @@ export default function PreRouteAnalysis() {
         {/*Map Overlap for Speed */}
         <Text style={styles.sectionTitle}>Speed Overview</Text>
         <View style={styles.mapContainer}>
-        <MapView style={{ flex: 1 }} region={region}  // Use dynamic region
+        <MapView key={`map-${currentRouteIndex}`} style={{ flex: 1 }} region={region}  // Use dynamic region
         onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
         >
             {/* TODO: make polyline change according to congestion situtation*/}
             {renderMultiColorPolyline()}
 
          {/* Speed Bubbles */}
-         {response.max_speed_overview.map(([speed, coords], index) => (
+         {response?.max_speed_overview.map(([speed, coords], index) => (
          <SpeedBubble
             key={`speed-bubble-${index}`}
             coordinate={{ latitude: coords[1], longitude: coords[0] }}
@@ -371,11 +495,122 @@ export default function PreRouteAnalysis() {
         </View>
 
         {/* Weather conditions */}
+        <View style={styles.resultBox}>
+            <Text style={styles.headerTitle}>Weather Information</Text>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Temperature Overview</Text>
+              </View>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Precipitation Overview</Text>
+              </View>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Windspeed Overview</Text>
+              </View>
+        </View>
+
+        <View style={styles.resultBox}>
+            <Text style={styles.headerTitle}>Roadside Information</Text>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Gas Stations Nearby</Text>
+              </View>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Fast Food and Coffee Available</Text>
+              </View>
+        </View>
+
+        <View style={styles.resultBox}>
+  <Text style={styles.sectionTitle}>Weather Conditions</Text>
+  {weatherSummary ? (
+    <>
+      <Text style={styles.summaryText}>
+        Avg Temp: {weatherSummary.average_temperature.toFixed(1)}°F
+      </Text>
+      <Text style={styles.summaryText}>
+        High: {weatherSummary.max_temperature?.toFixed(1)}°F | Low: {weatherSummary.min_temperature?.toFixed(1)}°F
+      </Text>
+      <Text style={styles.summaryText}>
+        Avg Wind Speed: {weatherSummary.average_wind_speed.toFixed(1)} mph
+      </Text>
+      <Text style={styles.summaryText}>
+        Most Common: {weatherSummary.icons}
+      </Text>
+
+      <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Weather Snapshots</Text>
+      {weatherSummary.snapshots.map((point, idx) => (
+        <View key={idx} style={{ marginBottom: 8 }}>
+          <Text style={styles.summaryText}>
+            {new Date(point.timestamp).toLocaleTimeString()} - {point.temp.toFixed(1)}°F | 💨 {point.wind} mph | {point.icon}
+          </Text>
+        </View>
+      ))}
+    </>
+  ) : (
+    <Text style={styles.summaryText}>Loading weather data...</Text>
+  )}
+</View>
+
+{chartData && (
+  <>
+    <Text style={styles.sectionTitle}>Temperature & Wind Overview</Text>
+    <LineChart
+      data={chartData}
+      width={Dimensions.get('window').width - 40}
+      height={220}
+      chartConfig={{
+        backgroundColor: '#1E1E1E',
+        backgroundGradientFrom: '#1E1E1E',
+        backgroundGradientTo: '#1E1E1E',
+        decimalPlaces: 1,
+        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(200, 200, 200, ${opacity})`,
+        propsForDots: { r: "4", strokeWidth: "1", stroke: "#ffa726" },
+      }}
+      bezier
+      style={{ marginVertical: 8, borderRadius: 10 }}
+    />
+  </>
+)}
+
         
         {/* TODO: change this to select different routes */}
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Find a Different Route</Text>
+        {routes.length > 1 && (
+        <View style={{ alignItems: 'center', marginTop: 20 }}>
+        <Text style={{ color: '#fff', marginBottom: 10 }}>
+            {routes.length - 1} alternate route(s) available
+        </Text>
+        <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+                  const nextIndex = (currentRouteIndex + 1) % routes.length;
+                  setCurrentRouteIndex(nextIndex);
+                  setResponse(routes[nextIndex]);
+            }}
+        >
+          <Text style={styles.buttonText}>Find Another Route</Text>
         </TouchableOpacity>
+
+         </View>
+        )}
+
+        {routes.length == 1 && (
+        <View style={{ alignItems: 'center', marginTop: 20 }}>
+        <Text style={{ color: '#fff', marginBottom: 10 }}>
+            {routes.length - 1} alternate route(s) available
+        </Text>
+         </View>
+        )}
+
+        {routes.length == 0 && (
+        <View style={{ alignItems: 'center', marginTop: 20 }}>
+        <Text style={{ color: '#fff', marginBottom: 10 }}>
+            No current routes found. Please try an alternative search.
+        </Text>
+         </View>
+        )}
+
+
+
+        
 
 
 
