@@ -270,13 +270,14 @@ const getCongestionEmoji = (level) => {
   
 
 export default function PreRouteAnalysis() {
-  const [location, setLocation] = useState(null);
+  const [latitude, setLatitude ] = useState(null);
+  const [longitude, setLongitude ] = useState(null);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
   const [region, setRegion] = useState({
-    latitude: 37.773972,  // Default to San Francisco
-    longitude: -122.431297,
+    latitude: 38.5449,  // Default to Davis
+    longitude: -121.7405,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -313,19 +314,23 @@ export default function PreRouteAnalysis() {
     setResponse(null);
 
     try {
+      const parsedLat = latitude;
+      const parsedLon = longitude;
 
-      if (!location || !location.latitude || !location.longitude) {
-        throw new Error('Please select a location first.');
+
+      if (isNaN(parsedLat) || isNaN(parsedLon)) {
+        setError('Please enter valid numbers for latitude and longitude.');
+        setLoading(false);
+        return;
       }
-
-      const parsedLat = location.latitude;
-      const parsedLon = location.longitude;
 
       console.log('Selected Location:', { parsedLat, parsedLon });
 
+
+
       
       // TODO: swap this out with live location
-       const origin = [-122.431297, 37.773972]; // San Francisco
+       const origin = [-122.7405, 38.5449]; // Davis
        const destination = [parsedLon, parsedLat]; // User input
 
       const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
@@ -353,7 +358,7 @@ export default function PreRouteAnalysis() {
 
 
     } catch (err) {
-      setError('Error occurred while processing your request', err.message);
+      setError('Location is too far away. Please choose a location with 100 miles. ', err.message);
       console.error('Detailed error:', err);
     } finally {
       setLoading(false);
@@ -393,32 +398,34 @@ export default function PreRouteAnalysis() {
     >
       <Text style={styles.header}>Pre-Route Analysis</Text>
 
-      <GooglePlacesAutocomplete
-        placeholder="Search for a location"
-        fetchDetails={true}
-        onPress={(data, details = null) => {
-          if (details?.geometry?.location) {
-            const { lat, lng } = details.geometry.location;
-            setLocation({ latitude: lat, longitude: lng });
-          } else {
-            setLocation(null);
-          }
-        }}
-        query={{
-          key: GOOGLE_API_KEY,
-          language: 'en',
-        }}
-        styles={{
-          textInput: styles.input,
-          container: { flex: 0 },
-          listView: { backgroundColor: 'white' },
-        }}
-      />
+      <View style={styles.inputContainer}>
+      <TextInput
+  style={styles.input}
+  placeholder="Enter Latitude"
+  placeholderTextColor="#aaa"
+  value={latitude || ''}
+  onChangeText={setLatitude}
+  keyboardType="default" // full keyboard including hyphen
+  autoCapitalize="none"
+  autoCorrect={false}
+/>
+<TextInput
+  style={styles.input}
+  placeholder="Enter Longitude"
+  placeholderTextColor="#aaa"
+  value={longitude || ''}
+  onChangeText={setLongitude}
+  keyboardType="default"
+  autoCapitalize="none"
+  autoCorrect={false}
+/>
+</View>
+
+    
 
       <TouchableOpacity
         style={styles.button}
         onPress={handleSubmit}
-        disabled={!location || loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -441,7 +448,6 @@ export default function PreRouteAnalysis() {
                 Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
             </Text>
             <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
-            <Text style={styles.summaryText}>Active Construction on Route: </Text>
             </View>
             <View style={styles.resultBox}>
               <Text style={styles.sectionTitle}>Weather Conditions</Text>
@@ -456,11 +462,7 @@ export default function PreRouteAnalysis() {
             )}
             </View>
             
-            <View style={styles.resultBox}>
-            <Text style={styles.sectionTitle}>Roadside Resources</Text>
-            <Text style={styles.summaryText}>Gas Stations Available: </Text>
-            <Text style={styles.summaryText}>Fast Food and Coffee Available: </Text>
-            </View>
+      
             {/* Stretch is adding scenic view */}
 
           </View>
@@ -583,16 +585,6 @@ export default function PreRouteAnalysis() {
 )}
 
       </View>
-
-        <View style={styles.resultBox}>
-            <Text style={styles.headerTitle}>Roadside Information</Text>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Gas Stations Nearby</Text>
-              </View>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Fast Food and Coffee Available</Text>
-              </View>
-        </View>
 
 
         {routes.length > 1 && (
@@ -801,6 +793,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginLeft: 10,
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+    width: '100%',
+    color: '#fff', // White input text
   },
   
 });
