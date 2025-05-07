@@ -265,9 +265,6 @@ const getCongestionEmoji = (level) => {
     );
   };
   
-  
-  
-  
 
 export default function PreRouteAnalysis() {
   const [location, setLocation] = useState(null);
@@ -441,7 +438,6 @@ export default function PreRouteAnalysis() {
                 Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
             </Text>
             <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
-            <Text style={styles.summaryText}>Active Construction on Route: </Text>
             </View>
             <View style={styles.resultBox}>
               <Text style={styles.sectionTitle}>Weather Conditions</Text>
@@ -456,12 +452,6 @@ export default function PreRouteAnalysis() {
             )}
             </View>
             
-            <View style={styles.resultBox}>
-            <Text style={styles.sectionTitle}>Roadside Resources</Text>
-            <Text style={styles.summaryText}>Gas Stations Available: </Text>
-            <Text style={styles.summaryText}>Fast Food and Coffee Available: </Text>
-            </View>
-            {/* Stretch is adding scenic view */}
 
           </View>
           </View>
