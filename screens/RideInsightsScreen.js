@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { db, auth } from '../config/firebase';
+import { useFocusEffect } from '@react-navigation/native';
+
 import * as Location from 'expo-location';
+
 
 export default function RideInsightsScreen() {
   const [speedData, setSpeedData] = useState([0]);
@@ -13,6 +18,26 @@ export default function RideInsightsScreen() {
   const [leanAngleData, setLeanAngleData] = useState([0]);
   const [brakingForceData, setBrakingForceData] = useState([0]);
   const tripActive = useBluetoothStore((state) => state.tripActive);
+  const [longTermStats, setLongTermStats] = useState({});
+
+  const fetchLongTermStats = async (userId) => {
+    const db = getFirestore();
+    const userRef = doc(db, `users/${userId}`);
+    const docSnap = await getDoc(userRef);
+  
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      setLongTermStats(data.longTermStats || {});
+    }
+  };
+
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchLongTermStats(auth.currentUser.uid); 
+    }, [])
+  );
+  
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -96,7 +121,7 @@ export default function RideInsightsScreen() {
         style={styles.chart}
       />
 
-      <Text style={styles.chartLabel}>Lean Angle (°)</Text>
+      {/* <Text style={styles.chartLabel}>Lean Angle (°)</Text>
       <LineChart
         data={{
           labels: Array(leanAngleData.length).fill(''),
@@ -122,7 +147,26 @@ export default function RideInsightsScreen() {
         chartConfig={chartConfig}
         bezier
         style={styles.chart}
+      /> */}
+
+      <Text style={styles.chartLabel}>Distance Per Day (km)</Text>
+      <BarChart
+        data={{
+          labels: Object.keys(longTermStats),
+          datasets: [
+            {
+              data: Object.values(longTermStats),
+            },
+          ],
+        }}
+        width={350}
+        height={220}
+        yAxisSuffix=" km"
+        chartConfig={chartConfig}
+        fromZero={true}
+        style={styles.chart}
       />
+
     </ScrollView>
   );
 }
