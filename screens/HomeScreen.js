@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Alert, ScrollView
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Alert, ScrollView, ActivityIndicator
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import { useSensorBuffer } from '../hooks/useSensorBuffer';
 import { auth, db } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
@@ -26,6 +27,9 @@ export default function HomeScreen({ navigation }) {
     totalMiles: 0,
     avgSpeed: 0,
   });
+
+  const [aiInsight, setAiInsight] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -63,21 +67,6 @@ export default function HomeScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-  const handleConnect = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get('http://3.147.83.156:8000/connect/');
-      setIsConnected(true);
-      Alert.alert('Connected', response.data.message || 'SmartHelmet is now connected.');
-    } catch (err) {
-      setError('Connection failed. Please try again.');
-      Alert.alert('Error', 'Unable to connect to SmartHelmet.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
@@ -93,6 +82,66 @@ export default function HomeScreen({ navigation }) {
       }
     });
   }, []);
+
+  const fetchAiInsight = async () => {
+    setAiLoading(true);
+    console.log('[AI] Fetching insight with stats:', stats);
+    try {
+      const payload = {
+        model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+        messages: [
+          {
+            role: 'user',
+            content: `Based on my recent ride statistics: total rides - ${stats.totalRides}, total miles - ${stats.totalMiles}, average speed - ${stats.avgSpeed} mph. Provide a short personalized motivational insight.`,
+          },
+        ],
+      };
+
+      const headers = {
+        Authorization: `Bearer 9ad9bd0724ab63efe6210bb155be872a93a755fef42d258168cc71e382e746b0`, // Replace securely
+        'Content-Type': 'application/json',
+      };
+
+      console.log('[AI] Sending payload:', payload);
+      const response = await axios.post(
+        'https://api.together.xyz/v1/chat/completions',
+        payload,
+        { headers }
+      );
+
+      console.log('[AI] Raw response:', response.data);
+      const message = response.data?.choices?.[0]?.message?.content?.trim();
+      setAiInsight(message || 'Insight was empty.');
+    } catch (err) {
+      console.error('AI Insight Error:', err.response?.data || err.message);
+      setAiInsight('Insight unavailable at this time.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (stats.totalRides > 0) {
+        fetchAiInsight();
+      }
+    }, [stats])
+  );
+
+  const handleConnect = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('http://3.147.83.156:8000/connect/');
+      setIsConnected(true);
+      Alert.alert('Connected', response.data.message || 'SmartHelmet is now connected.');
+    } catch (err) {
+      setError('Connection failed. Please try again.');
+      Alert.alert('Error', 'Unable to connect to SmartHelmet.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -120,6 +169,15 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.summaryText}>Total Rides: {stats.totalRides}</Text>
         <Text style={styles.summaryText}>Total Miles: {stats.totalMiles}</Text>
         <Text style={styles.summaryText}>Avg Speed: {stats.avgSpeed} mph</Text>
+      </View>
+
+      <View style={styles.aiInsightCard}>
+        <Text style={styles.aiInsightHeader}>AI Insight</Text>
+        {aiLoading ? (
+          <ActivityIndicator size="small" color="#0A84FF" />
+        ) : (
+          <Text style={styles.aiInsightText}>{aiInsight}</Text>
+        )}
       </View>
 
       <View style={styles.grid}>
@@ -219,6 +277,24 @@ const styles = StyleSheet.create({
     color: '#eee',
     textAlign: 'center',
     marginVertical: 2,
+  },
+  aiInsightCard: {
+    backgroundColor: '#1E1E1E',
+    padding: 16,
+    borderRadius: 12,
+    width: '80%',
+    marginBottom: 20,
+  },
+  aiInsightHeader: {
+    fontSize: 16,
+    color: '#0A84FF',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  aiInsightText: {
+    fontSize: 14,
+    color: '#ccc',
+    textAlign: 'center',
   },
   grid: {
     flexDirection: 'row',
