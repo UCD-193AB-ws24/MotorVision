@@ -1,6 +1,59 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// === Sensor Buffer Configuration ===
+export const BUFFER_RATE_HZ = 4;
+export const BUFFER_DURATION_MINUTES = 3;
+export const MAX_BUFFER_SIZE = BUFFER_RATE_HZ * BUFFER_DURATION_MINUTES * 60;
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../config/firebase.js';
+
+const metersToMiles = (meters) => meters / 1609.34;
+
+// Update stats.totalRides
+async function updateTotalRides(userId) {
+  try {
+    console.log('[updateTotalRides] Called with userId:', userId);
+    const userRef = doc(db, 'users', userId);
+    const snapshot = await getDoc(userRef);
+    console.log('[updateTotalRides] Document exists:', snapshot.exists());
+
+    if (!snapshot.exists()) {
+      await setDoc(userRef, { stats: { totalRides: 1 } });
+      console.log('[updateTotalRides] Created new user doc with stats.totalRides = 1');
+    } else {
+      await updateDoc(userRef, { 'stats.totalRides': increment(1) });
+      console.log('[updateTotalRides] Incremented stats.totalRides by 1');
+    }
+  } catch (err) {
+    console.error('[updateTotalRides] Error:', err);
+  }
+}
+
+// Update stats.totalDistanceMiles
+async function updateTotalDistanceMiles(userId, miles) {
+  try {
+    console.log('[updateTotalDistanceMiles] Called with', miles, 'miles');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { 'stats.totalDistanceMiles': increment(miles) });
+    console.log('[updateTotalDistanceMiles] Incremented stats.totalDistanceMiles by', miles);
+  } catch (err) {
+    console.error('[updateTotalDistanceMiles] Error:', err);
+  }
+}
+
+// Update stats.totalMinutes
+async function updateTotalMinutes(userId, minutes) {
+  try {
+    console.log('[updateTotalMinutes] Called with', minutes, 'minutes');
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { 'stats.totalMinutes': increment(minutes) });
+    console.log('[updateTotalMinutes] Incremented stats.totalMinutes by', minutes);
+  } catch (err) {
+    console.error('[updateTotalMinutes] Error:', err);
+  }
+}
+
 export const useBluetoothStore = create((set, get) => ({
   connectedDevice: null,
   availableDevices: [
@@ -13,17 +66,44 @@ export const useBluetoothStore = create((set, get) => ({
   tripActive: false,
   tripData: null,
 
-  // Connect to device
-  connectToDevice: (device) =>
-    set({ connectedDevice: device }),
+  // Rolling sensor buffer
+  sensorBuffer: [],
+  addSensorEntry: (entry) => {
+    const current = get().sensorBuffer;
+    const updated = [...current, entry];
+    if (updated.length > MAX_BUFFER_SIZE) updated.shift();
+    set({ sensorBuffer: updated });
+  },
+  clearSensorBuffer: () => set({ sensorBuffer: [] }),
+  getSensorBuffer: () => get().sensorBuffer,
 
-  // Disconnect from device
-  disconnectDevice: () =>
-    set({ connectedDevice: null }),
+  // Last crash buffer (for user-initiated export)
+  lastCrashBuffer: [],
+  setLastCrashBuffer: (buffer) => set({ lastCrashBuffer: buffer }),
+  getLastCrashBuffer: () => get().lastCrashBuffer,
 
-  // Start a new trip
+  // Rolling sensor buffer
+  sensorBuffer: [],
+  addSensorEntry: (entry) => {
+    const current = get().sensorBuffer;
+    const updated = [...current, entry];
+    if (updated.length > MAX_BUFFER_SIZE) updated.shift();
+    set({ sensorBuffer: updated });
+  },
+  clearSensorBuffer: () => set({ sensorBuffer: [] }),
+  getSensorBuffer: () => get().sensorBuffer,
+
+  // Last crash buffer (for user-initiated export)
+  lastCrashBuffer: [],
+  setLastCrashBuffer: (buffer) => set({ lastCrashBuffer: buffer }),
+  getLastCrashBuffer: () => get().lastCrashBuffer,
+
+  connectToDevice: (device) => set({ connectedDevice: device }),
+  disconnectDevice: () => set({ connectedDevice: null }),
+
   startTrip: () => {
     const startTime = new Date().toISOString();
+    console.log('[startTrip] Trip started at:', startTime);
     set({
       tripActive: true,
       tripData: {
@@ -32,14 +112,15 @@ export const useBluetoothStore = create((set, get) => ({
         totalDistance: 0,
         averageSpeed: 0,
         maxSpeed: 0,
-        crashEvents: [], // Ensure crashEvents is initialized properly
+        crashEvents: [],
       },
     });
   },
 
-  // Stop trip and store data
-  stopTrip: async () => {
+  stopTrip: async (userId) => {
     const state = get();
+    console.log('[stopTrip] Called. tripActive:', state.tripActive, 'userId:', userId);
+
     if (state.tripActive && state.tripData) {
       const endTime = new Date().toISOString();
       const updatedTripData = {
@@ -48,23 +129,41 @@ export const useBluetoothStore = create((set, get) => ({
       };
 
       try {
-        // Save trip to AsyncStorage and update Zustand state
         const existingTrips = JSON.parse(await AsyncStorage.getItem('tripLogs')) || [];
         const newTrips = [...existingTrips, updatedTripData];
         await AsyncStorage.setItem('tripLogs', JSON.stringify(newTrips));
+        console.log('[stopTrip] Trip saved to AsyncStorage');
+
+        if (userId) {
+          const miles = parseFloat(metersToMiles(state.tripData.totalDistance).toFixed(2));
+          const start = new Date(state.tripData.startTime);
+          const end = new Date(endTime);
+          const durationMinutes = Math.round((end - start) / 60000);
+          console.log('[stopTrip] Updating stats in Firestore:', { miles, durationMinutes });
+
+          await updateTotalRides(userId);
+          await updateTotalDistanceMiles(userId, miles);
+          await updateTotalMinutes(userId, durationMinutes);
+        } else {
+          console.warn('[stopTrip] No userId provided. Skipping Firebase stat update.');
+        }
 
         set({
           tripLogs: newTrips.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)),
           tripActive: false,
           tripData: null,
         });
+
+        console.log('[stopTrip] Trip state reset and logs updated');
       } catch (err) {
-        console.error('Error saving trip log:', err);
+        console.error('[stopTrip] Error saving trip or updating stats:', err);
       }
+    } else {
+      console.warn('[stopTrip] Trip was not active or tripData missing');
     }
   },
 
-  // Update trip data during trip (distance, speed)
+  // Update trip data during trip
   updateTripData: (data) => {
     set((state) => {
       if (!state.tripActive || !state.tripData) return state;
@@ -81,26 +180,26 @@ export const useBluetoothStore = create((set, get) => ({
     });
   },
 
-  // Record crash event during an active trip
+  // Record crash event during trip
   recordCrashEvent: (event) => {
     set((state) => {
       if (!state.tripActive || !state.tripData) return state;
       const updatedData = {
         ...state.tripData,
-        crashEvents: [...state.tripData.crashEvents, event], // Append crash events to trip data
+        crashEvents: [...state.tripData.crashEvents, event],
       };
       return { tripData: updatedData };
     });
   },
 
-  // Add new crash log (also store in AsyncStorage)
+  // Add crash log
   addCrashLog: async (data) => {
     const newLogs = [...get().crashLogs, data];
     set({ crashLogs: newLogs });
     await AsyncStorage.setItem('crashLogs', JSON.stringify(newLogs));
   },
 
-  // Load logs from AsyncStorage
+  // Load crash logs
   loadCrashLogs: async () => {
     try {
       const logs = await AsyncStorage.getItem('crashLogs');
@@ -112,20 +211,18 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
-  // Delete individual crash log
   deleteCrashLog: async (id) => {
     const updatedLogs = get().crashLogs.filter((log) => log.id !== id);
     set({ crashLogs: updatedLogs });
     await AsyncStorage.setItem('crashLogs', JSON.stringify(updatedLogs));
   },
 
-  // Clear all logs
+  // Clear all crash logs
   clearCrashLogs: async () => {
     set({ crashLogs: [] });
     await AsyncStorage.removeItem('crashLogs');
   },
 
-  // Delete individual trip log
   deleteTrip: async (index) => {
     try {
       const updatedTrips = get().tripLogs.filter((_, i) => i !== index);
@@ -136,7 +233,6 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
-  // Clear all trip logs
   clearTripLogs: async () => {
     try {
       await AsyncStorage.removeItem('tripLogs');
@@ -146,7 +242,7 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
-  // Load existing trip logs from AsyncStorage
+  // Load trip logs
   loadTripLogs: async () => {
     try {
       const logs = await AsyncStorage.getItem('tripLogs');
@@ -162,6 +258,5 @@ export const useBluetoothStore = create((set, get) => ({
   },
 
   // Set trip state
-  setTripActive: (active) =>
-    set({ tripActive: active }),
+  setTripActive: (active) => set({ tripActive: active }),
 }));

@@ -6,7 +6,7 @@ import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import {getFriendsLocations, updateUserLocation} from './FriendsService'; 
-import { doc, getDoc } from 'firebase/firestore';
+import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment} from 'firebase/firestore';
 
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
@@ -27,7 +27,33 @@ export default function NavigationScreen() {
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
 
+  const saveDistanceAndUpdateStats = async (userId, distance) => {
+    const db = getFirestore();
+    const userRef = doc(db, `users/${userId}`);
   
+    // Get today's date string (e.g., "2025-05-05")
+    const dateString = new Date().toISOString().split('T')[0];
+  
+    // Update the longTermStats map
+    await updateDoc(userRef, {
+      [`longTermStats.${dateString}`]: increment(distance),
+    });
+  };
+
+  const fetchLongTermStats = async (userId) => {
+    const db = getFirestore();
+    const userRef = doc(db, `users/${userId}`);
+    const docSnap = await getDoc(userRef);
+  
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return data.longTermStats || {};
+    } else {
+      return {};
+    }
+  };
+
+
 
 const loadFriendsLocations = async () => {
   try {
@@ -231,7 +257,15 @@ const loadFriendsLocations = async () => {
         Alert.alert('Trip Ended', 'Trip tracking has stopped and data will be saved.');
         setEndTripAlertShown(true);
       }
-      stopTrip();
+  
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        stopTrip(userId);
+        await saveDistanceAndUpdateStats(userId, (displayDistance / 1000).toFixed(2));
+      } else {
+        console.warn('[handleStartTrip] No userId found. Skipping stat update.');
+      }
+  
       locationSubscription.current?.remove();
       locationSubscription.current = null;
     } else {
@@ -239,13 +273,13 @@ const loadFriendsLocations = async () => {
         Alert.alert('Trip Started', 'Your trip is now being tracked.');
         setStartTripAlertShown(true);
       }
-
+  
       totalDistance.current = 0;
       setDisplayDistance(0);
       prevLocation.current = currentLocation;
       startTrip();
     }
-  };
+  };  
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3; // meters
@@ -371,7 +405,7 @@ const loadFriendsLocations = async () => {
               Latitude: {currentLocation.latitude.toFixed(6)}, Longitude: {currentLocation.longitude.toFixed(6)}
             </Text>
             <Text style={styles.overlayText2}>
-              Distance Traveled: {(displayDistance / 1000).toFixed(2)} km
+              Distance Traveled: {(displayDistance / 1609.34).toFixed(2)} mi
             </Text>
           </>
         )}
