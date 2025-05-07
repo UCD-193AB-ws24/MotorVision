@@ -10,6 +10,8 @@ export const useCrashDetection = () => {
   const [isCrashed, setIsCrashed] = useState(false);
   const recordCrashEvent = useBluetoothStore((state) => state.recordCrashEvent);
   const tripActive = useBluetoothStore((state) => state.tripActive);
+  const getSensorBuffer = useBluetoothStore((state) => state.getSensorBuffer);
+  const setLastCrashBuffer = useBluetoothStore((state) => state.setLastCrashBuffer);
 
   let lastCrashTime = 0;
 
@@ -26,7 +28,7 @@ export const useCrashDetection = () => {
           acceleration > THRESHOLD &&
           Date.now() - lastCrashTime > CRASH_COOLDOWN_MS
         ) {
-          console.log(`Crash detected! Acceleration: ${acceleration}`);
+          console.log(`🚨 Crash detected! Acceleration: ${acceleration}`);
           setIsCrashed(true);
           lastCrashTime = Date.now();
 
@@ -44,14 +46,20 @@ export const useCrashDetection = () => {
             console.error('Error getting location:', error);
           }
 
-          // Record crash event in the trip log
+          // Record the crash event in trip data
           recordCrashEvent({
             time: new Date().toISOString(),
-            speed: acceleration, // Treating acceleration as an estimate for speed
+            speed: acceleration,
             acceleration: acceleration.toFixed(2),
             location,
           });
 
+          // Store buffer for later export
+          const buffer = getSensorBuffer();
+          setLastCrashBuffer(buffer);
+          console.log('🧠 Stored last crash buffer with', buffer.length, 'entries');
+
+          // Reset crash flag after delay
           setTimeout(() => setIsCrashed(false), 5000);
         }
       });
@@ -60,7 +68,7 @@ export const useCrashDetection = () => {
     subscribe();
 
     return () => {
-      subscription && subscription.remove();
+      subscription?.remove();
     };
   }, [tripActive]);
 

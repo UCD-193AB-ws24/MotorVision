@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
   Easing, Alert, ScrollView
@@ -9,7 +9,8 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCrashDetection } from '../hooks/useCrashDetection';
-import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
+import { useSensorBuffer } from '../hooks/useSensorBuffer'; // 🔹 Import added
+import { auth, db } from '../config/firebase';
 import { signInWithEmailAndPasswor, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -17,7 +18,9 @@ export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
   const [battery, setBattery] = useState(100);
   const [tripDuration, setTripDuration] = useState(0);
-  const isCrashed = useCrashDetection();
+  const isCrashed = useCrashDetection(); // 🔹 Already active
+  useSensorBuffer(); // 🔹 Activates rolling buffer collection
+
   const [userName, setUserName] = useState('');
   const [location, setLocation] = useState(null);
 
@@ -35,7 +38,7 @@ export default function HomeScreen({ navigation }) {
             await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
           }
         }
-  
+
         const stored = await AsyncStorage.getItem('userInfo');
         if (stored) {
           const { name } = JSON.parse(stored);
@@ -45,8 +48,8 @@ export default function HomeScreen({ navigation }) {
         console.error('Failed to load user info:', e);
       }
     });
-  
-    return () => unsubscribe(); // Clean up on unmount
+
+    return () => unsubscribe();
   }, []);
 
   const handleConnect = async () => {
@@ -77,7 +80,7 @@ export default function HomeScreen({ navigation }) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -103,7 +106,7 @@ export default function HomeScreen({ navigation }) {
     requestLocationPermission();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const requestLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// === Sensor Buffer Configuration ===
+export const BUFFER_RATE_HZ = 4;
+export const BUFFER_DURATION_MINUTES = 3;
+export const MAX_BUFFER_SIZE = BUFFER_RATE_HZ * BUFFER_DURATION_MINUTES * 60;
 import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 
@@ -60,6 +65,38 @@ export const useBluetoothStore = create((set, get) => ({
   tripLogs: [],
   tripActive: false,
   tripData: null,
+
+  // Rolling sensor buffer
+  sensorBuffer: [],
+  addSensorEntry: (entry) => {
+    const current = get().sensorBuffer;
+    const updated = [...current, entry];
+    if (updated.length > MAX_BUFFER_SIZE) updated.shift();
+    set({ sensorBuffer: updated });
+  },
+  clearSensorBuffer: () => set({ sensorBuffer: [] }),
+  getSensorBuffer: () => get().sensorBuffer,
+
+  // Last crash buffer (for user-initiated export)
+  lastCrashBuffer: [],
+  setLastCrashBuffer: (buffer) => set({ lastCrashBuffer: buffer }),
+  getLastCrashBuffer: () => get().lastCrashBuffer,
+
+  // Rolling sensor buffer
+  sensorBuffer: [],
+  addSensorEntry: (entry) => {
+    const current = get().sensorBuffer;
+    const updated = [...current, entry];
+    if (updated.length > MAX_BUFFER_SIZE) updated.shift();
+    set({ sensorBuffer: updated });
+  },
+  clearSensorBuffer: () => set({ sensorBuffer: [] }),
+  getSensorBuffer: () => get().sensorBuffer,
+
+  // Last crash buffer (for user-initiated export)
+  lastCrashBuffer: [],
+  setLastCrashBuffer: (buffer) => set({ lastCrashBuffer: buffer }),
+  getLastCrashBuffer: () => get().lastCrashBuffer,
 
   connectToDevice: (device) => set({ connectedDevice: device }),
   disconnectDevice: () => set({ connectedDevice: null }),
@@ -126,6 +163,7 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
+  // Update trip data during trip
   updateTripData: (data) => {
     set((state) => {
       if (!state.tripActive || !state.tripData) return state;
@@ -142,6 +180,7 @@ export const useBluetoothStore = create((set, get) => ({
     });
   },
 
+  // Record crash event during trip
   recordCrashEvent: (event) => {
     set((state) => {
       if (!state.tripActive || !state.tripData) return state;
@@ -153,12 +192,14 @@ export const useBluetoothStore = create((set, get) => ({
     });
   },
 
+  // Add crash log
   addCrashLog: async (data) => {
     const newLogs = [...get().crashLogs, data];
     set({ crashLogs: newLogs });
     await AsyncStorage.setItem('crashLogs', JSON.stringify(newLogs));
   },
 
+  // Load crash logs
   loadCrashLogs: async () => {
     try {
       const logs = await AsyncStorage.getItem('crashLogs');
@@ -176,6 +217,7 @@ export const useBluetoothStore = create((set, get) => ({
     await AsyncStorage.setItem('crashLogs', JSON.stringify(updatedLogs));
   },
 
+  // Clear all crash logs
   clearCrashLogs: async () => {
     set({ crashLogs: [] });
     await AsyncStorage.removeItem('crashLogs');
@@ -200,6 +242,7 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
+  // Load trip logs
   loadTripLogs: async () => {
     try {
       const logs = await AsyncStorage.getItem('tripLogs');
@@ -214,5 +257,6 @@ export const useBluetoothStore = create((set, get) => ({
     }
   },
 
+  // Set trip state
   setTripActive: (active) => set({ tripActive: active }),
 }));

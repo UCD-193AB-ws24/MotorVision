@@ -7,15 +7,20 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { useBluetoothStore } from '../store/bluetoothStore';
 
 export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isImageVisible, setIsImageVisible] = useState(false);
+  const getLastCrashBuffer = useBluetoothStore((state) => state.getLastCrashBuffer);
 
   const { crash, locations } = route.params;
 
@@ -35,7 +40,6 @@ export default function CrashDetailScreen({ route, navigation }) {
       longitude: Number(loc.longitude),
       timestamp: String(loc.timestamp),
     }));
-  
 
     try {
       const response = await axios.post(url, { locations: payload });
@@ -47,6 +51,41 @@ export default function CrashDetailScreen({ route, navigation }) {
       console.error('Error fetching trajectory image:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const exportCrashBuffer = async () => {
+    try {
+      const buffer = getLastCrashBuffer();
+      if (!buffer || buffer.length === 0) {
+        Alert.alert('No buffer data', 'No crash buffer available to export.');
+        return;
+      }
+
+      const csvRows = buffer.map(entry => {
+        const { timestamp, acceleration, gyroscope, location } = entry;
+        return `${timestamp},${acceleration.x},${acceleration.y},${acceleration.z},${acceleration.magnitude},${gyroscope.x},${gyroscope.y},${gyroscope.z},${location.latitude},${location.longitude}`;
+      });
+
+      const headers = 'timestamp,accel_x,accel_y,accel_z,accel_mag,gyro_x,gyro_y,gyro_z,lat,long';
+      const content = `${headers}\n${csvRows.join('\n')}`;
+      const path = `${FileSystem.documentDirectory}crash_buffer_${Date.now()}.csv`;
+
+      await FileSystem.writeAsStringAsync(path, content);
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Export Complete', `File saved to: ${path}`);
+        return;
+      }
+
+      await Sharing.shareAsync(path, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Export Crash Buffer',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (err) {
+      console.error('Failed to export buffer:', err);
+      Alert.alert('Export Failed', 'Could not export crash buffer.');
     }
   };
 
@@ -68,18 +107,21 @@ export default function CrashDetailScreen({ route, navigation }) {
     return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const buffer = getLastCrashBuffer();
+  const lastEntry = buffer?.[buffer.length - 1];
+  const crashTime = new Date(crash.timestamp || crash.time).getTime();
+  const timeDiff = lastEntry ? Math.abs(lastEntry.timestamp - crashTime) : Infinity;
+  const isRecent = timeDiff < 15000;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Back Button */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
         <Ionicons name="chevron-back" size={28} color="#0A84FF" />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      {/* Title */}
       <Text style={styles.header}>Crash Details</Text>
 
-      {/* Info Box */}
       <View style={styles.detailBox}>
         <Text style={styles.detailLabel}>Time:</Text>
         <Text style={styles.detailValue}>{formatTime(crash.timestamp || crash.time)}</Text>
@@ -94,11 +136,16 @@ export default function CrashDetailScreen({ route, navigation }) {
         <Text style={styles.detailValue}>{formatLocation(crash.location)}</Text>
       </View>
 
-      {/* Load Image Button */}
+      {buffer && buffer.length > 0 && isRecent && (
+        <TouchableOpacity style={styles.button} onPress={exportCrashBuffer}>
+          <Text style={styles.buttonText}>Export Crash Buffer</Text>
+        </TouchableOpacity>
+      )}
+
       {!trajectoryImage && (
         <TouchableOpacity
           style={styles.button}
-          onPress={fetchTrajectoryImage} // FIXED: correctly calling the function
+          onPress={fetchTrajectoryImage}
           disabled={isLoading}
         >
           {isLoading ? (
@@ -109,7 +156,6 @@ export default function CrashDetailScreen({ route, navigation }) {
         </TouchableOpacity>
       )}
 
-      {/* Toggle Image + Preview */}
       {trajectoryImage && (
         <>
           <TouchableOpacity
