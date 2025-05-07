@@ -267,7 +267,8 @@ const getCongestionEmoji = (level) => {
   
 
 export default function PreRouteAnalysis() {
-  const [location, setLocation] = useState(null);
+  // const [location, setLocation] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
