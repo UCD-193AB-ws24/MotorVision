@@ -298,9 +298,6 @@ export default function PreRouteAnalysis() {
     legend: ["Temperature (°F)", "Wind Speed (mph)"],
   } : null;
   
-
-  
-
   const MAPBOX_ACCESS_TOKEN ='pk.eyJ1Ijoic2FpbGkta2Fya2FyZSIsImEiOiJjbTl0OTZtOTIwOGpuMmlwenY5cHM5dDNlIn0.tSQUU1UtswIIfIPe7jBpzg'; // <-- Replace this!
 
   const handleSubmit = async () => {
