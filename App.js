@@ -19,6 +19,7 @@ import TripDetailScreen from './screens/TripDetailScreen';
 import LandingScreen from './screens/LandingScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import FriendsScreen from './screens/FriendsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 
@@ -62,9 +63,10 @@ function SettingsStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-      <Stack.Screen name="PairingGuide" component={PairingGuideScreen} options={{ tabBarButton: () => null }} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
+      <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
     </Stack.Navigator>
   );
 }
@@ -105,7 +107,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, currentUser => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
