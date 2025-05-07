@@ -12,6 +12,13 @@ import {
   ScrollView, findNodeHandle,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
+import { LineChart } from 'react-native-chart-kit';
+import { Dimensions } from 'react-native';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import 'react-native-get-random-values';
+
+
+const GOOGLE_API_KEY = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
 
 
 
@@ -263,8 +270,7 @@ const getCongestionEmoji = (level) => {
   
 
 export default function PreRouteAnalysis() {
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
@@ -278,7 +284,7 @@ export default function PreRouteAnalysis() {
   const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
   const [weatherSummary, setWeatherSummary] = useState(null);
 
-  const chartData = {
+  const chartData = weatherSummary ? {
     labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`), // or timestamp slices
     datasets: [
       {
@@ -293,7 +299,7 @@ export default function PreRouteAnalysis() {
       },
     ],
     legend: ["Temperature (°F)", "Wind Speed (mph)"],
-  };
+  } : null;
   
 
   
@@ -307,15 +313,17 @@ export default function PreRouteAnalysis() {
     setResponse(null);
 
     try {
-      console.log('User Input:', { latitude, longitude });
 
-      const parsedLat = parseFloat(latitude);
-      const parsedLon = parseFloat(longitude);
-      
-      if (isNaN(parsedLat) || isNaN(parsedLon)) {
-        throw new Error('Please enter valid numbers for latitude and longitude.');
+      if (!location || !location.latitude || !location.longitude) {
+        throw new Error('Please select a location first.');
       }
 
+      const parsedLat = location.latitude;
+      const parsedLon = location.longitude;
+
+      console.log('Selected Location:', { parsedLat, parsedLon });
+
+      
       // TODO: swap this out with live location
        const origin = [-122.431297, 37.773972]; // San Francisco
        const destination = [parsedLon, parsedLat]; // User input
@@ -385,25 +393,38 @@ export default function PreRouteAnalysis() {
     >
       <Text style={styles.header}>Pre-Route Analysis</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Latitude"
-        placeholderTextColor="#888"
-        keyboardType="default"
-        value={latitude}
-        onChangeText={setLatitude}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Longitude"
-        placeholderTextColor="#888"
-        keyboardType="default"
-        value={longitude}
-        onChangeText={setLongitude}
+      <GooglePlacesAutocomplete
+        placeholder="Search for a location"
+        fetchDetails={true}
+        onPress={(data, details = null) => {
+          if (details?.geometry?.location) {
+            const { lat, lng } = details.geometry.location;
+            setLocation({ latitude: lat, longitude: lng });
+          } else {
+            setLocation(null);
+          }
+        }}
+        query={{
+          key: GOOGLE_API_KEY,
+          language: 'en',
+        }}
+        styles={{
+          textInput: styles.input,
+          container: { flex: 0 },
+          listView: { backgroundColor: 'white' },
+        }}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Analyze</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSubmit}
+        disabled={!location || loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Analyze</Text>
+        )}
       </TouchableOpacity>
 
       {loading && <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />}
@@ -497,63 +518,24 @@ export default function PreRouteAnalysis() {
         {/* Weather conditions */}
         <View style={styles.resultBox}>
             <Text style={styles.headerTitle}>Weather Information</Text>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Temperature Overview</Text>
-              </View>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Precipitation Overview</Text>
-              </View>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Windspeed Overview</Text>
-              </View>
-        </View>
 
-        <View style={styles.resultBox}>
-            <Text style={styles.headerTitle}>Roadside Information</Text>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Gas Stations Nearby</Text>
-              </View>
-              <View style={styles.overviewContainer}>
-                <Text style={styles.sectionTitle}>Fast Food and Coffee Available</Text>
-              </View>
-        </View>
-
-        <View style={styles.resultBox}>
-  <Text style={styles.sectionTitle}>Weather Conditions</Text>
-  {weatherSummary ? (
-    <>
-      <Text style={styles.summaryText}>
-        Avg Temp: {weatherSummary.average_temperature.toFixed(1)}°F
-      </Text>
-      <Text style={styles.summaryText}>
-        High: {weatherSummary.max_temperature?.toFixed(1)}°F | Low: {weatherSummary.min_temperature?.toFixed(1)}°F
-      </Text>
-      <Text style={styles.summaryText}>
-        Avg Wind Speed: {weatherSummary.average_wind_speed.toFixed(1)} mph
-      </Text>
-      <Text style={styles.summaryText}>
-        Most Common: {weatherSummary.icons}
-      </Text>
-
-      <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Weather Snapshots</Text>
-      {weatherSummary.snapshots.map((point, idx) => (
-        <View key={idx} style={{ marginBottom: 8 }}>
-          <Text style={styles.summaryText}>
-            {new Date(point.timestamp).toLocaleTimeString()} - {point.temp.toFixed(1)}°F | 💨 {point.wind} mph | {point.icon}
-          </Text>
-        </View>
-      ))}
-    </>
-  ) : (
-    <Text style={styles.summaryText}>Loading weather data...</Text>
-  )}
-</View>
-
-{chartData && (
+  
+      {weatherSummary && (
   <>
-    <Text style={styles.sectionTitle}>Temperature & Wind Overview</Text>
+    {/* Temperature Chart */}
+    <Text style={styles.sectionTitle}>Temperature Overview</Text>
     <LineChart
-      data={chartData}
+      data={{
+        labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`),
+        datasets: [
+          {
+            data: weatherSummary.snapshots.map((snap) => snap.temp),
+            color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // red
+            strokeWidth: 2,
+          },
+        ],
+        legend: ["Temperature (°F)"],
+      }}
       width={Dimensions.get('window').width - 40}
       height={220}
       chartConfig={{
@@ -568,11 +550,51 @@ export default function PreRouteAnalysis() {
       bezier
       style={{ marginVertical: 8, borderRadius: 10 }}
     />
+
+    {/* Wind Speed Chart */}
+    <Text style={styles.sectionTitle}>Wind Speed Overview</Text>
+    <LineChart
+      data={{
+        labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`),
+        datasets: [
+          {
+            data: weatherSummary.snapshots.map((snap) => snap.wind),
+            color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`, // blue
+            strokeWidth: 2,
+          },
+        ],
+        legend: ["Wind Speed (mph)"],
+      }}
+      width={Dimensions.get('window').width - 40}
+      height={220}
+      chartConfig={{
+        backgroundColor: '#1E1E1E',
+        backgroundGradientFrom: '#1E1E1E',
+        backgroundGradientTo: '#1E1E1E',
+        decimalPlaces: 1,
+        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(200, 200, 200, ${opacity})`,
+        propsForDots: { r: "4", strokeWidth: "1", stroke: "#3498db" },
+      }}
+      bezier
+      style={{ marginVertical: 8, borderRadius: 10 }}
+    />
   </>
 )}
 
-        
-        {/* TODO: change this to select different routes */}
+      </View>
+
+        <View style={styles.resultBox}>
+            <Text style={styles.headerTitle}>Roadside Information</Text>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Gas Stations Nearby</Text>
+              </View>
+              <View style={styles.overviewContainer}>
+                <Text style={styles.sectionTitle}>Fast Food and Coffee Available</Text>
+              </View>
+        </View>
+
+
         {routes.length > 1 && (
         <View style={{ alignItems: 'center', marginTop: 20 }}>
         <Text style={{ color: '#fff', marginBottom: 10 }}>
@@ -607,10 +629,6 @@ export default function PreRouteAnalysis() {
         </Text>
          </View>
         )}
-
-
-
-        
 
 
 
