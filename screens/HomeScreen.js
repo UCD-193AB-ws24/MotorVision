@@ -1,41 +1,52 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated,
-  Easing, Alert, ScrollView
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Alert, ScrollView
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
 import { useCrashDetection } from '../hooks/useCrashDetection';
-import { useSensorBuffer } from '../hooks/useSensorBuffer'; // 🔹 Import added
+import { useSensorBuffer } from '../hooks/useSensorBuffer';
 import { auth, db } from '../config/firebase';
-import { signInWithEmailAndPasswor, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function HomeScreen({ navigation }) {
   const [speed, setSpeed] = useState(0);
-  const [battery, setBattery] = useState(100);
-  const [tripDuration, setTripDuration] = useState(0);
-  const isCrashed = useCrashDetection(); // 🔹 Already active
-  useSensorBuffer(); // 🔹 Activates rolling buffer collection
-
   const [userName, setUserName] = useState('');
-  const [location, setLocation] = useState(null);
-
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isCrashed = useCrashDetection();
+  useSensorBuffer();
+
+  const [stats, setStats] = useState({
+    totalRides: 0,
+    totalMiles: 0,
+    avgSpeed: 0,
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
         if (currentUser) {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+
           if (userDoc.exists()) {
-            console.log('User data:', userDoc.data());
-            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userDoc.data().name }));
+            const userData = userDoc.data();
+            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userData.name }));
+
+            const totalMiles = userData.stats?.totalDistanceMiles || 0;
+            const totalMinutes = userData.stats?.totalMinutes || 0;
+            const avgSpeed = totalMinutes > 0 ? (totalMiles / (totalMinutes / 60)).toFixed(1) : 0;
+
+            setStats({
+              totalRides: userData.stats?.totalRides || 0,
+              totalMiles: parseFloat(totalMiles.toFixed(1)),
+              avgSpeed,
+            });
           }
         }
 
@@ -57,15 +68,9 @@ export default function HomeScreen({ navigation }) {
     setError(null);
     try {
       const response = await axios.get('http://3.147.83.156:8000/connect/');
-      if (response.data.success) {
-        setIsConnected(true);
-        Alert.alert('Connected', 'SmartHelmet is now connected.');
-      } else {
-        setIsConnected(true);
-        Alert.alert('Connected!', response.data.message || 'Failed to connect to SmartHelmet.');
-      }
+      setIsConnected(true);
+      Alert.alert('Connected', response.data.message || 'SmartHelmet is now connected.');
     } catch (err) {
-      console.error('Connection Error:', err);
       setError('Connection failed. Please try again.');
       Alert.alert('Error', 'Unable to connect to SmartHelmet.');
     } finally {
@@ -73,93 +78,37 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const formatDuration = (secs) => {
-    const hrs = Math.floor(secs / 3600);
-    const mins = Math.floor((secs % 3600) / 60);
-    const sec = secs % 60;
-    return `${hrs}:${mins.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
-
   useEffect(() => {
-    const requestLocationPermission = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required.');
-        return;
-      }
-
-      await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
-        },
-        (position) => {
-          if (position.coords.speed !== null) {
-            const speedMps = position.coords.speed;
-            const speedMph = (speedMps * 2.23694).toFixed(1);
-            setSpeed(speedMph < 0 ? 0 : speedMph);
-          }
-        }
-      );
-    };
-
-    requestLocationPermission();
-  }, []);
-
-  useEffect(() => {
-    const requestLocationPermission = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+    Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
         Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 5000,
-            distanceInterval: 2,
-          },
+          { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000 },
           (position) => {
-            setLocation({
-              latitude: position.coords.latitude.toFixed(2),
-              longitude: position.coords.longitude.toFixed(2),
-            });
+            if (position.coords.speed !== null) {
+              const speedMph = (position.coords.speed * 2.23694).toFixed(1);
+              setSpeed(speedMph < 0 ? 0 : speedMph);
+            }
           }
         );
       }
-    };
-
-    requestLocationPermission();
+    });
   }, []);
-
-  const rotateValue = useRef(new Animated.Value(0)).current;
-
-  const rotateInterpolation = rotateValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['360deg', '0deg'],
-  });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="light" />
-      
       <Text style={styles.header}>MotorVision</Text>
-      
-      {userName !== '' && (
-        <Text style={styles.greeting}>Welcome back, {userName}!</Text>
-      )}
+      {userName !== '' && <Text style={styles.greeting}>Welcome back, {userName}!</Text>}
 
       <Animated.Image
         source={require('../assets/helmet.png')}
-        style={[styles.helmet, { transform: [{ rotate: rotateInterpolation }] }]}
+        style={[styles.helmet]}
       />
 
-      <View style={styles.statusContainer}>
-        <Ionicons
-          name={isConnected ? 'checkmark-circle' : 'alert-circle'}
-          size={18}
-          color={isConnected ? '#00ff00' : '#ff4d4d'}
-        />
-        <Text style={[styles.statusText, { color: isConnected ? '#00ff00' : '#ff4d4d' }]}>
-          {isConnected ? 'Connected' : 'Not Connected'}
-        </Text>
+      <View style={styles.statusRow}>
+        <Ionicons name={isConnected ? 'checkmark-circle' : 'alert-circle'} size={20} color={isConnected ? '#0f0' : '#f44'} />
+        <Text style={styles.statusText}>{isConnected ? 'Helmet Connected' : 'Not Connected'}</Text>
+        {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected</Text>}
       </View>
 
       <View style={styles.statCard}>
@@ -167,15 +116,22 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.unit}>mph</Text>
       </View>
 
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>⚡ Battery: {battery}%</Text>
-        <Text style={styles.infoText}>🕒 Duration: {formatDuration(tripDuration)}</Text>
-        {location && (
-          <Text style={styles.infoText}>🌍 {location.latitude}°, {location.longitude}°</Text>
-        )}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryText}>Total Rides: {stats.totalRides}</Text>
+        <Text style={styles.summaryText}>Total Miles: {stats.totalMiles}</Text>
+        <Text style={styles.summaryText}>Avg Speed: {stats.avgSpeed} mph</Text>
       </View>
 
-      {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected!</Text>}
+      <View style={styles.grid}>
+        <Tile icon="map" label="Navigation" onPress={() => navigation.navigate('Navigation')} />
+        <Tile icon="history" label="Trips" onPress={() => navigation.navigate('Trip History')} />
+        <Tile icon="account-group" label="Friends" onPress={() =>
+          navigation.navigate('SettingsTab', { screen: 'Friends' })
+        } />
+        <Tile icon="cog" label="Settings" onPress={() =>
+          navigation.navigate('SettingsTab', { screen: 'Settings' })
+        } />
+      </View>
 
       <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
         <Text style={styles.buttonText}>
@@ -188,6 +144,15 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
+function Tile({ icon, label, onPress }) {
+  return (
+    <TouchableOpacity style={styles.tile} onPress={onPress}>
+      <MaterialCommunityIcons name={icon} size={26} color="#ccc" />
+      <Text style={styles.tileText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#121212',
@@ -196,80 +161,96 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8,
+    color: '#fff',
+    marginBottom: 6,
   },
   greeting: {
     fontSize: 16,
-    color: '#ccc',
+    color: '#aaa',
     marginBottom: 12,
   },
   helmet: {
-    width: 140,
-    height: 140,
-    marginBottom: 10,
+    width: 130,
+    height: 130,
+    marginBottom: 12,
   },
-  statusContainer: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 10,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
+    fontSize: 15,
+    color: '#ddd',
+  },
+  crashText: {
+    color: '#f66',
+    fontWeight: 'bold',
   },
   statCard: {
     alignItems: 'center',
+    backgroundColor: '#1E1E1E',
     padding: 30,
     borderRadius: 16,
-    backgroundColor: '#1E1E1E',
-    width: '80%',
     marginBottom: 16,
+    width: '80%',
   },
   mainStat: {
-    color: '#ffffff',
+    color: '#fff',
     fontSize: 48,
     fontWeight: 'bold',
   },
   unit: {
-    color: '#888',
+    color: '#aaa',
     fontSize: 14,
   },
-  infoContainer: {
-    backgroundColor: '#1E1E1E',
+  summaryCard: {
+    backgroundColor: '#272727',
     padding: 16,
     borderRadius: 12,
     width: '80%',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  infoText: {
-    color: '#ccc',
-    fontSize: 17,
-    marginVertical: 3,
-    alignContent: 'center',
-    justifyContent: 'center',
+  summaryText: {
+    fontSize: 15,
+    color: '#eee',
     textAlign: 'center',
+    marginVertical: 2,
   },
-  crashText: {
-    color: '#ff4d4d',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginBottom: 20,
+  },
+  tile: {
+    width: '45%',
+    aspectRatio: 1,
+    backgroundColor: '#1E1E1E',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tileText: {
+    color: '#ccc',
+    marginTop: 6,
+    fontSize: 14,
   },
   connectButton: {
     backgroundColor: '#0A84FF',
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 12,
-    marginBottom: 20,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
   errorText: {
     fontSize: 14,
