@@ -54,7 +54,7 @@ export default function EditProfileScreen({ navigation }) {
         profileImage,
       });
       await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
-      setProfileImageGlobal(profileImage); // Update Zustand so ProfileScreen reflects it
+      setProfileImageGlobal(profileImage);
       Alert.alert('Saved', 'Profile updated successfully.');
       navigation.goBack();
     } catch (err) {
@@ -99,9 +99,14 @@ export default function EditProfileScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>Edit Profile</Text>
 
-      <TouchableOpacity onPress={handleImagePick} style={styles.imageContainer}>
+      <TouchableOpacity onPress={handleImagePick} style={styles.imageWrapper}>
         {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.image} />
+          <>
+            <Image source={{ uri: profileImage }} style={styles.image} />
+            <View style={styles.iconOverlay}>
+              <Ionicons name="camera-outline" size={22} color="#fff" />
+            </View>
+          </>
         ) : (
           <View style={styles.placeholder}>
             <Ionicons name="camera-outline" size={32} color="#888" />
@@ -166,14 +171,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  imageContainer: {
+  imageWrapper: {
     alignSelf: 'center',
     marginBottom: 20,
+    position: 'relative',
   },
   image: {
     width: 100,
     height: 100,
     borderRadius: 50,
+  },
+  iconOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#0A84FF',
+    borderRadius: 16,
+    padding: 6,
   },
   placeholder: {
     width: 100,
