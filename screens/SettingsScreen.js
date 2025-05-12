@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 export default function SettingsScreen({ navigation }) {
   const settingsOptions = [
@@ -41,6 +50,16 @@ export default function SettingsScreen({ navigation }) {
     },
   ];
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      Alert.alert('Error', 'Failed to sign out.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Settings</Text>
@@ -67,6 +86,10 @@ export default function SettingsScreen({ navigation }) {
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Back to Home Screen</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
   );
@@ -137,6 +160,19 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  signOutButton: {
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF453A',
+  },
+  signOutText: {
+    color: '#FF453A',
     fontSize: 16,
     fontWeight: 'bold',
   },
