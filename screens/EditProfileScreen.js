@@ -1,4 +1,3 @@
-// screens/EditProfileScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, Image,
@@ -9,6 +8,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,7 +78,21 @@ export default function EditProfileScreen({ navigation }) {
 
     if (!result.canceled && result.assets?.[0]?.uri) {
       const uri = result.assets[0].uri;
-      setProfileImageLocal(uri);
+
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const storage = getStorage();
+        const imageRef = ref(storage, `profile_images/${auth.currentUser.uid}_${Date.now()}.jpg`);
+        await uploadBytes(imageRef, blob);
+        const downloadURL = await getDownloadURL(imageRef);
+
+        setProfileImageLocal(downloadURL);
+      } catch (error) {
+        console.error('Image upload error:', error);
+        Alert.alert('Upload Failed', 'Unable to upload profile image.');
+      }
     }
   };
 
