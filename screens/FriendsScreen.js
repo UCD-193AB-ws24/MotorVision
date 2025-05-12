@@ -33,20 +33,30 @@ export default function FriendsScreen() {
 
   useEffect(() => {
     const hydrateAndClean = async () => {
-      await hydrateProfile();
-      await cleanUpRequested();
+      try {
+        await hydrateProfile();
+        await cleanUpRequested();
+      } catch (err) {
+        console.error('Profile hydration failed:', err);
+      }
     };
     hydrateAndClean();
   }, []);
 
-  const handleSendRequest = () => {
-    if (!emailInput.trim()) {
+  const handleSendRequest = async () => {
+    const email = emailInput.trim().toLowerCase();
+    if (!email) {
       Alert.alert('Invalid', 'Please enter an email.');
       return;
     }
-    sendRequest(emailInput.trim().toLowerCase());
-    setEmailInput('');
-    setModalVisible(false);
+    try {
+      await sendRequest(email);
+      setEmailInput('');
+      setModalVisible(false);
+    } catch (err) {
+      console.error('Friend request error:', err);
+      Alert.alert('Error', 'Could not send request.');
+    }
   };
 
   const confirmRemoveFriend = (email) => {
@@ -73,6 +83,7 @@ export default function FriendsScreen() {
                 <Text style={styles.pendingText}>Long-press to remove</Text>
               </TouchableOpacity>
             )}
+            ListEmptyComponent={<Text style={styles.emptyText}>No friends yet.</Text>}
           />
         );
       case TAB_REQUESTS:
@@ -93,6 +104,7 @@ export default function FriendsScreen() {
                 </View>
               </View>
             )}
+            ListEmptyComponent={<Text style={styles.emptyText}>No incoming requests.</Text>}
           />
         );
       case TAB_SENT:
@@ -106,6 +118,7 @@ export default function FriendsScreen() {
                 <Text style={styles.pendingText}>Pending...</Text>
               </View>
             )}
+            ListEmptyComponent={<Text style={styles.emptyText}>No sent requests.</Text>}
           />
         );
     }
@@ -115,7 +128,6 @@ export default function FriendsScreen() {
     <View style={styles.container}>
       <Text style={styles.header}>Friends</Text>
 
-      {/* Tab Menu */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tabButton, activeTab === TAB_FRIENDS && styles.tabActive]}
@@ -137,7 +149,6 @@ export default function FriendsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Tab Content */}
       {renderContent()}
 
       <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -145,7 +156,6 @@ export default function FriendsScreen() {
         <Text style={styles.addButtonText}>Add Friend</Text>
       </TouchableOpacity>
 
-      {/* Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -243,6 +253,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EA5455',
     padding: 6,
     borderRadius: 8,
+  },
+  emptyText: {
+    color: '#777',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 40,
   },
   addButton: {
     marginTop: 20,
