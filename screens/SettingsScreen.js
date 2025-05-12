@@ -36,7 +36,7 @@ export default function SettingsScreen({ navigation }) {
     {
       title: "Sensor and Location Services",
       icon: "location-outline",
-      onPress: () => alert('Sensor and Location Settings coming soon!'),
+      onPress: () => navigation.navigate('SensorAndLocation'), // ✅ Updated
     },
     {
       title: "Appearance",
