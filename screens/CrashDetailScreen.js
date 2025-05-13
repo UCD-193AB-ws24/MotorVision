@@ -62,12 +62,35 @@ export default function CrashDetailScreen({ route, navigation }) {
         return;
       }
 
+      const headers = [
+        'timestamp',
+        'accel_x', 'accel_y', 'accel_z', 'accel_mag',
+        'gyro_x', 'gyro_y', 'gyro_z',
+        'vel_x', 'vel_y', 'vel_z',
+        'roll', 'pitch', 'yaw',
+        'lat', 'long',
+      ].join(',');
+
       const csvRows = buffer.map(entry => {
-        const { timestamp, acceleration, gyroscope, location } = entry;
-        return `${timestamp},${acceleration.x},${acceleration.y},${acceleration.z},${acceleration.magnitude},${gyroscope.x},${gyroscope.y},${gyroscope.z},${location.latitude},${location.longitude}`;
+        const {
+          timestamp,
+          acceleration = {},
+          gyroscope = {},
+          velocity = {},
+          orientation = {},
+          location = {},
+        } = entry;
+
+        return [
+          timestamp,
+          acceleration.x ?? '', acceleration.y ?? '', acceleration.z ?? '', acceleration.magnitude ?? '',
+          gyroscope.x ?? '', gyroscope.y ?? '', gyroscope.z ?? '',
+          velocity.x ?? '', velocity.y ?? '', velocity.z ?? '',
+          orientation.roll ?? '', orientation.pitch ?? '', orientation.yaw ?? '',
+          location.latitude ?? '', location.longitude ?? '',
+        ].join(',');
       });
 
-      const headers = 'timestamp,accel_x,accel_y,accel_z,accel_mag,gyro_x,gyro_y,gyro_z,lat,long';
       const content = `${headers}\n${csvRows.join('\n')}`;
       const path = `${FileSystem.documentDirectory}crash_buffer_${Date.now()}.csv`;
 

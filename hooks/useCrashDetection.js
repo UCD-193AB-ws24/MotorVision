@@ -3,7 +3,7 @@ import { Accelerometer } from 'expo-sensors';
 import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 
-const THRESHOLD = 5; // m/s² threshold for crash detection
+const THRESHOLD = 3; // m/s² threshold for crash detection
 const CRASH_COOLDOWN_MS = 3000;
 
 export const useCrashDetection = () => {
