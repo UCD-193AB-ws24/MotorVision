@@ -18,7 +18,7 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import 'react-native-get-random-values';
 
 
-const GOOGLE_API_KEY = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
+const GOOGLE_PLACES_API_KEY = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
 
 
 
@@ -399,33 +399,36 @@ export default function PreRouteAnalysis() {
       <Text style={styles.header}>Pre-Route Analysis</Text>
 
       <View style={styles.inputContainer}>
-      <TextInput
-  style={styles.input}
-  placeholder="Enter Latitude"
-  placeholderTextColor="#aaa"
-  value={latitude || ''}
-  onChangeText={setLatitude}
-  keyboardType="default" // full keyboard including hyphen
-  autoCapitalize="none"
-  autoCorrect={false}
-/>
-<TextInput
-  style={styles.input}
-  placeholder="Enter Longitude"
-  placeholderTextColor="#aaa"
-  value={longitude || ''}
-  onChangeText={setLongitude}
-  keyboardType="default"
-  autoCapitalize="none"
-  autoCorrect={false}
-/>
-</View>
 
-    
+      <GooglePlacesAutocomplete
+          placeholder="Search Destination"
+          fetchDetails={true}
+          onPress={(data, details = null) => {
+            console.log('📌 DATA:', data);
+            console.log('📌 DETAILS:', details);
+            const lat = details.geometry.location.lat;
+            const lng = details.geometry.location.lng;
+            setLatitude(lat);
+            setLongitude(lng);
+          }}
+          onFail={(error) => console.error('❌ AUTOCOMPLETE ERROR:', error)}
+          query={{
+            key: GOOGLE_PLACES_API_KEY,
+            language: 'en',
+          }}
+          styles={{
+            textInput: styles.input,
+            container: { flex: 0 },
+          }}
+        />
+            
+      </View>
+
 
       <TouchableOpacity
         style={styles.button}
         onPress={handleSubmit}
+        disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
