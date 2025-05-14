@@ -6,6 +6,7 @@ import { useBluetoothStore } from '../store/bluetoothStore';
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { db, auth } from '../config/firebase';
 import { useFocusEffect } from '@react-navigation/native';
+import dayjs from 'dayjs';
 
 import * as Location from 'expo-location';
 
@@ -30,6 +31,29 @@ export default function RideInsightsScreen() {
       setLongTermStats(data.longTermStats || {});
     }
   };
+
+  const getLast7Days = () => {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    days.push(dayjs().subtract(i, 'day').format('YYYY-MM-DD'));
+  }
+  return days;
+};
+
+const normalizeStats = (stats) => {
+  const last7Days = getLast7Days();
+  const normalized = last7Days.map((date) => ({
+    date,
+    value: stats[date] ?? 0,
+  }));
+  return normalized;
+};
+
+// Assuming `longTermStats` looks like { "2025-05-10": 5, "2025-05-12": 7, ... }
+const normalizedData = normalizeStats(longTermStats);
+const labels = normalizedData.map((item) => dayjs(item.date).format('MM/DD'));
+const data = normalizedData.map((item) => item.value);
+
 
 
   useFocusEffect(
@@ -149,23 +173,23 @@ export default function RideInsightsScreen() {
         style={styles.chart}
       /> */}
 
-      <Text style={styles.chartLabel}>Distance Per Day (km)</Text>
+      <Text style={styles.chartLabel}>Distance Per Day (mi)</Text>
       <BarChart
-        data={{
-          labels: Object.keys(longTermStats),
-          datasets: [
-            {
-              data: Object.values(longTermStats),
-            },
-          ],
-        }}
-        width={350}
-        height={220}
-        yAxisSuffix=" km"
-        chartConfig={chartConfig}
-        fromZero={true}
-        style={styles.chart}
-      />
+      data={{
+        labels: labels,
+        datasets: [
+          {
+            data: data,
+          },
+        ],
+      }}
+      width={350}
+      height={220}
+      yAxisSuffix=" mi"
+      chartConfig={chartConfig}
+      fromZero={true}
+      style={styles.chart}
+    />
 
     </ScrollView>
   );
