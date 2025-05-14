@@ -24,25 +24,33 @@ export default function EditProfileScreen({ navigation }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setName(data.name || '');
-            setEmail(data.email || '');
-            setBio(data.bio || '');
-            setProfileImageLocal(data.profileImage || '');
-            if (data.createdAt?.seconds) {
-              setCreatedAt(new Date(data.createdAt.seconds * 1000).toLocaleDateString());
-            }
-            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: data.name }));
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setName(data.name || '');
+          setEmail(data.email || user.email || '');
+          setBio(data.bio || '');
+          setProfileImageLocal(data.profileImage || '');
+
+          const joined = data.createdAt?.seconds;
+          if (joined) {
+            setCreatedAt(new Date(joined * 1000).toLocaleDateString());
           }
-        } catch (err) {
-          console.error('Failed to fetch profile:', err);
+
+          // Cache only name and createdAt
+          await AsyncStorage.setItem('userInfo', JSON.stringify({
+            name: data.name || '',
+            createdAt: joined || '',
+          }));
         }
+      } catch (err) {
+        console.error('[EditProfile] Failed to fetch user doc:', err);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -51,17 +59,19 @@ export default function EditProfileScreen({ navigation }) {
     if (!user) return;
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      const updatePayload = { name, bio, profileImage };
+
+      await updateDoc(doc(db, 'users', user.uid), updatePayload);
+      await AsyncStorage.setItem('userInfo', JSON.stringify({
         name,
-        bio,
-        profileImage,
-      });
-      await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
+        createdAt: createdAt ? new Date(createdAt).getTime() / 1000 : '',
+      }));
+
       setProfileImageGlobal(profileImage);
       Alert.alert('Saved', 'Profile updated successfully.');
       navigation.goBack();
     } catch (err) {
-      console.error('Error saving profile:', err);
+      console.error('[EditProfile] Save error:', err);
       Alert.alert('Error', 'Failed to save changes.');
     }
   };
@@ -93,18 +103,9 @@ export default function EditProfileScreen({ navigation }) {
 
         setProfileImageLocal(downloadURL);
       } catch (error) {
-        console.error('Image upload error:', error);
+        console.error('[EditProfile] Image upload error:', error);
         Alert.alert('Upload Failed', 'Unable to upload profile image.');
       }
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      console.log('User signed out!');
-    } catch (error) {
-      console.error('Sign out error:', error);
     }
   };
 
@@ -160,7 +161,7 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Ride Stats</Text>
         <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
         <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
-        <Text style={styles.stat}>Crashes Recorded: {/* TODO: hook into crashLogs later */}</Text>
+        <Text style={styles.stat}>Crashes Recorded: {/* Hook up later */}</Text>
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>

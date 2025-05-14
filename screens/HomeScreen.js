@@ -12,7 +12,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 import { useSensorBuffer } from '../hooks/useSensorBuffer';
 import { auth, db } from '../config/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -34,45 +33,69 @@ export default function HomeScreen({ navigation }) {
   const [aiInsight, setAiInsight] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserInfo = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
 
-      try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          await AsyncStorage.setItem('userInfo', JSON.stringify({ name: data.name }));
+          if (userSnap.exists()) {
+            const data = userSnap.data();
 
-          const totalMiles = data.stats?.totalDistanceMiles || 0;
-          const totalMinutes = data.stats?.totalMinutes || 0;
-          const avgSpeed = totalMinutes > 0 ? (totalMiles / (totalMinutes / 60)).toFixed(1) : 0;
+            setUserName(data.name || '');
+            setJoinDate(
+              data.createdAt?.seconds
+                ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+                : ''
+            );
 
-          setStats({
-            totalRides: data.stats?.totalRides || 0,
-            totalMiles: parseFloat(totalMiles.toFixed(1)),
-            avgSpeed,
-          });
+            const totalMiles = data.stats?.totalDistanceMiles || 0;
+            const totalMinutes = data.stats?.totalMinutes || 0;
+            const avgSpeed = totalMinutes > 0
+              ? (totalMiles / (totalMinutes / 60)).toFixed(1)
+              : 0;
 
-          setJoinDate(data.createdAt?.seconds
-            ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
-            : '');
+            setStats({
+              totalRides: data.stats?.totalRides || 0,
+              totalMiles: parseFloat(totalMiles.toFixed(1)),
+              avgSpeed,
+            });
+
+            await AsyncStorage.setItem('userInfo', JSON.stringify({
+              name: data.name || '',
+              createdAt: data.createdAt?.seconds || '',
+            }));
+          } else {
+            await loadUserInfoFromCache();
+          }
+        } catch (err) {
+          console.error('[HomeScreen] Firebase fetch failed:', err);
+          await loadUserInfoFromCache();
         }
+      };
 
-        const stored = await AsyncStorage.getItem('userInfo');
-        if (stored) {
-          const { name } = JSON.parse(stored);
-          setUserName(name);
+      const loadUserInfoFromCache = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('userInfo');
+          if (stored) {
+            const { name, createdAt } = JSON.parse(stored);
+            setUserName(name || '');
+            setJoinDate(
+              createdAt ? new Date(createdAt * 1000).toLocaleDateString() : ''
+            );
+          }
+        } catch (err) {
+          console.error('[HomeScreen] Failed to load cache:', err);
         }
-      } catch (err) {
-        console.error('[HomeScreen] Failed to fetch user info:', err);
-      }
-    });
+      };
 
-    return () => unsubscribe();
-  }, []);
+      loadUserInfo();
+    }, [])
+  );
 
   useEffect(() => {
     const loadCachedInsight = async () => {
