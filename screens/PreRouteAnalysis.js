@@ -40,24 +40,20 @@ const getCongestionColor = (level) => {
     }
   };
 
-  const mapWeatherCodeToIcon = (code) => {
-    const iconMap = {
-      1000: "☀️",
-      1100: "🌤",
-      1101: "🌥",
-      1102: "☁️",
-      4000: "🌧",
-      4200: "🌦",
-      4201: "🌧",
-      5000: "❄️",
-      5100: "🌨",
-      6000: "🌫",
-      6200: "🌁",
-    };
-    return iconMap[code] || "❓";
-  };
+  function mapWeatherCodeToIcon(code) {
+    if ([0].includes(code)) return "☀️"; // Clear
+    if ([1].includes(code)) return "🌤"; // Mainly clear
+    if ([2].includes(code)) return "🌥"; // Partly cloudy
+    if ([3].includes(code)) return "☁️"; // Overcast
+    if ([45, 48].includes(code)) return "🌫"; // Fog
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return "🌧"; // Rain
+    if ([71, 73, 75, 85, 86].includes(code)) return "❄️"; // Snow
+    if ([95, 96, 99].includes(code)) return "🌩"; // Thunderstorms
+    return "❓"; // Unknown
+  }
+  
 
-  const getTripWeatherSummary = async (locations, apiKey) => {
+  const getTripWeatherSummary = async (locations) => {
     let averageTemp = 0;
     let averageWind = 0;
     let apiCalls = 0;
@@ -71,22 +67,29 @@ const getCongestionColor = (level) => {
   
     const snapshots = [];
   
-    for (let i = 0; i < locations.length; i += locations.length - 1) {
-      const point = locations[i];
-      const { latitude, longitude, timestamp } = point;
+    for (let i = 0; i < locations.length; i += 4) {
+      const { latitude, longitude, timestamp } = locations[i];
   
-      const url = `https://api.tomorrow.io/v4/weather/history/recent?location=${latitude},${longitude}&timesteps=1h&startTime=${timestamp}&endTime=${timestamp}&apikey=${apiKey}`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,windspeed_10m,weathercode&timezone=UTC`;
   
       try {
         const response = await fetch(url);
-        const json = await response.json();
+        const data = await response.json();
+        console.log("New api call", data)
   
-        const interval = json?.timelines?.hourly?.[0];
-        if (interval) {
-          const values = interval.values;
-          const temp = values.temperature;
-          const wind = values.windSpeed;
-          const icon = mapWeatherCodeToIcon(values.weatherCode);
+        const times = data.hourly.time;
+        const temps = data.hourly.temperature_2m;
+        const winds = data.hourly.windspeed_10m;
+        const codes = data.hourly.weathercode;
+  
+        // Find closest time index
+        const targetTime = new Date(timestamp).toISOString().slice(0, 13); // "YYYY-MM-DDTHH"
+        const index = times.findIndex(t => t.startsWith(targetTime));
+  
+        if (index !== -1) {
+          const temp = temps[index];
+          const wind = winds[index];
+          const icon = mapWeatherCodeToIcon(codes[index]);
   
           averageTemp += temp;
           averageWind += wind;
@@ -99,17 +102,17 @@ const getCongestionColor = (level) => {
             lat: latitude,
             lon: longitude,
             timestamp,
-            temp: (temp * 1.8 + 32), // convert to °F
+            temp: (temp * 1.8 + 32), // °F
             wind,
             icon
           });
         }
       } catch (error) {
-        console.error(`Weather API call failed for point ${i}:`, error);
+        console.error("Forecast API error:", error);
       }
     }
   
-    const popularIcon = Object.entries(iconCounts).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+    const popularIcon = Object.entries(iconCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0];
   
     return {
       average_temperature: apiCalls ? (averageTemp / apiCalls) * 1.8 + 32 : 0,
@@ -117,7 +120,7 @@ const getCongestionColor = (level) => {
       max_temperature: maxTemp !== -Infinity ? (maxTemp * 1.8 + 32) : null,
       average_wind_speed: apiCalls ? averageWind / apiCalls : 0,
       icons: popularIcon,
-      snapshots, // add snapshots array to the return
+      snapshots
     };
   };
   
@@ -368,7 +371,7 @@ export default function PreRouteAnalysis() {
         timestamp: new Date().toISOString(), // Replace with actual if available
       }));
       
-      const weather = await getTripWeatherSummary(locations, 'deccEn38JQr9odvVdVscQfjF2drvKMR5');
+      const weather = await getTripWeatherSummary(locations);
       setWeatherSummary(weather);
 
 
