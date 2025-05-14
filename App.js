@@ -7,6 +7,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
+import 'react-native-gesture-handler'; 
+
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
