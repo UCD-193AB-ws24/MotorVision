@@ -71,7 +71,7 @@ const getCongestionColor = (level) => {
   
     const snapshots = [];
   
-    for (let i = 0; i < locations.length; i += 4) {
+    for (let i = 0; i < locations.length; i += locations.length - 1) {
       const point = locations[i];
       const { latitude, longitude, timestamp } = point;
   
@@ -127,6 +127,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
     // this is the the MapBox Call!
   try {
+    console.log('Origin:', origin); 
+    console.log('Destination:', destination);
     const baseUrl = "https://api.mapbox.com/directions/v5/mapbox/driving-traffic";
     const coordinates = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
 
@@ -141,15 +143,23 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
       access_token: mapboxAccessToken,
     });
 
-    const response = await fetch(`${baseUrl}/${coordinates}?${params}`, {
-      method: 'GET',
-    });
+   const response = await fetch(`${baseUrl}/${coordinates}?${params}`);
 
+    const contentType = response.headers.get("content-type");
     if (!response.ok) {
+      const text = await response.text(); // debug output
+      console.error("Mapbox returned error HTML:", text.slice(0, 100));
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Non-JSON response:", text.slice(0, 100));
+      throw new Error("Expected JSON but got HTML or other content.");
+    }
+
     const data = await response.json();
+
     const allRoutes = data.routes.map((route) => {
       const legData = route.legs[0];
       const annotations = legData.annotation;
@@ -180,7 +190,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
       let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
 
       for (let i = 0; i < congestions.length; i++) {
-        const currentSpeed = maxSpeeds[i].speed * 0.62;
+const rawSpeed = maxSpeeds[i]?.speed;
+const currentSpeed = typeof rawSpeed === "number" ? rawSpeed * 0.62 : 0;
         if (prevMaxSpeed !== currentSpeed) {
           summary.max_speed_overview.push([currentSpeed, stepCoordinates[i]]);
           prevMaxSpeed = currentSpeed;
@@ -335,6 +346,7 @@ export default function PreRouteAnalysis() {
       // TODO: swap this out with live location
       const origin = userLocation ? [userLocation.lon, userLocation.lat] : [-121.7405, 38.5449];
       const destination = [parsedLon, parsedLat]; // User input
+      console.log("THIS IS THE DESTINATION", destination);
 
       const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
 
@@ -459,12 +471,14 @@ export default function PreRouteAnalysis() {
   
 
   const handleSelect = (item) => {
+    console.log('Selected item:', item);
     setQuery(item.display_name);
     setResults([]);
   
     // Ensure numerical parsing
     const lat = parseFloat(item.lat);
     const lon = parseFloat(item.lon); // not "long"
+    console.log('Parsed coordinates:', { lat, lon });
   
     setLatitude(lat);
     setLongitude(lon);
@@ -531,7 +545,10 @@ export default function PreRouteAnalysis() {
             <Text style={styles.itemText}>{item.display_name}</Text>
           </TouchableOpacity>
         )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        nestedScrollEnabled={true} // important if inside another scrollview
       />
+
     </View>
       
 
@@ -929,65 +946,41 @@ const styles = StyleSheet.create({
     color: '#fff', // White input text
   },
   list: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 12,
-    maxHeight: 240,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  
-    // Subtle shadow for iOS
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  
-    // Subtle elevation for Android
-    elevation: 3,
-  },
-  box: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3, // for Android shadow
-  },
-  item: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 5,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3, // Android shadow
-  },
-  itemText: {
-    fontSize: 16,
-    fontWeight: '100',
-    color: '#333',
-  },
-  summaryCard: {
-    backgroundColor: '#222',
-    padding: 16,
-    marginVertical: 10,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  
+  backgroundColor: '#1E1E1E', // Slightly lighter than black for contrast
+  // marginHorizontal: 16,
+  marginTop: 8,
+  borderRadius: 12,
+  maxHeight: 240,
+  borderWidth: 1,
+  borderColor: '#222', // Light border for visibility
+  paddingVertical: 4,
+
+  // Shadow (iOS)
+  shadowColor: '#000',
+  shadowOpacity: 0.1,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+
+  // Elevation (Android)
+  elevation: 3,
+},
+
+item: {
+  paddingVertical: 14,
+  paddingHorizontal: 12,
+  backgroundColor: '##1E1E1E',
+},
+
+itemText: {
+  color: '#fff',
+  fontSize: 16,
+},
+
+separator: {
+  height: 1,
+  backgroundColor: 'black',
+  marginHorizontal: 12,
+},
+
   
 });
