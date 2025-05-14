@@ -51,6 +51,98 @@ const getCongestionColor = (level) => {
     if ([95, 96, 99].includes(code)) return "🌩"; // Thunderstorms
     return "❓"; // Unknown
   }
+
+  // toggle this flag to switch between real & mock
+const USE_MOCK = false;
+
+/**
+ * Inline mock of preRouteAnalysis()
+ * (no imports—just define it in your component file)
+ */
+async function preRouteAnalysisMock(origin, destination) {
+  // Simulate a slight delay
+  await new Promise((res) => setTimeout(res, 200));
+
+  const numPoints = 20;
+  const lonStep = (destination[0] - origin[0]) / (numPoints - 1);
+  const latStep = (destination[1] - origin[1]) / (numPoints - 1);
+
+  const stepCoordinates = [];
+  const congestionLevels = [];
+  const maxSpeeds = [];
+
+  const congestionTypes = ['low', 'moderate', 'heavy', 'severe'];
+  const congestionCounts = { low: 0, moderate: 0, heavy: 0, severe: 0, unknown: 0 };
+  const congestionLocations = [["congestion_value", "latitude", "longitude"]];
+
+  for (let i = 0; i < numPoints; i++) {
+    const lon = origin[0] + i * lonStep;
+    const lat = origin[1] + i * latStep;
+    const coord = [lon, lat];
+    stepCoordinates.push(coord);
+
+    // Rotate congestion type every 5 segments
+    const congestion = congestionTypes[Math.floor(i / 5) % congestionTypes.length];
+    congestionLevels.push(congestion);
+    congestionCounts[congestion] += 1;
+    congestionLocations.push([congestion, lat, lon]);
+
+    // Simulate maxspeed changes
+    const speed = 30 + (i % 4) * 10;
+    maxSpeeds.push({ speed }); // mimic the real API shape
+  }
+
+  // Build overview summaries
+  const summary = {
+    max_congestion: Object.keys(congestionCounts).reduce((a, b) =>
+      congestionCounts[a] > congestionCounts[b] ? a : b
+    ),
+    congestion_overview: [],
+    max_speed: 0,
+    max_speed_overview: [],
+  };
+
+  let prevCongestion = congestionLevels[0];
+  let prevSpeed = maxSpeeds[0]?.speed * 0.62 || 0;
+
+  summary.congestion_overview.push([prevCongestion, stepCoordinates[0]]);
+  summary.max_speed_overview.push([prevSpeed, stepCoordinates[0]]);
+  summary.max_speed = prevSpeed;
+
+  for (let i = 1; i < numPoints; i++) {
+    const currentCongestion = congestionLevels[i];
+    const currentSpeed = maxSpeeds[i]?.speed * 0.62 || 0;
+
+    if (currentCongestion !== prevCongestion) {
+      summary.congestion_overview.push([currentCongestion, stepCoordinates[i]]);
+      prevCongestion = currentCongestion;
+    }
+
+    if (currentSpeed !== prevSpeed) {
+      summary.max_speed_overview.push([currentSpeed, stepCoordinates[i]]);
+      prevSpeed = currentSpeed;
+    }
+
+    if (currentSpeed > summary.max_speed) {
+      summary.max_speed = currentSpeed;
+    }
+  }
+
+  return [
+    {
+      ...summary,
+      congestion: {
+        counts: congestionCounts,
+        locations: congestionLocations,
+      },
+      stepCoordinates,
+      polyline_coordinates: congestionLevels,
+    },
+  ];
+}
+
+
+
   
 
   const getTripWeatherSummary = async (locations) => {
@@ -348,7 +440,14 @@ export default function PreRouteAnalysis() {
       const destination = [parsedLon, parsedLat]; // User input
       console.log("THIS IS THE DESTINATION", destination);
 
-      const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+      // const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+
+      const result = USE_MOCK
+    ? await preRouteAnalysisMock(origin, destination)
+    : await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+
+  // pick the first route
+      setResponse(routes[0]);
 
       
       setRegion({
