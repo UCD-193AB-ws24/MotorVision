@@ -24,6 +24,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import PreRouteAnalysis from './screens/PreRouteAnalysis';
+import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -67,6 +68,7 @@ function SettingsStack() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
+      <Stack.Screen name="SensorAndLocation" component={SensorAndLocationScreen} />
     </Stack.Navigator>
   );
 }

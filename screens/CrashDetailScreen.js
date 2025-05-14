@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useBluetoothStore } from '../store/bluetoothStore';
@@ -20,22 +19,43 @@ export default function CrashDetailScreen({ route, navigation }) {
   const [trajectoryImage, setTrajectoryImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isImageVisible, setIsImageVisible] = useState(false);
-  const getLastCrashBuffer = useBluetoothStore((state) => state.getLastCrashBuffer);
 
+  const getLastCrashBuffer = useBluetoothStore((state) => state.getLastCrashBuffer);
   const { crash, locations } = route.params;
+
+  const buffer = getLastCrashBuffer();
+  const crashTime = useMemo(() => new Date(crash.timestamp || crash.time).getTime(), [crash]);
+
+  const lastEntry = buffer?.[buffer.length - 1];
+  const isRecent = useMemo(() => {
+    const lastTimestamp = lastEntry?.timestamp;
+    return lastTimestamp && Math.abs(lastTimestamp - crashTime) < 15000;
+  }, [lastEntry, crashTime]);
+
+  const formatTime = (time) => {
+    if (!time) return 'Unknown';
+    const date = new Date(time);
+    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  const formatSpeed = (speed) =>
+    typeof speed === 'number' ? `${(speed * 2.237).toFixed(1)} mph` : 'N/A';
+
+  const formatAccel = (accel) =>
+    typeof accel === 'number' ? `${accel.toFixed(2)} m/s²` : 'N/A';
+
+  const formatLocation = (loc) =>
+    loc?.latitude && loc?.longitude ? `${loc.latitude}, ${loc.longitude}` : 'Not available';
 
   const fetchTrajectoryImage = async () => {
     setIsLoading(true);
     const url = 'http://3.147.83.156:8000/traj_image_live/';
 
-    const payload = (Array.isArray(locations) && locations.length > 0
-      ? locations
-      : [{
-          latitude: Number(crash.location?.latitude),
-          longitude: Number(crash.location?.longitude),
-          timestamp: new Date(crash.timestamp || crash.time || new Date()).toISOString(),
-        }]
-    ).map(loc => ({
+    const payload = (locations?.length > 0 ? locations : [{
+      latitude: Number(crash.location?.latitude),
+      longitude: Number(crash.location?.longitude),
+      timestamp: new Date(crash.timestamp || crash.time || new Date()).toISOString(),
+    }]).map(loc => ({
       latitude: Number(loc.latitude),
       longitude: Number(loc.longitude),
       timestamp: String(loc.timestamp),
@@ -43,12 +63,16 @@ export default function CrashDetailScreen({ route, navigation }) {
 
     try {
       const response = await axios.post(url, { locations: payload });
-      const base64 = response.data.image_data;
-      const imageUrl = `data:image/png;base64,${base64}`;
-      setTrajectoryImage(imageUrl);
-      setIsImageVisible(true);
+      const base64 = response.data?.image_data;
+      if (base64) {
+        setTrajectoryImage(`data:image/png;base64,${base64}`);
+        setIsImageVisible(true);
+      } else {
+        Alert.alert('No image returned');
+      }
     } catch (error) {
       console.error('Error fetching trajectory image:', error);
+      Alert.alert('Error', 'Failed to load trajectory image.');
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +80,6 @@ export default function CrashDetailScreen({ route, navigation }) {
 
   const exportCrashBuffer = async () => {
     try {
-      const buffer = getLastCrashBuffer();
       if (!buffer || buffer.length === 0) {
         Alert.alert('No buffer data', 'No crash buffer available to export.');
         return;
@@ -96,45 +119,20 @@ export default function CrashDetailScreen({ route, navigation }) {
 
       await FileSystem.writeAsStringAsync(path, content);
 
-      if (!(await Sharing.isAvailableAsync())) {
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Crash Buffer',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
         Alert.alert('Export Complete', `File saved to: ${path}`);
-        return;
       }
-
-      await Sharing.shareAsync(path, {
-        mimeType: 'text/csv',
-        dialogTitle: 'Export Crash Buffer',
-        UTI: 'public.comma-separated-values-text',
-      });
     } catch (err) {
-      console.error('Failed to export buffer:', err);
+      console.error('Export error:', err);
       Alert.alert('Export Failed', 'Could not export crash buffer.');
     }
   };
-
-  const formatSpeed = (speed) => {
-    return typeof speed === 'number' ? `${(speed * 2.237).toFixed(1)} mph` : 'N/A';
-  };
-
-  const formatAccel = (accel) => {
-    return typeof accel === 'number' ? `${accel.toFixed(2)} m/s²` : 'N/A';
-  };
-
-  const formatLocation = (loc) => {
-    return loc ? `${loc.latitude}, ${loc.longitude}` : 'Not available';
-  };
-
-  const formatTime = (time) => {
-    if (!time) return 'Unknown';
-    const date = new Date(time);
-    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
-
-  const buffer = getLastCrashBuffer();
-  const lastEntry = buffer?.[buffer.length - 1];
-  const crashTime = new Date(crash.timestamp || crash.time).getTime();
-  const timeDiff = lastEntry ? Math.abs(lastEntry.timestamp - crashTime) : Infinity;
-  const isRecent = timeDiff < 15000;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -159,7 +157,7 @@ export default function CrashDetailScreen({ route, navigation }) {
         <Text style={styles.detailValue}>{formatLocation(crash.location)}</Text>
       </View>
 
-      {buffer && buffer.length > 0 && isRecent && (
+      {isRecent && (
         <TouchableOpacity style={styles.button} onPress={exportCrashBuffer}>
           <Text style={styles.buttonText}>Export Crash Buffer</Text>
         </TouchableOpacity>
@@ -204,23 +202,10 @@ export default function CrashDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  backText: {
-    fontSize: 18,
-    color: '#0A84FF',
-    marginLeft: 5,
-  },
+  container: { flex: 1, backgroundColor: '#121212' },
+  contentContainer: { padding: 20 },
+  backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  backText: { fontSize: 18, color: '#0A84FF', marginLeft: 5 },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -234,11 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
   },
-  detailLabel: {
-    fontSize: 16,
-    color: '#bbb',
-    marginBottom: 4,
-  },
+  detailLabel: { fontSize: 16, color: '#bbb', marginBottom: 4 },
   detailValue: {
     fontSize: 18,
     color: '#ffffff',
@@ -259,11 +240,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
   image: {
     width: '100%',
     height: 250,

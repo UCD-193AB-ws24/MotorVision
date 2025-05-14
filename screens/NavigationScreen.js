@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import {getFriendsLocations, updateUserLocation} from './FriendsService'; 
+import { getFriendsLocations, updateUserLocation } from '../services/friendService';
 import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment} from 'firebase/firestore';
 
 
@@ -365,9 +365,11 @@ const loadFriendsLocations = async () => {
               }}
             >
               <View style={{ alignItems: 'center' }}>
+              {console.log('Profile Image URI:', friend.location.profileImage)}
+
                 <Image
                   source={{
-                    uri: friend.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
+                    uri: friend.location.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
                   }}
                   style={{
                     width: 40,
