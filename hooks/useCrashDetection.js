@@ -1,74 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Accelerometer } from 'expo-sensors';
-import { useBluetoothStore } from '../store/bluetoothStore';
 import * as Location from 'expo-location';
+import { useBluetoothStore } from '../store/bluetoothStore';
 
-const THRESHOLD = 5; // Adjusted to reduce sensitivity
+const THRESHOLD = 5; // m/s² threshold for crash detection
 const CRASH_COOLDOWN_MS = 3000;
 
 export const useCrashDetection = () => {
   const [isCrashed, setIsCrashed] = useState(false);
-  const recordCrashEvent = useBluetoothStore((state) => state.recordCrashEvent);
+
   const tripActive = useBluetoothStore((state) => state.tripActive);
+  const recordCrashEvent = useBluetoothStore((state) => state.recordCrashEvent);
   const getSensorBuffer = useBluetoothStore((state) => state.getSensorBuffer);
   const setLastCrashBuffer = useBluetoothStore((state) => state.setLastCrashBuffer);
 
-  let lastCrashTime = 0;
+  const lastCrashTimeRef = useRef(0);
+  const subscriptionRef = useRef(null);
 
   useEffect(() => {
-    let subscription;
+    const handleAcceleration = async ({ x, y, z }) => {
+      if (!tripActive) return;
 
-    const subscribe = () => {
-      subscription = Accelerometer.addListener(async ({ x, y, z }) => {
-        if (!tripActive) return;
+      const acceleration = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+      const now = Date.now();
 
-        const acceleration = Math.sqrt(x * x + y * y + z * z);
+      if (acceleration > THRESHOLD && now - lastCrashTimeRef.current > CRASH_COOLDOWN_MS) {
+        console.log(`🚨 Crash detected! Acceleration: ${acceleration}`);
+        setIsCrashed(true);
+        lastCrashTimeRef.current = now;
 
-        if (
-          acceleration > THRESHOLD &&
-          Date.now() - lastCrashTime > CRASH_COOLDOWN_MS
-        ) {
-          console.log(`🚨 Crash detected! Acceleration: ${acceleration}`);
-          setIsCrashed(true);
-          lastCrashTime = Date.now();
-
-          let location = null;
-          try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-              const position = await Location.getCurrentPositionAsync({});
-              location = {
-                latitude: position.coords.latitude.toFixed(4),
-                longitude: position.coords.longitude.toFixed(4),
-              };
-            }
-          } catch (error) {
-            console.error('Error getting location:', error);
+        let location = null;
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({});
+            location = {
+              latitude: pos.coords.latitude.toFixed(4),
+              longitude: pos.coords.longitude.toFixed(4),
+            };
           }
-
-          // Record the crash event in trip data
-          recordCrashEvent({
-            time: new Date().toISOString(),
-            speed: acceleration,
-            acceleration: acceleration.toFixed(2),
-            location,
-          });
-
-          // Store buffer for later export
-          const buffer = getSensorBuffer();
-          setLastCrashBuffer(buffer);
-          console.log('🧠 Stored last crash buffer with', buffer.length, 'entries');
-
-          // Reset crash flag after delay
-          setTimeout(() => setIsCrashed(false), 5000);
+        } catch (error) {
+          console.error('Failed to get location:', error);
         }
-      });
+
+        recordCrashEvent({
+          time: new Date().toISOString(),
+          speed: acceleration,
+          acceleration: acceleration.toFixed(2),
+          location,
+        });
+
+        const buffer = getSensorBuffer();
+        setLastCrashBuffer(buffer);
+        console.log(`🧠 Stored crash buffer (${buffer.length} entries)`);
+
+        setTimeout(() => setIsCrashed(false), 5000);
+      }
     };
 
-    subscribe();
+    Accelerometer.setUpdateInterval(100); // 10Hz
+    subscriptionRef.current = Accelerometer.addListener(handleAcceleration);
 
     return () => {
-      subscription?.remove();
+      subscriptionRef.current?.remove();
     };
   }, [tripActive]);
 

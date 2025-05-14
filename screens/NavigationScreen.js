@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import {getFriendsLocations, updateUserLocation} from './FriendsService'; 
+import { getFriendsLocations, updateUserLocation } from '../services/friendService';
 import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment} from 'firebase/firestore';
 
 
