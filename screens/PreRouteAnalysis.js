@@ -495,6 +495,8 @@ export default function PreRouteAnalysis() {
   const scrollViewRef = useRef(null);
   const detailsRef = useRef(null);
   const weatherRef = useRef(null);
+  const roadRef = useRef(null);
+
 
   const scrollToDetails = () => {
     if (detailsRef.current && scrollViewRef.current) {
@@ -515,6 +517,22 @@ export default function PreRouteAnalysis() {
   const scrollToWeather = () => {
     if (weatherRef.current && scrollViewRef.current) {
       weatherRef.current.measureLayout(
+        scrollViewRef.current.getNativeScrollRef
+          ? scrollViewRef.current.getNativeScrollRef() // for expo SDK 49+ or react-native-web
+          : scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        },
+        (error) => {
+          console.error('measureLayout error:', error);
+        }
+      );
+    }
+  };
+
+  const scrollToRoad = () => {
+    if (roadRef.current && scrollViewRef.current) {
+      roadRef.current.measureLayout(
         scrollViewRef.current.getNativeScrollRef
           ? scrollViewRef.current.getNativeScrollRef() // for expo SDK 49+ or react-native-web
           : scrollViewRef.current,
@@ -606,6 +624,13 @@ export default function PreRouteAnalysis() {
             )}
             </View>
             </TouchableOpacity>
+
+            
+            <TouchableOpacity onPress={scrollToRoad}>
+            <View style={styles.resultBox}>
+              <Text style={styles.sectionTitle}>Roadside Resources</Text>
+            </View>
+            </TouchableOpacity>
             
       
             {/* Stretch is adding scenic view */}
@@ -647,7 +672,7 @@ export default function PreRouteAnalysis() {
         <MapView key={`map-${currentRouteIndex}`} style={{ flex: 1 }} region={region}  // Use dynamic region
         onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
         >
-            {/* TODO: make polyline change according to congestion situtation*/}
+            {/* Adding the congestion */}
             {renderMultiColorPolyline()}
 
          {/* Speed Bubbles */}
@@ -731,6 +756,13 @@ export default function PreRouteAnalysis() {
 )}
 
       </View>
+
+
+      {/* Adding scroallable feature */}
+       {/* Weather conditions */}
+       <View ref={roadRef} style={styles.resultBox}>
+            <Text style={styles.headerTitle}>Roadside Resources</Text>
+       </View>
 
 
         {routes.length > 1 && (
