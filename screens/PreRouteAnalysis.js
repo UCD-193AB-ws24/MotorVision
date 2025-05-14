@@ -75,7 +75,6 @@ const getCongestionColor = (level) => {
       try {
         const response = await fetch(url);
         const data = await response.json();
-        console.log("New api call", data)
   
         const times = data.hourly.time;
         const temps = data.hourly.temperature_2m;
@@ -170,6 +169,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
       const congestions = annotations.congestion;
       const maxSpeeds = annotations.maxspeed;
+      const polyline_coordinates = legData.annotation.congestion;
+
 
       const analysis = {
         instructions: "",
@@ -221,7 +222,12 @@ const currentSpeed = typeof rawSpeed === "number" ? rawSpeed * 0.62 : 0;
       );
       summary.max_congestion = `${maxCongestion}`;
 
-      return { ...summary, congestion: analysis.congestion };
+      return {
+        ...summary,
+        congestion: analysis.congestion,
+        stepCoordinates,
+        polyline_coordinates: congestions,
+      };
     });
 
     return allRoutes;
@@ -250,17 +256,12 @@ const getCongestionEmoji = (level) => {
     }
   };
 
-  const getSpeedColor = (speed) => {
-    if (speed < 30) return 'green';
-    if (speed < 60) return 'yellow';
-    return 'red';
-  };
 
 
   // SpeedBubble Component
   const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
     // Function to determine the bubble color based on speed
-    if (speed === null || isNaN(speed)) {
+    if (speed === null || isNaN(speed) || speed === 0) {
         return null; // No bubble rendered
       }
     
@@ -343,10 +344,6 @@ export default function PreRouteAnalysis() {
 
       console.log('Selected Location:', { parsedLat, parsedLon });
 
-
-
-      
-      // TODO: swap this out with live location
       const origin = userLocation ? [userLocation.lon, userLocation.lat] : [-121.7405, 38.5449];
       const destination = [parsedLon, parsedLat]; // User input
       console.log("THIS IS THE DESTINATION", destination);
@@ -383,16 +380,22 @@ export default function PreRouteAnalysis() {
     }
   };
 
-  {/* Multi color polyline */}
   const renderMultiColorPolyline = () => {
+    const geometryCoords = response?.stepCoordinates;
+    const congestionLevels = response?.polyline_coordinates;
+    console.log("Entering rendering")
+    console.log("Coords:", geometryCoords?.length);
+    console.log("Congestion levels:", congestionLevels?.length);
+  
+    if (!geometryCoords || geometryCoords.length < 2 || !congestionLevels) return null;
+  
     const segments = [];
-    const points = response?.congestion_overview;
-    if (!points || points.length < 2) return null;
-
-    for (let i = 1; i < points.length; i++) {
-      const [prevCongestion, prevCoord] = points[i - 1];
-      const [, currCoord] = points[i];
-
+  
+    for (let i = 1; i < geometryCoords.length; i++) {
+      const prevCoord = geometryCoords[i - 1];
+      const currCoord = geometryCoords[i];
+      const congestion = congestionLevels[i - 1] || 'unknown';
+  
       segments.push(
         <Polyline
           key={`segment-${i}`}
@@ -400,13 +403,15 @@ export default function PreRouteAnalysis() {
             { latitude: prevCoord[1], longitude: prevCoord[0] },
             { latitude: currCoord[1], longitude: currCoord[0] },
           ]}
-          strokeColor={getCongestionColor(prevCongestion)}
+          strokeColor={getCongestionColor(congestion)}
           strokeWidth={6}
         />
       );
     }
+  
     return segments;
   };
+  
 
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
