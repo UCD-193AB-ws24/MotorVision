@@ -469,7 +469,45 @@ export default function PreRouteAnalysis() {
     setLatitude(lat);
     setLongitude(lon);
   };
+  
+  const scrollViewRef = useRef(null);
+  const detailsRef = useRef(null);
+  const weatherRef = useRef(null);
 
+  const scrollToDetails = () => {
+    if (detailsRef.current && scrollViewRef.current) {
+      detailsRef.current.measureLayout(
+        scrollViewRef.current.getNativeScrollRef
+          ? scrollViewRef.current.getNativeScrollRef() // for expo SDK 49+ or react-native-web
+          : scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        },
+        (error) => {
+          console.error('measureLayout error:', error);
+        }
+      );
+    }
+  };
+
+  const scrollToWeather = () => {
+    if (weatherRef.current && scrollViewRef.current) {
+      weatherRef.current.measureLayout(
+        scrollViewRef.current.getNativeScrollRef
+          ? scrollViewRef.current.getNativeScrollRef() // for expo SDK 49+ or react-native-web
+          : scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        },
+        (error) => {
+          console.error('measureLayout error:', error);
+        }
+      );
+    }
+  };
+
+
+  
 
   return (
     <KeyboardAvoidingView
@@ -486,12 +524,11 @@ export default function PreRouteAnalysis() {
         placeholder="Enter destination..."
       />
       <FlatList
-        style={styles.list}
         data={results}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
-            <Text>{item.display_name}</Text>
+            <Text style={styles.itemText}>{item.display_name}</Text>
           </TouchableOpacity>
         )}
       />
@@ -513,11 +550,13 @@ export default function PreRouteAnalysis() {
       {loading && <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />}
       {error && <Text style={styles.errorText}>{error}</Text>}
       {response && (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.resultBox}>
           {/* Summary Section */}
           <View style={styles.summaryContainer}>
             <Text style={styles.headerTitle}>Summary</Text>
+
+            <TouchableOpacity onPress={scrollToDetails}>
             <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
             <Text style={styles.summaryText}>
@@ -525,6 +564,10 @@ export default function PreRouteAnalysis() {
             </Text>
             <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
             </View>
+            </TouchableOpacity>
+
+
+            <TouchableOpacity onPress={scrollToWeather}>
             <View style={styles.resultBox}>
               <Text style={styles.sectionTitle}>Weather Conditions</Text>
               {weatherSummary ? (
@@ -537,6 +580,7 @@ export default function PreRouteAnalysis() {
             <Text style={styles.summaryText}>Loading weather data...</Text>
             )}
             </View>
+            </TouchableOpacity>
             
       
             {/* Stretch is adding scenic view */}
@@ -545,7 +589,8 @@ export default function PreRouteAnalysis() {
           </View>
         
           {/* Congestion Overview Section TODO: change this to be more user friendly */}
-          <View style={styles.resultBox}>
+          <View ref={detailsRef}
+          style={styles.resultBox}>
         <Text style={styles.headerTitle}>Traffic and Road Information</Text>
           <View style={styles.overviewContainer}>
             <Text style={styles.sectionTitle}>Congestion Overview</Text>
@@ -594,7 +639,7 @@ export default function PreRouteAnalysis() {
         </View>
 
         {/* Weather conditions */}
-        <View style={styles.resultBox}>
+        <View ref={weatherRef} style={styles.resultBox}>
             <Text style={styles.headerTitle}>Weather Information</Text>
 
   
@@ -902,6 +947,47 @@ const styles = StyleSheet.create({
   
     // Subtle elevation for Android
     elevation: 3,
-  }
+  },
+  box: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // for Android shadow
+  },
+  item: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 5,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: '100',
+    color: '#333',
+  },
+  summaryCard: {
+    backgroundColor: '#222',
+    padding: 16,
+    marginVertical: 10,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  
   
 });
