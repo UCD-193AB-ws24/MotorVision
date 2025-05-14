@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  FlatList,
   ScrollView, findNodeHandle,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import 'react-native-get-random-values';
+import * as Location from 'expo-location';
 
 
 const GOOGLE_API_KEY = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
+const Nominatim_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=";
+
 
 
 
@@ -124,6 +127,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
     // this is the the MapBox Call!
   try {
+    console.log('Origin:', origin); 
+    console.log('Destination:', destination);
     const baseUrl = "https://api.mapbox.com/directions/v5/mapbox/driving-traffic";
     const coordinates = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
 
@@ -138,15 +143,23 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
       access_token: mapboxAccessToken,
     });
 
-    const response = await fetch(`${baseUrl}/${coordinates}?${params}`, {
-      method: 'GET',
-    });
+   const response = await fetch(`${baseUrl}/${coordinates}?${params}`);
 
+    const contentType = response.headers.get("content-type");
     if (!response.ok) {
+      const text = await response.text(); // debug output
+      console.error("Mapbox returned error HTML:", text.slice(0, 100));
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Non-JSON response:", text.slice(0, 100));
+      throw new Error("Expected JSON but got HTML or other content.");
+    }
+
     const data = await response.json();
+
     const allRoutes = data.routes.map((route) => {
       const legData = route.legs[0];
       const annotations = legData.annotation;
@@ -177,7 +190,8 @@ const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
       let prevMaxSpeed = maxSpeeds[0]?.speed ? maxSpeeds[0].speed * 0.62 : 0;
 
       for (let i = 0; i < congestions.length; i++) {
-        const currentSpeed = maxSpeeds[i].speed * 0.62;
+const rawSpeed = maxSpeeds[i]?.speed;
+const currentSpeed = typeof rawSpeed === "number" ? rawSpeed * 0.62 : 0;
         if (prevMaxSpeed !== currentSpeed) {
           summary.max_speed_overview.push([currentSpeed, stepCoordinates[i]]);
           prevMaxSpeed = currentSpeed;
@@ -330,8 +344,9 @@ export default function PreRouteAnalysis() {
 
       
       // TODO: swap this out with live location
-       const origin = [-122.7405, 38.5449]; // Davis
-       const destination = [parsedLon, parsedLat]; // User input
+      const origin = userLocation ? [userLocation.lon, userLocation.lat] : [-121.7405, 38.5449];
+      const destination = [parsedLon, parsedLat]; // User input
+      console.log("THIS IS THE DESTINATION", destination);
 
       const result = await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
 
@@ -358,7 +373,7 @@ export default function PreRouteAnalysis() {
 
 
     } catch (err) {
-      setError('Location is too far away. Please choose a location with 100 miles. ', err.message);
+      setError('Location is too far away or is invalid. Please either choose a location with 100 miles or try to change spelling. ');
       console.error('Detailed error:', err);
     } finally {
       setLoading(false);
@@ -390,6 +405,85 @@ export default function PreRouteAnalysis() {
     return segments;
   };
 
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [results, setResults] = useState([]);
+
+  const milesToDegrees = (miles) => miles / 69.0; // approx conversion for latitude/longitude
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('Permission to access location was denied');
+          return;
+        }
+  
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          lat: location.coords.latitude,
+          lon: location.coords.longitude,
+        });
+  
+        // Optionally center map on user
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+  
+      } catch (error) {
+        console.error('Error getting location:', error);
+      }
+    };
+  
+    fetchLocation();
+  }, []);
+
+  const handleSearch = async (text) => {
+    setQuery(text);
+    if (text.length < 3) return setResults([]);
+
+    const delta = milesToDegrees(100); // ~100 miles
+    const minLon = userLocation.lon - delta;
+    const maxLon = userLocation.lon + delta;
+    const minLat = userLocation.lat - delta;
+    const maxLat = userLocation.lat + delta;
+
+    const viewbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          text
+        )}&format=json&addressdetails=1&limit=5&viewbox=${viewbox}&bounded=1`
+      );
+      const data = await response.json();
+      setResults(data);
+    } catch (err) {
+      console.error('Search error:', err);
+    }
+
+  };
+
+  
+
+  const handleSelect = (item) => {
+    console.log('Selected item:', item);
+    setQuery(item.display_name);
+    setResults([]);
+  
+    // Ensure numerical parsing
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon); // not "long"
+    console.log('Parsed coordinates:', { lat, lon });
+  
+    setLatitude(lat);
+    setLongitude(lon);
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -398,34 +492,33 @@ export default function PreRouteAnalysis() {
     >
       <Text style={styles.header}>Pre-Route Analysis</Text>
 
-      <View style={styles.inputContainer}>
+      <View style={{ zIndex: 100 }}>
       <TextInput
-  style={styles.input}
-  placeholder="Enter Latitude"
-  placeholderTextColor="#aaa"
-  value={latitude || ''}
-  onChangeText={setLatitude}
-  keyboardType="default" // full keyboard including hyphen
-  autoCapitalize="none"
-  autoCorrect={false}
-/>
-<TextInput
-  style={styles.input}
-  placeholder="Enter Longitude"
-  placeholderTextColor="#aaa"
-  value={longitude || ''}
-  onChangeText={setLongitude}
-  keyboardType="default"
-  autoCapitalize="none"
-  autoCorrect={false}
-/>
-</View>
+        style={styles.input}
+        value={query}
+        onChangeText={handleSearch}
+        placeholder="Enter destination..."
+      />
+      <FlatList
+        style={styles.list}
+        data={results}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
+            <Text style={styles.itemText}>{item.display_name}</Text>
+          </TouchableOpacity>
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        nestedScrollEnabled={true} // important if inside another scrollview
+      />
 
-    
+    </View>
+      
 
       <TouchableOpacity
         style={styles.button}
         onPress={handleSubmit}
+        disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
@@ -807,5 +900,42 @@ const styles = StyleSheet.create({
     width: '100%',
     color: '#fff', // White input text
   },
+  list: {
+  backgroundColor: '#1E1E1E', // Slightly lighter than black for contrast
+  // marginHorizontal: 16,
+  marginTop: 8,
+  borderRadius: 12,
+  maxHeight: 240,
+  borderWidth: 1,
+  borderColor: '#222', // Light border for visibility
+  paddingVertical: 4,
+
+  // Shadow (iOS)
+  shadowColor: '#000',
+  shadowOpacity: 0.1,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+
+  // Elevation (Android)
+  elevation: 3,
+},
+
+item: {
+  paddingVertical: 14,
+  paddingHorizontal: 12,
+  backgroundColor: '##1E1E1E',
+},
+
+itemText: {
+  color: '#fff',
+  fontSize: 16,
+},
+
+separator: {
+  height: 1,
+  backgroundColor: 'black',
+  marginHorizontal: 12,
+},
+
   
 });
