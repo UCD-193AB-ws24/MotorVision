@@ -186,7 +186,8 @@ export async function getFriendsLocations(currentUserUid) {
             location: {
               lat: friendData.location.lat,
               lng: friendData.location.lng,
-              timestamp: friendData.location.timestamp || null
+              timestamp: friendData.location.timestamp || null,
+              profileImage: friendData.profileImage || null // Optional: include profile image
             }
           });
         }
