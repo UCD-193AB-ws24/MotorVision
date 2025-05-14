@@ -1,10 +1,11 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require('@expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
 // Ensure the resolver and transformer objects exist
 config.resolver = config.resolver || {};
 config.transformer = config.transformer || {};
+config.transformer.assetPlugins = ["expo-asset/tools/hashAssetFiles"];
 
 // Add support for CommonJS modules
 config.resolver.sourceExts = config.resolver.sourceExts || [];
