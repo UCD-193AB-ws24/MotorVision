@@ -112,7 +112,7 @@ export default function HomeScreen({ navigation }) {
       };
 
       const headers = {
-        Authorization: `Bearer YOUR_API_KEY_HERE`, // Replace securely
+        Authorization: `Bearer ad08d4d7c7fa837fec21ab725125f1a3f9d930990ff381893cfd66030daee38b`,
         'Content-Type': 'application/json',
       };
 
