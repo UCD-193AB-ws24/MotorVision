@@ -1,17 +1,19 @@
 import { create } from 'zustand';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getUserByEmail,
   sendFriendRequest,
   acceptFriendRequest,
-  removeFriend
+  removeFriend,
 } from '../services/friendService';
 
 export const useProfileStore = create((set, get) => ({
   name: '',
   email: '',
   profileImage: '',
+  createdAt: null,
   friends: [],
   pending: [],
   requested: [],
@@ -19,6 +21,7 @@ export const useProfileStore = create((set, get) => ({
   setName: (newName) => set({ name: newName }),
   setEmail: (newEmail) => set({ email: newEmail }),
   setProfileImage: (uri) => set({ profileImage: uri }),
+  setCreatedAt: (value) => set({ createdAt: value }),
 
   /**
    * Load user’s profile and friend-related info from Firestore
@@ -31,6 +34,7 @@ export const useProfileStore = create((set, get) => ({
     if (!userDoc.exists()) return;
 
     const data = userDoc.data();
+
     const fetchEmails = async (uids) => {
       const emails = await Promise.all(
         uids.map(async (uid) => {
@@ -51,15 +55,18 @@ export const useProfileStore = create((set, get) => ({
       name: data.name || '',
       email: data.email || '',
       profileImage: data.profileImage || '',
+      createdAt: data.createdAt || null,
       friends: friendEmails,
       pending: pendingEmails,
       requested: requestedEmails,
     });
+
+    await AsyncStorage.setItem('userInfo', JSON.stringify({
+      name: data.name || '',
+      createdAt: data.createdAt?.seconds || '',
+    }));
   },
 
-  /**
-   * Send a friend request by email with client-side checks
-   */
   sendRequest: async (friendEmail) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -94,9 +101,6 @@ export const useProfileStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Accept a pending request by email
-   */
   acceptRequest: async (requesterEmail) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -116,9 +120,6 @@ export const useProfileStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Decline a pending friend request (Firestore + local)
-   */
   declineRequest: async (email) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -145,9 +146,6 @@ export const useProfileStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Remove an existing friend (mutual removal)
-   */
   removeFriend: async (friendEmail) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -166,9 +164,6 @@ export const useProfileStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Remove declined requests from your requested list
-   */
   cleanUpRequested: async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -179,10 +174,9 @@ export const useProfileStore = create((set, get) => ({
     for (const email of requested) {
       try {
         const target = await getUserByEmail(email);
-        if (!target) continue;
-
-        const stillPending = (target.pending || []).includes(user.uid);
-        if (stillPending) valid.push(email);
+        if (target && (target.pending || []).includes(user.uid)) {
+          valid.push(email);
+        }
       } catch (err) {
         console.warn(`Could not verify pending status for ${email}`);
       }
