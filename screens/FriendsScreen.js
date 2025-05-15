@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback} from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+
 import {
   View,
   Text,
@@ -31,7 +33,8 @@ export default function FriendsScreen() {
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
   const cleanUpRequested = useProfileStore((state) => state.cleanUpRequested);
 
-  useEffect(() => {
+ useFocusEffect(
+  useCallback(() => {
     const hydrateAndClean = async () => {
       try {
         await hydrateProfile();
@@ -41,7 +44,8 @@ export default function FriendsScreen() {
       }
     };
     hydrateAndClean();
-  }, []);
+  }, [])
+);
 
   const handleSendRequest = async () => {
     const email = emailInput.trim().toLowerCase();
