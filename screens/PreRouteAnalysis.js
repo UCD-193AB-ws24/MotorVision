@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,12 @@ import 'react-native-get-random-values';
 import * as Location from 'expo-location';
 
 
-const GOOGLE_API_KEY = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
+const googleApiKey = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
 const Nominatim_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=";
 
 
 
-
+{/* CONGESTION FEATURE - get color*/ }
 const getCongestionColor = (level) => {
     switch (level) {
       case 'low':
@@ -39,7 +39,7 @@ const getCongestionColor = (level) => {
         return 'gray';
     }
   };
-
+{/* WEATHER FEATURE - get weather icon*/}
   function mapWeatherCodeToIcon(code) {
     if ([0].includes(code)) return "☀️"; // Clear
     if ([1].includes(code)) return "🌤"; // Mainly clear
@@ -59,6 +59,7 @@ const USE_MOCK = false;
  * Inline mock of preRouteAnalysis()
  * (no imports—just define it in your component file)
  */
+{/* DEV - mocking*/}
 async function preRouteAnalysisMock(origin, destination) {
   // Simulate a slight delay
   await new Promise((res) => setTimeout(res, 200));
@@ -141,10 +142,140 @@ async function preRouteAnalysisMock(origin, destination) {
   ];
 }
 
+{/* RIDEABILITY */ }
+const calculateCurvature = (coordinates) => {
+  console.log("Its saying entering curvature")
+  let totalCurvature = 0;
+
+  for (let i = 1; i < coordinates.length - 1; i += 100) {
+    const p1 = coordinates[i - 1];
+    const p2 = coordinates[i];
+    const p3 = coordinates[i + 1];
+
+    // Calculate vectors
+    const vector1 = { x: p2[0] - p1[0], y: p2[1] - p1[1] };
+    const vector2 = { x: p3[0] - p2[0], y: p3[1] - p2[1] };
+
+    // Calculate angle between vectors using dot product formula
+    const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
+    const magnitude1 = Math.sqrt(vector1.x * vector1.x + vector1.y * vector1.y);
+    const magnitude2 = Math.sqrt(vector2.x * vector2.x + vector2.y * vector2.y);
+    const angle = Math.acos(dotProduct / (magnitude1 * magnitude2));
+
+    totalCurvature += angle;
+  }
+  console.log("getting total curvature", totalCurvature)
+
+  return totalCurvature;
+};
+
+{/* RIDEABILITY */}
+const getElevation = async (coordinates, mapboxAccessToken) => {
+  let elevations = [];
+  const baseUrl = "https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/";
+
+  for (let i = 0; i < coordinates.length; i += 100) {
+    const [longitude, latitude] = coordinates[i];
+    const url = `${baseUrl}${longitude},${latitude}.json?layers=contour&limit=50&access_token=${mapboxAccessToken}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      const elevation = data.features[0].properties.ele;
+      console.log(elevation)
+      elevations.push(elevation);
+    } catch (error) {
+      console.error("Error fetching elevation data:", error);
+    }
+  }
+
+  console.log("Elevation:", elevations);
+
+
+  return elevations;
+};
+
+{/* RIDEABILITY */}
+const calculateRideability = (curvature, elevationDiff) => {
+  const curvatureWeight = 0.6; // Weight curvature slightly more
+  const elevationWeight = 0.4; // Elevation has less influence
+
+  // Normalize curvature and elevation difference to a scale of 0 to 10
+  const normalizedCurvature = Math.min(curvature / 10, 1) * 10;
+  const normalizedElevation = Math.min(elevationDiff / 500, 1) * 10;
+
+  // Final rideability score
+  const rideabilityScore = (curvatureWeight * normalizedCurvature) + (elevationWeight * normalizedElevation);
+  console.log("this is the rideability score", rideabilityScore)
+
+  return rideabilityScore;
+};
+
+
+
+
+const RESOURCE_TYPES = {
+  gas: 'gas_station',
+  food: 'restaurant',
+  coffee: 'cafe',
+};
+
+{/* ROADSIDE - main api call*/}
+const fetchPlacesAlongRoute = async (stepCoordinates, googleApiKey) => {
+  const sampledCoords = stepCoordinates.filter((_, i) => i % 100 === 0); // sample every ~15th point
+  const radius = 1000; // meters
+  const places = {
+    gas_stations: [],
+    fast_food: [],
+    coffee_shops: [],
+  };
+
+
+  for (const coord of sampledCoords) {
+    console.log("Entering log")
+    for (const [key, type] of Object.entries(RESOURCE_TYPES)) {
+      if (!places[key]) {
+        console.warn(`Unexpected key "${key}" in RESOURCE_TYPES`);
+        places[key] = []; // Prevent crash
+      }
+      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coord[1]},${coord[0]}&radius=${radius}&type=${type}&key=${googleApiKey}`;
+
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.results && json.results.length > 0) {
+          for (const place of json.results) {
+            const alreadyAdded = places[key].some(
+              (p) => p.place_id === place.place_id
+            );
+            if (!alreadyAdded) {
+              places[key].push({
+                place_id: place.place_id,
+                name: place.name,
+                address: place.vicinity,
+                rating: place.rating,
+                location: {
+                  lat: place.geometry.location.lat,
+                  lng: place.geometry.location.lng,
+                },
+              });
+            }
+          }
+        } else {
+          console.log(`No results found for ${key} at ${coord}`);
+        }
+      } catch (err) {
+        console.error(`Failed to fetch ${key} at ${coord}`, err);
+      }
+    }
+  }
+  console.log("overall places found", places)
+  return places;
+};
 
 
   
-
+{/* WEATHER - main api call */}
   const getTripWeatherSummary = async (locations) => {
     let averageTemp = 0;
     let averageWind = 0;
@@ -215,8 +346,8 @@ async function preRouteAnalysisMock(origin, destination) {
     };
   };
   
-  
-// PreRouteAnalysis function (previously done on Django backend)
+
+{/* CONGESTION - main api call */}
 const preRouteAnalysis = async (origin, destination, mapboxAccessToken) => {
 
     // this is the the MapBox Call!
@@ -332,7 +463,7 @@ const currentSpeed = typeof rawSpeed === "number" ? rawSpeed * 0.62 : 0;
   }
 };
 
-// Helper function to map congestion levels to emojis
+{/* CONGESTION - emojis */}
 const getCongestionEmoji = (level) => {
     switch (level) {
       case 'low':
@@ -349,8 +480,7 @@ const getCongestionEmoji = (level) => {
   };
 
 
-
-  // SpeedBubble Component
+{/* MAX SPEED  - bubbles according to NaN and mph */}
   const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
     // Function to determine the bubble color based on speed
     if (speed === null || isNaN(speed) || speed === 0) {
@@ -378,12 +508,12 @@ const getCongestionEmoji = (level) => {
   
   
   
-
+{/* EXECUTABLE*/}
 export default function PreRouteAnalysis() {
   const [latitude, setLatitude ] = useState(null);
   const [longitude, setLongitude ] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState(null);
+  const [response, setResponse] = useState(null); // this is preRoute
   const [error, setError] = useState(null);
   const [region, setRegion] = useState({
     latitude: 38.5449,  // Default to Davis
@@ -393,7 +523,14 @@ export default function PreRouteAnalysis() {
   });
   const [routes, setRoutes] = useState([]);
   const [currentRouteIndex, setCurrentRouteIndex] = useState(0);
-  const [weatherSummary, setWeatherSummary] = useState(null);
+  const [weatherSummary, setWeatherSummary] = useState(null); // this is weather
+  const [resources, setResources] = useState(null); // this is roadside resources
+  const [rideabilityScore, setRideabilityScore] = useState(null);
+  const [places, setPlaces] = useState(null); // this is google maps api
+  const [showOverview, setShowOverview] = useState(false);
+
+
+
 
   const chartData = weatherSummary ? {
     labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`), // or timestamp slices
@@ -416,7 +553,8 @@ export default function PreRouteAnalysis() {
   
 
   const MAPBOX_ACCESS_TOKEN ='pk.eyJ1Ijoic2FpbGkta2Fya2FyZSIsImEiOiJjbTl0OTZtOTIwOGpuMmlwenY5cHM5dDNlIn0.tSQUU1UtswIIfIPe7jBpzg'; // <-- Replace this!
-
+  
+  // calls functions
   const handleSubmit = async () => {
     setLoading(true);
     Keyboard.dismiss();
@@ -445,30 +583,103 @@ export default function PreRouteAnalysis() {
       const result = USE_MOCK
     ? await preRouteAnalysisMock(origin, destination)
     : await preRouteAnalysis(origin, destination, MAPBOX_ACCESS_TOKEN);
+  
+    console.log("entering cleaned routes function")
+    const cleanedRoutes = result.map((route) => {
+      const cleanedRoute = {
+          maxCongestion: route.max_congestion,
+          maxSpeed: route.max_speed,
+          congestionOverview: route.congestion_overview,
+          maxSpeedOverview: route.max_speed_overview,
+          stepCoordinates: route.stepCoordinates,
+      };
+      return cleanedRoute;
+  });
 
-  // pick the first route
-      setResponse(routes[0]);
+  // Set the cleaned route response
+  setResponse(cleanedRoutes[0]);
+  setRoutes(cleanedRoutes);
+  setCurrentRouteIndex(0);
+
+  // Set region for the map
+  setRegion({
+      latitude: parsedLat,
+      longitude: parsedLon,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+  });
+
+  // Get weather summary for the route (using cleaned coordinates)
+  const locations = cleanedRoutes[0].congestionOverview.map(([_, coords]) => ({
+      latitude: coords[1],
+      longitude: coords[0],
+      timestamp: new Date().toISOString(), // Replace with actual if available
+  }));
 
       
-      setRegion({
-        latitude: parsedLat,
-        longitude: parsedLon,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
-
-      setRoutes(result);
-      setCurrentRouteIndex(0);
-      setResponse(result[0]); // show the first route
-
-      const locations = result[0].congestion_overview.map(([_, coords]) => ({
-        latitude: coords[1],
-        longitude: coords[0],
-        timestamp: new Date().toISOString(), // Replace with actual if available
-      }));
-      
+      // making weather call
       const weather = await getTripWeatherSummary(locations);
       setWeatherSummary(weather);
+
+      // doing the Google Maps API call 
+      console.log("Trying roadside resources")
+      const roadsideResources = await fetchPlacesAlongRoute(
+        cleanedRoutes[0].stepCoordinates,
+        googleApiKey
+      );
+      setResources(roadsideResources);
+      console.log("Done with roadside resources", roadsideResources)
+
+
+      // doing the elevation call
+      console.log("Trying curvature + rideability")
+      const curvature = calculateCurvature(cleanedRoutes[0].stepCoordinates);
+      const elevations = await getElevation(cleanedRoutes[0].stepCoordinates, MAPBOX_ACCESS_TOKEN);
+      const maxElevation = Math.max(...elevations);
+      const minElevation = Math.min(...elevations);
+      const elevationDiff = maxElevation - minElevation;
+
+      // Calculate the rideability score
+      console.log("sending to curvature");
+      const score = calculateRideability(curvature, elevationDiff);
+      const rideStats = {
+        curvature: curvature,
+        maxElevation: maxElevation,
+        minElevation: minElevation,
+        score: score
+    };
+      setRideabilityScore(rideStats);
+      console.log("this is the rideability score", rideStats.score);
+
+      const categories = {
+        gas_stations: "⛽ Gas Stations",
+        fast_food: "🍔 Fast Food",
+        coffee_shops: "☕ Coffee Shops",
+      };
+    
+
+      useEffect(() => {
+        const getPlaces = async () => {
+          try {
+            const result = await fetchPlacesAlongRoute(stepCoordinates, googleApiKey);
+            setPlaces(result);
+          } catch (err) {
+            console.error("Failed to fetch roadside places:", err);
+          } finally {
+            setLoading(false);
+          }
+        };
+    
+        getPlaces();
+      }, [stepCoordinates, googleApiKey]);
+    
+      if (loading) {
+        return (
+          <View style={{ padding: 16 }}>
+            <ActivityIndicator size="large" />
+          </View>
+        );
+      }
 
 
     } catch (err) {
@@ -478,19 +689,18 @@ export default function PreRouteAnalysis() {
       setLoading(false);
     }
   };
-
+  
+  // CONGESTION - develops polyline
   const renderMultiColorPolyline = () => {
     const geometryCoords = response?.stepCoordinates;
     const congestionLevels = response?.polyline_coordinates;
-    console.log("Entering rendering")
-    console.log("Coords:", geometryCoords?.length);
-    console.log("Congestion levels:", congestionLevels?.length);
+    console.log("rendering")
   
     if (!geometryCoords || geometryCoords.length < 2 || !congestionLevels) return null;
   
     const segments = [];
   
-    for (let i = 1; i < geometryCoords.length; i++) {
+    for (let i = 1; i < geometryCoords.length; i += 1000) {
       const prevCoord = geometryCoords[i - 1];
       const currCoord = geometryCoords[i];
       const congestion = congestionLevels[i - 1] || 'unknown';
@@ -511,7 +721,7 @@ export default function PreRouteAnalysis() {
     return segments;
   };
   
-
+  // using live location
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [results, setResults] = useState([]);
@@ -550,6 +760,7 @@ export default function PreRouteAnalysis() {
     fetchLocation();
   }, []);
 
+  // autocomplete searches
   const handleSearch = async (text) => {
     setQuery(text);
     if (text.length < 3) return setResults([]);
@@ -576,7 +787,7 @@ export default function PreRouteAnalysis() {
   };
 
   
-
+  // user input cleaning
   const handleSelect = (item) => {
     console.log('Selected item:', item);
     setQuery(item.display_name);
@@ -590,11 +801,14 @@ export default function PreRouteAnalysis() {
     setLatitude(lat);
     setLongitude(lon);
   };
+
+  // scrollable buttons
   
   const scrollViewRef = useRef(null);
   const detailsRef = useRef(null);
   const weatherRef = useRef(null);
   const roadRef = useRef(null);
+  const rideRef = useRef(null);
 
 
   const scrollToDetails = () => {
@@ -628,6 +842,7 @@ export default function PreRouteAnalysis() {
       );
     }
   };
+  
 
   const scrollToRoad = () => {
     if (roadRef.current && scrollViewRef.current) {
@@ -645,6 +860,27 @@ export default function PreRouteAnalysis() {
     }
   };
 
+  const scrollToRide = () => {
+    if (rideRef.current && scrollViewRef.current) {
+      rideRef.current.measureLayout(
+        scrollViewRef.current.getNativeScrollRef
+          ? scrollViewRef.current.getNativeScrollRef() // for expo SDK 49+ or react-native-web
+          : scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        },
+        (error) => {
+          console.error('measureLayout error:', error);
+        }
+      );
+    }
+  };
+
+  const memoizedPolyline = useMemo(() => {
+    if (!response) return null;
+    return renderMultiColorPolyline(); // assumes this returns a JSX element or array
+  }, [response]);
+  
 
   
 
@@ -702,9 +938,9 @@ export default function PreRouteAnalysis() {
             <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
             <Text style={styles.summaryText}>
-                Average Congestion: {response.max_congestion} {getCongestionEmoji(response.max_congestion)}
+                Average Congestion: {response.maxCongestion} {getCongestionEmoji(response.maxCongestion)}
             </Text>
-            <Text style={styles.summaryText}>Max Speed Allowed: {response.max_speed.toFixed(2)} mph</Text>
+            <Text style={styles.summaryText}>Max Speed Allowed: {response?.maxCongestion ? response.maxSpeed.toFixed(2) : 'N/A'} mph</Text>
             </View>
             </TouchableOpacity>
 
@@ -724,7 +960,24 @@ export default function PreRouteAnalysis() {
             </View>
             </TouchableOpacity>
 
-            
+
+            <TouchableOpacity onPress={scrollToRide}>
+           
+            <View style={styles.resultBox}>
+            {rideabilityScore ? (
+            <>
+            <Text style={styles.sectionTitle}>Riding Conditions</Text>
+            <Text style={styles.summaryText}>
+                Rideability Score: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"}
+            </Text>
+            </>
+          ) : (
+            <Text style={styles.summaryText}>Loading riding data...</Text>
+            )}
+
+            </View>
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={scrollToRoad}>
             <View style={styles.resultBox}>
               <Text style={styles.sectionTitle}>Roadside Resources</Text>
@@ -745,11 +998,11 @@ export default function PreRouteAnalysis() {
             <Text style={styles.sectionTitle}>Congestion Overview</Text>
             {/* New format for congestion overview */}
             <View style={styles.congestionOverviewList}>
-                {Object.entries(response.congestion_overview.reduce((acc, [congestion]) => {
+                {Object.entries(response.congestionOverview.reduce((acc, [congestion]) => {
                     acc[congestion] = (acc[congestion] || 0) + 1;
                     return acc;
                 }, {})).map(([level, count], index) => {
-                const total = response.congestion_overview.length || 1;
+                const total = response.congestionOverview.length || 1;
                 const percentage = ((count / total) * 100).toFixed(2);
 
                  return (
@@ -772,10 +1025,11 @@ export default function PreRouteAnalysis() {
         onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
         >
             {/* Adding the congestion */}
-            {renderMultiColorPolyline()}
+            {memoizedPolyline}
+
 
          {/* Speed Bubbles */}
-         {response?.max_speed_overview.map(([speed, coords], index) => (
+         {response?.maxSpeedOverview.map(([speed, coords], index) => (
          <SpeedBubble
             key={`speed-bubble-${index}`}
             coordinate={{ latitude: coords[1], longitude: coords[0] }}
@@ -857,12 +1111,21 @@ export default function PreRouteAnalysis() {
       </View>
 
 
-      {/* Adding scroallable feature */}
-       {/* Weather conditions */}
+    
+      <Text style={styles.headerTitle}>Riding Conditions</Text>
+       {rideabilityScore &&
+       <View ref={rideRef} style={styles.resultBox}>
+            <Text style={styles.congestionText}> Max Elevation: {rideabilityScore.maxElevation} </Text>
+            <Text style={styles.congestionText}> Min Elevation: {rideabilityScore.minElevation} </Text>
+            <Text style={styles.congestionText}> Average Curvature on Route: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} </Text>
+       </View>
+       }
+
+       {/* Adding scroallable feature */}
+       {/* Raodside Resources conditions */}
        <View ref={roadRef} style={styles.resultBox}>
             <Text style={styles.headerTitle}>Roadside Resources</Text>
        </View>
-
 
         {routes.length > 1 && (
         <View style={{ alignItems: 'center', marginTop: 20 }}>
