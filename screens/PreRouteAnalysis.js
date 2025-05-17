@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
+import { Dimensions, Linking } from 'react-native';
 import 'react-native-get-random-values';
 import * as Location from 'expo-location';
 
@@ -224,10 +224,11 @@ const RESOURCE_TYPES = {
 const fetchPlacesAlongRoute = async (stepCoordinates, googleApiKey) => {
   const sampledCoords = stepCoordinates.filter((_, i) => i % 100 === 0); // sample every ~15th point
   const radius = 1000; // meters
+  // changing places to map google maps query
   const places = {
-    gas_stations: [],
-    fast_food: [],
-    coffee_shops: [],
+    gas: [],
+    food: [],
+    coffee: [],
   };
 
 
@@ -273,7 +274,67 @@ const fetchPlacesAlongRoute = async (stepCoordinates, googleApiKey) => {
   return places;
 };
 
+const categories = {
+  gas: 'Gas Stations',
+  food: 'Restaurants',
+  coffee: 'Coffee Shops',
+};
 
+
+function formatRoadsideSummary (data){
+
+  console.log("Entering formatRoadsideSummary", data);
+
+  const counts = { gas: 0, food: 0, coffee: 0 };
+  const grouped = { gas: [], food: [], coffee: [] };
+
+  const categoryMap = {
+  'gas_stations': 'gas',
+  'restaurants': 'food',
+  'coffee_shops': 'coffee'
+};
+
+  // Count and group
+  console.log("Starting log");
+  Object.entries(data).forEach(([cat, items]) => {
+  if (counts.hasOwnProperty(cat)) {
+    counts[cat] += items.length;
+    grouped[cat].push(...items);
+  }
+});
+  console.log("Completed data");
+  // Create summary object
+  const summary = { ...counts };
+  console.log("Created summary");
+
+
+  // Create detailed object
+  const formatItem = (item) => {
+    const link = `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
+    return {
+      name: item.name,
+      rating: item.rating || null,
+      mapsLink: link
+    };
+  };
+
+  const detailed = {};
+  Object.keys(grouped).forEach(cat => {
+    detailed[cat] = grouped[cat]
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 3)
+      .map(formatItem);
+  });
+  
+  console.log("what im done doing this in function")
+  console.log("SUMMARy: ", summary);
+  console.log("DETAILED: ", detailed);
+  return {
+    summary,
+    detailed
+  };
+
+};
   
 {/* WEATHER - main api call */}
   const getTripWeatherSummary = async (locations) => {
@@ -627,8 +688,13 @@ export default function PreRouteAnalysis() {
         cleanedRoutes[0].stepCoordinates,
         googleApiKey
       );
-      setResources(roadsideResources);
       console.log("Done with roadside resources", roadsideResources)
+
+      // reformatting roadside resources
+      console.log("Reformatting roadside resources")
+      const formattedResources = formatRoadsideSummary(roadsideResources);
+      setResources(formattedResources);
+
 
 
       // doing the elevation call
@@ -651,35 +717,7 @@ export default function PreRouteAnalysis() {
       setRideabilityScore(rideStats);
       console.log("this is the rideability score", rideStats.score);
 
-      const categories = {
-        gas_stations: "⛽ Gas Stations",
-        fast_food: "🍔 Fast Food",
-        coffee_shops: "☕ Coffee Shops",
-      };
-    
 
-      useEffect(() => {
-        const getPlaces = async () => {
-          try {
-            const result = await fetchPlacesAlongRoute(stepCoordinates, googleApiKey);
-            setPlaces(result);
-          } catch (err) {
-            console.error("Failed to fetch roadside places:", err);
-          } finally {
-            setLoading(false);
-          }
-        };
-    
-        getPlaces();
-      }, [stepCoordinates, googleApiKey]);
-    
-      if (loading) {
-        return (
-          <View style={{ padding: 16 }}>
-            <ActivityIndicator size="large" />
-          </View>
-        );
-      }
 
 
     } catch (err) {
@@ -925,7 +963,6 @@ export default function PreRouteAnalysis() {
         )}
       </TouchableOpacity>
 
-      {loading && <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />}
       {error && <Text style={styles.errorText}>{error}</Text>}
       {response && (
         <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -980,10 +1017,20 @@ export default function PreRouteAnalysis() {
 
             <TouchableOpacity onPress={scrollToRoad}>
             <View style={styles.resultBox}>
-              <Text style={styles.sectionTitle}>Roadside Resources</Text>
+            <Text style={styles.sectionTitle}>Roadside Resources</Text>
+
+            {resources?.summary ? (
+              Object.entries(resources.summary).map(([key, count]) => (
+              <Text key={key} style={styles.summaryText}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}: {count}
+              </Text>
+            ))
+            ) : (
+            <Text>Loading summary...</Text>
+            )}
             </View>
             </TouchableOpacity>
-            
+  
       
             {/* Stretch is adding scenic view */}
 
@@ -1111,21 +1158,45 @@ export default function PreRouteAnalysis() {
       </View>
 
 
-    
+      <View ref={rideRef} style={styles.resultBox}>
       <Text style={styles.headerTitle}>Riding Conditions</Text>
        {rideabilityScore &&
-       <View ref={rideRef} style={styles.resultBox}>
+       <View style={styles.resultBox}>
             <Text style={styles.congestionText}> Max Elevation: {rideabilityScore.maxElevation} </Text>
             <Text style={styles.congestionText}> Min Elevation: {rideabilityScore.minElevation} </Text>
             <Text style={styles.congestionText}> Average Curvature on Route: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} </Text>
        </View>
        }
+       </View>
 
        {/* Adding scroallable feature */}
        {/* Raodside Resources conditions */}
        <View ref={roadRef} style={styles.resultBox}>
             <Text style={styles.headerTitle}>Roadside Resources</Text>
-       </View>
+            {resources?.detailed ? (
+            Object.entries(resources.detailed).map(([category, places]) => (
+            <View key={category} style={{ marginBottom: 10 }}>
+                <Text style={styles.categoryTitle}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                </Text>
+                {places.map((place, index) => (
+                <View key={index} style={styles.headerTitle}>
+                    <Text style={styles.summaryText}>{place.name}</Text>
+                    <Text style={styles.summaryText}>Rating: {place.rating ?? 'N/A'}</Text>
+                    <Text
+                        style={styles.summaryText}
+                        onPress={() => Linking.openURL(place.mapsLink)}
+                    >
+                    View on Maps
+                   </Text>
+                </View>
+                ))}
+           </View>
+           ))
+          ) : (
+            <Text>Loading details...</Text>
+         )}
+         </View>
 
         {routes.length > 1 && (
         <View style={{ alignItems: 'center', marginTop: 20 }}>
