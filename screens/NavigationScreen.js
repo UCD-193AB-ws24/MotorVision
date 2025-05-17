@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import { getFriendsLocations, updateUserLocation } from '../services/friendService';
 import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment} from 'firebase/firestore';
+import FriendProfileModal from './UserDetailsScreen';
 
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
@@ -22,7 +23,15 @@ export default function NavigationScreen() {
 
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [friendsLocations, setFriendsLocations] = useState([]);
-
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  // const friend = {
+  //   name: 'Vinay Bidin',
+  //   email: 'vinay@example.com',
+  //   status: 'Online',
+  //   location: 'Davis, CA',
+  //   profileImage: 'https://your-image-url.com/pfp.jpg',
+  // };
 
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
@@ -328,6 +337,11 @@ const loadFriendsLocations = async () => {
 
   return (
     <View style={styles.container}>
+     <FriendProfileModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        friend={selectedFriend}
+      />
       <MapView
         style={styles.map}
         region={region}
@@ -363,6 +377,11 @@ const loadFriendsLocations = async () => {
                 latitude: friend.location.lat,
                 longitude: friend.location.lng,
               }}
+              onPress={() => {
+                console.log('Friend marker pressed:', friend);
+                setSelectedFriend(friend);      // Pass full friend data
+                setModalVisible(true);          // Show modal
+              }}
             >
               <View style={{ alignItems: 'center' }}>
               {console.log('Profile Image URI:', friend.location.profileImage)}
@@ -391,7 +410,7 @@ const loadFriendsLocations = async () => {
                     // numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {friend.email}
+                    {friend.name}
                   </Text>
                 </View>
               </Callout>
