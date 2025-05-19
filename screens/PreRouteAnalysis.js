@@ -1001,9 +1001,9 @@ export default function PreRouteAnalysis() {
             <TouchableOpacity onPress={scrollToRide}>
            
             <View style={styles.resultBox}>
+            <Text style={styles.sectionTitle}>Riding Conditions</Text>
             {rideabilityScore ? (
             <>
-            <Text style={styles.sectionTitle}>Riding Conditions</Text>
             <Text style={styles.summaryText}>
                 Rideability Score: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"}
             </Text>
@@ -1026,7 +1026,7 @@ export default function PreRouteAnalysis() {
               </Text>
             ))
             ) : (
-            <Text>Loading summary...</Text>
+            <Text style={styles.summaryText}>Loading roadside resources...</Text>
             )}
             </View>
             </TouchableOpacity>
@@ -1176,11 +1176,11 @@ export default function PreRouteAnalysis() {
             {resources?.detailed ? (
             Object.entries(resources.detailed).map(([category, places]) => (
             <View key={category} style={{ marginBottom: 10 }}>
-                <Text style={styles.categoryTitle}>
+                <Text style={styles.headerTitle}>
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                 </Text>
                 {places.map((place, index) => (
-                <View key={index} style={styles.headerTitle}>
+                <View key={index} style={styles.sectionTitle}>
                     <Text style={styles.summaryText}>{place.name}</Text>
                     <Text style={styles.summaryText}>Rating: {place.rating ?? 'N/A'}</Text>
                     <Text
@@ -1194,7 +1194,7 @@ export default function PreRouteAnalysis() {
            </View>
            ))
           ) : (
-            <Text>Loading details...</Text>
+            <Text styls={styles.summaryText}>Loading roadside resources...</Text>
          )}
          </View>
 
