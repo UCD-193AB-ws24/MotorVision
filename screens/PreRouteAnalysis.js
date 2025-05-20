@@ -919,7 +919,6 @@ export default function PreRouteAnalysis() {
     return renderMultiColorPolyline(); // assumes this returns a JSX element or array
   }, [response]);
   
-
   
 
   return (
@@ -987,6 +986,15 @@ export default function PreRouteAnalysis() {
             </View>
             </TouchableOpacity>
 
+            <View
+              style={{
+                  height: 1,
+                  width: '85%',          // Less than full width
+                  backgroundColor: '#ccc',
+                  marginVertical: 12,    // Adds spacing above and below
+              }}
+            />
+
 
             <TouchableOpacity onPress={scrollToWeather}>
             <View style={styles.resultBox}>
@@ -1012,6 +1020,14 @@ export default function PreRouteAnalysis() {
             </View>
             </TouchableOpacity>
 
+            <View
+              style={{
+                  height: 1,
+                  width: '85%',          // Less than full width
+                  backgroundColor: '#ccc',
+                  marginVertical: 12,    // Adds spacing above and below
+              }}
+            />
 
             <TouchableOpacity onPress={scrollToRide}>
            
@@ -1032,6 +1048,16 @@ export default function PreRouteAnalysis() {
 
             </View>
             </TouchableOpacity>
+
+            <View
+              style={{
+                  height: 1,
+                  width: '85%',          // Less than full width
+                  backgroundColor: '#ccc',
+                  marginVertical: 12,    // Adds spacing above and below
+              }}
+            />
+
 
             <TouchableOpacity onPress={scrollToRoad}>
             <View style={styles.resultBox}>
@@ -1112,15 +1138,16 @@ export default function PreRouteAnalysis() {
         {/* Weather conditions */}
         <View ref={weatherRef} style={styles.resultBox}>
             <Text style={styles.headerTitle}>Weather Information</Text>
-
+        
+      
   
       {weatherSummary && (
   <>
     {/* Temperature Chart */}
-    <Text style={styles.sectionTitle}>Temperature Overview</Text>
+    <Text style={styles.chart}>Temperature Overview</Text>
     <LineChart
       data={{
-        labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`),
+        labels: weatherSummary.snapshots.map(() => ""),
         datasets: [
           {
             data: weatherSummary.snapshots.map((snap) => snap.temp),
@@ -1130,7 +1157,7 @@ export default function PreRouteAnalysis() {
         ],
         legend: ["Temperature (°F)"],
       }}
-      width={Dimensions.get('window').width - 40}
+      width={Dimensions.get('window').width * 0.8}
       height={220}
       chartConfig={{
         backgroundColor: '#1E1E1E',
@@ -1146,10 +1173,10 @@ export default function PreRouteAnalysis() {
     />
 
     {/* Wind Speed Chart */}
-    <Text style={styles.sectionTitle}>Wind Speed Overview</Text>
+    <Text style={styles.chart}>Wind Speed Overview</Text>
     <LineChart
       data={{
-        labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`),
+        labels: weatherSummary.snapshots.map(() => ""),
         datasets: [
           {
             data: weatherSummary.snapshots.map((snap) => snap.wind),
@@ -1159,7 +1186,7 @@ export default function PreRouteAnalysis() {
         ],
         legend: ["Wind Speed (mph)"],
       }}
-      width={Dimensions.get('window').width - 40}
+      width={Dimensions.get('window').width * 0.8}
       height={220}
       chartConfig={{
         backgroundColor: '#1E1E1E',
@@ -1342,11 +1369,19 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
   },
-  headerTitle: {
-    fontSize: 30,
+  chart: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 8,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#cccccc',
+
   },
   listText: {
     fontSize: 14,
