@@ -267,7 +267,6 @@ const fetchPlacesAlongRoute = async (stepCoordinates, googleApiKey) => {
       }
     }
   }
-  console.log("overall places found", places)
   return places;
 };
 
@@ -280,7 +279,6 @@ const categories = {
 { /* ROADSIDE */}
 function formatRoadsideSummary (data){
 
-  console.log("Entering formatRoadsideSummary", data);
 
   const counts = { gas: 0, food: 0, coffee: 0 };
   const grouped = { gas: [], food: [], coffee: [] };
@@ -324,8 +322,6 @@ function formatRoadsideSummary (data){
   });
   
   console.log("what im done doing this in function")
-  console.log("SUMMARy: ", summary);
-  console.log("DETAILED: ", detailed);
   return {
     summary,
     detailed
@@ -562,6 +558,40 @@ const getCongestionEmoji = (level) => {
       </Marker>
     );
   };
+
+  {/* RENDERING */}
+   const renderMultiColorPolyline = (geometryCoords, congestionLevels ) => {
+    console.log("Entering rendering function");
+    console.log("This is geo cords length: ", geometryCoords.length);
+  
+    if (!geometryCoords || geometryCoords.length < 2 || !congestionLevels) {
+      console.log("Can't find anything, returning null");
+      return null;
+    }
+  
+    const segments = [];
+  
+    for (let i = 1; i < geometryCoords.length; i += 10) {
+      console.log("Going through rendering loop");
+      const prevCoord = geometryCoords[i - 1];
+      const currCoord = geometryCoords[i];
+      const congestion = congestionLevels[i - 1] || 'unknown';
+  
+      segments.push(
+        <Polyline
+          key={`segment-${i}`}
+          coordinates={[
+            { latitude: prevCoord[1], longitude: prevCoord[0] },
+            { latitude: currCoord[1], longitude: currCoord[0] },
+          ]}
+          strokeColor={getCongestionColor(congestion)}
+          strokeWidth={6}
+        />
+      );
+    }
+  
+    return segments;
+  };
   
   
   
@@ -591,6 +621,8 @@ export default function PreRouteAnalysis() {
   const [showFood, setShowFood] = useState(false);
   const [showGas, setShowGas] = useState(false);
   const [showPolyline, setShowPolyline] = useState(false);
+  const [polylines, setPolylines] = useState(null);
+
 
   
 
@@ -634,6 +666,7 @@ export default function PreRouteAnalysis() {
           congestionOverview: route.congestion_overview,
           maxSpeedOverview: route.max_speed_overview,
           stepCoordinates: route.stepCoordinates,
+          congestionLevel: route.polyline_coordinates,
       };
       return cleanedRoute;
   });
@@ -650,6 +683,10 @@ export default function PreRouteAnalysis() {
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
   });
+  
+  // polylines for rendering
+  const polylines = renderMultiColorPolyline(cleanedRoutes[0].stepCoordinates, cleanedRoutes[0].congestionLevel);
+  setPolylines(polylines);
 
   // Get weather summary for the route (using cleaned coordinates)
   const locations = cleanedRoutes[0].congestionOverview.map(([_, coords]) => ({
@@ -710,36 +747,7 @@ export default function PreRouteAnalysis() {
   };
   
   // CONGESTION - develops polyline
-  const renderMultiColorPolyline = () => {
-    const geometryCoords = response?.stepCoordinates;
-    const congestionLevels = response?.polyline_coordinates;
-    console.log("rendering")
-  
-    if (!geometryCoords || geometryCoords.length < 2 || !congestionLevels) return null;
-  
-    const segments = [];
-  
-    for (let i = 1; i < geometryCoords.length; i += 1000) {
-      const prevCoord = geometryCoords[i - 1];
-      const currCoord = geometryCoords[i];
-      const congestion = congestionLevels[i - 1] || 'unknown';
-  
-      segments.push(
-        <Polyline
-          key={`segment-${i}`}
-          coordinates={[
-            { latitude: prevCoord[1], longitude: prevCoord[0] },
-            { latitude: currCoord[1], longitude: currCoord[0] },
-          ]}
-          strokeColor={getCongestionColor(congestion)}
-          strokeWidth={6}
-        />
-      );
-    }
-  
-    return segments;
-  };
-  
+ 
   // using live location
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -894,13 +902,6 @@ export default function PreRouteAnalysis() {
       );
     }
   };
-
-  const memoizedPolyline = useMemo(() => {
-    if (!response) return null;
-    return renderMultiColorPolyline(); // assumes this returns a JSX element or array
-  }, [response]);
-  
-  
 
   return (
     <KeyboardAvoidingView
@@ -1101,7 +1102,7 @@ export default function PreRouteAnalysis() {
         >
             {/* Adding the congestion */}
 
-            {showPolyline && renderMultiColorPolyline()}
+            {showPolyline && polylines}
 
 
          {/* Speed Bubbles */}
