@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking, Image} from 'react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking, Image } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import { getFriendsLocations, updateUserLocation } from '../services/friendService';
-import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment} from 'firebase/firestore';
+import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment } from 'firebase/firestore';
+import FriendProfileModal from './UserDetailsScreen';
 
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
@@ -22,18 +23,45 @@ export default function NavigationScreen() {
 
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [friendsLocations, setFriendsLocations] = useState([]);
-
+  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [followsUserLocation, setFollowsUserLocation] = useState(false);
+  // const friend = {
+  //   name: 'Vinay Bidin',
+  //   email: 'vinay@example.com',
+  //   status: 'Online',
+  //   location: 'Davis, CA',
+  //   profileImage: 'https://your-image-url.com/pfp.jpg',
+  // };
 
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
+
+  const handleRecenter = () => {
+    if (currentLocation && mapRef.current) {
+      const newRegion = {
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      // Visually update the map immediately
+      mapRef.current.animateToRegion(newRegion, 500);
+
+      // Update the region state to keep in sync
+      setRegion(newRegion);
+    }
+  };
+
 
 
   const saveDistanceAndUpdateStats = async (userId, distance) => {
     const db = getFirestore();
     const userRef = doc(db, `users/${userId}`);
-  
+
     // Get today's date string (e.g., "2025-05-05")
     const dateString = new Date().toISOString().split('T')[0];
-  
+
     // Update the longTermStats map
     await updateDoc(userRef, {
       [`longTermStats.${dateString}`]: increment(distance),
@@ -44,7 +72,7 @@ export default function NavigationScreen() {
     const db = getFirestore();
     const userRef = doc(db, `users/${userId}`);
     const docSnap = await getDoc(userRef);
-  
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       return data.longTermStats || {};
@@ -55,36 +83,36 @@ export default function NavigationScreen() {
 
 
 
-const loadFriendsLocations = async () => {
-  try {
-    const locations = await getFriendsLocations(auth.currentUser.uid);
-    setFriendsLocations(locations);
+  const loadFriendsLocations = async () => {
+    try {
+      const locations = await getFriendsLocations(auth.currentUser.uid);
+      setFriendsLocations(locations);
 
-    // Clear old friend pins (optional: if you track friend markers separately)
-    clearFriendPins();
+      // Clear old friend pins (optional: if you track friend markers separately)
+      clearFriendPins();
 
-    // Drop new pins
-    locations.forEach(({ email, location }) => {
-      dropFriendPin(location, email);
-    });
-  } catch (error) {
-    console.error("Error fetching friend locations:", error);
-  }
-};
+      // Drop new pins
+      locations.forEach(({ email, location }) => {
+        dropFriendPin(location, email);
+      });
+    } catch (error) {
+      console.error("Error fetching friend locations:", error);
+    }
+  };
 
   const openMaps = (place) => {
     console.log("THISSSSS");
     const lat = place.geometry.location.lat;
     const lng = place.geometry.location.lng;
     const name = place.name;
-  
+
     // Using the platform-specific URL schemes for Apple Maps and Google Maps
     const appleMapsUrl = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d&t=h`;
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-  
+
     // Choose the appropriate URL based on platform
     const url = Platform.OS === 'ios' ? appleMapsUrl : googleMapsUrl;
-  
+
     // Attempt to open the maps app with the specified URL
     Linking.openURL(url).catch(err => {
       Alert.alert('Error', 'Unable to open maps application.');
@@ -107,12 +135,12 @@ const loadFriendsLocations = async () => {
   const totalDistance = useRef(0);
   const prevLocation = useRef(null);
   const locationSubscription = useRef(null);
-  
+
 
   const focusOnFriend = (location, index) => {
     const lat = parseFloat(location.lat);
     const lng = parseFloat(location.lng);
-  
+
     mapRef.current?.animateToRegion(
       {
         latitude: lat,
@@ -122,7 +150,7 @@ const loadFriendsLocations = async () => {
       },
       1000
     );
-  
+
     setTimeout(() => {
       friendsMarkersRef.current[index]?.showCallout();
     }, 1000);
@@ -147,7 +175,7 @@ const loadFriendsLocations = async () => {
       prev.filter(marker => !marker.id?.startsWith("friend-"))
     );
   };
-  
+
 
 
   const fetchNearbyPlaces = async (lat, lng) => {
@@ -256,8 +284,9 @@ const loadFriendsLocations = async () => {
       if (!endTripAlertShown) {
         Alert.alert('Trip Ended', 'Trip tracking has stopped and data will be saved.');
         setEndTripAlertShown(true);
+        setFollowsUserLocation(false);
       }
-  
+
       const userId = auth.currentUser?.uid;
       if (userId) {
         stopTrip(userId);
@@ -265,21 +294,22 @@ const loadFriendsLocations = async () => {
       } else {
         console.warn('[handleStartTrip] No userId found. Skipping stat update.');
       }
-  
+
       locationSubscription.current?.remove();
       locationSubscription.current = null;
     } else {
       if (!startTripAlertShown) {
         Alert.alert('Trip Started', 'Your trip is now being tracked.');
         setStartTripAlertShown(true);
+        setFollowsUserLocation(true);
       }
-  
+
       totalDistance.current = 0;
       setDisplayDistance(0);
       prevLocation.current = currentLocation;
       startTrip();
     }
-  };  
+  };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3; // meters
@@ -328,14 +358,18 @@ const loadFriendsLocations = async () => {
 
   return (
     <View style={styles.container}>
+      <FriendProfileModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        friend={selectedFriend}
+      />
       <MapView
+        ref={mapRef}
         style={styles.map}
         region={region}
         showsUserLocation={true}
-        followsUserLocation={true}
+        followsUserLocation={followsUserLocation}
       >
-        {currentLocation && <Marker coordinate={currentLocation} title="You are here" />}
-      
         {nearbyPlaces.map((place, index) => (
           <Marker
             key={index}
@@ -345,59 +379,64 @@ const loadFriendsLocations = async () => {
               longitude: place.geometry.location.lng,
             }}
           >
-           <Callout onPress={() => openMaps(place)}>
-            <View>
-              <Text style={{ fontWeight: 'bold' }}>{place.name}</Text>
-              <Text>{place.vicinity}</Text>
-              <Text style={{ color: 'blue', marginTop: 5 }}>Tap here to get directions</Text>
-            </View>
-          </Callout>
+            <Callout onPress={() => openMaps(place)}>
+              <View>
+                <Text style={{ fontWeight: 'bold' }}>{place.name}</Text>
+                <Text>{place.vicinity}</Text>
+                <Text style={{ color: 'blue', marginTop: 5 }}>Tap here to get directions</Text>
+              </View>
+            </Callout>
           </Marker>
         ))}
 
         {friendsLocations.map((friend, index) => (
-            <Marker
-              key={`friend-${index}`}
-              ref={(ref) => (friendsMarkersRef.current[index] = ref)}
-              coordinate={{
-                latitude: friend.location.lat,
-                longitude: friend.location.lng,
-              }}
-            >
-              <View style={{ alignItems: 'center' }}>
+          <Marker
+            key={`friend-${index}`}
+            ref={(ref) => (friendsMarkersRef.current[index] = ref)}
+            coordinate={{
+              latitude: friend.location.lat,
+              longitude: friend.location.lng,
+            }}
+            onPress={() => {
+              console.log('Friend marker pressed:', friend);
+              setSelectedFriend(friend);      // Pass full friend data
+              setModalVisible(true);          // Show modal
+            }}
+          >
+            <View style={{ alignItems: 'center' }}>
               {console.log('Profile Image URI:', friend.location.profileImage)}
 
-                <Image
-                  source={{
-                    uri: friend.location.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
-                  }}
+              <Image
+                source={{
+                  uri: friend.location.profileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y', // placeholder. Replace with the actual profile image!
+                }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  borderWidth: 2,
+                  borderColor: '#fff',
+                  backgroundColor: '#ccc',
+                }}
+              />
+            </View>
+            <Callout>
+              <View style={{ maxWidth: 600 }}>
+                <Text
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                    backgroundColor: '#ccc',
+                    fontWeight: 'bold',
+                    flexWrap: 'wrap',
                   }}
-                />
+                  // numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {friend.name}
+                </Text>
               </View>
-              <Callout>
-                <View style={{ maxWidth: 600 }}>
-                  <Text
-                    style={{
-                      fontWeight: 'bold',
-                      flexWrap: 'wrap',
-                    }}
-                    // numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {friend.email}
-                  </Text>
-                </View>
-              </Callout>
-            </Marker>
-          ))}
-      
+            </Callout>
+          </Marker>
+        ))}
+
       </MapView>
 
       <View style={styles.overlay}>
@@ -421,6 +460,16 @@ const loadFriendsLocations = async () => {
       </TouchableOpacity>
 
       <TouchableOpacity
+        onPress={handleRecenter}
+        style={styles.floatingButton4}
+
+      >
+        <MaterialCommunityIcons name="compass-outline" size={28} color="#fff" />
+
+
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.floatingButton2}
 
         onPress={() => {
@@ -431,27 +480,27 @@ const loadFriendsLocations = async () => {
       >
         <MaterialCommunityIcons name="account-multiple" size={28} color="#fff" />
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={styles.floatingButton3}
 
         onPress={async () => {
-                  try {
-                    console.log('Updating location...');
-                    console.log("Current Location:", currentLocation);
-                    const locationUpdated = {
-                      lat: currentLocation.latitude,
-                      lng: currentLocation.longitude
-                    };
+          try {
+            console.log('Updating location...');
+            console.log("Current Location:", currentLocation);
+            const locationUpdated = {
+              lat: currentLocation.latitude,
+              lng: currentLocation.longitude
+            };
 
-                    await updateUserLocation(auth.currentUser.uid, locationUpdated);
-                    Alert.alert('Location Updated', 'Your location has been updated.');
+            await updateUserLocation(auth.currentUser.uid, locationUpdated);
+            Alert.alert('Location Updated', 'Your location has been updated.');
 
-                    console.log('Location updated!');
-                  } catch (error) {
-                    console.error('Error updating location:', error);
-                  }
-                }}
+            console.log('Location updated!');
+          } catch (error) {
+            console.error('Error updating location:', error);
+          }
+        }}
       >
         <MaterialCommunityIcons name="crosshairs-gps" size={28} color="#fff" />
       </TouchableOpacity>
@@ -485,7 +534,7 @@ const loadFriendsLocations = async () => {
                   onPress={() => {
                     openMaps(item);
                     focusOnPlace(item, index);
-                    setShowPlacesList(false); 
+                    setShowPlacesList(false);
                   }}                >
                   <Text style={styles.placeName}>{item.name}</Text>
                   <Text style={styles.placeAddress}>{item.vicinity}</Text>
@@ -531,7 +580,7 @@ const loadFriendsLocations = async () => {
       </Modal>
     </View>
 
-    
+
   );
 }
 
@@ -552,9 +601,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 10,
+    backgroundColor: 'rgba(30, 30, 30, 0.85)',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 21,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+    backdropFilter: 'blur(10px)',
   },
   overlayText: {
     color: '#fff',
@@ -613,6 +669,18 @@ const styles = StyleSheet.create({
   floatingButton3: {
     position: 'absolute',
     bottom: 250,
+    right: 25,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 50,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  floatingButton4: {
+    position: 'absolute',
+    bottom: 320,
     right: 25,
     backgroundColor: '#2C2C2E',
     borderRadius: 50,

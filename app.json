@@ -4,7 +4,7 @@
     "slug": "MotorVision",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/Motorvision_Logo.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -17,7 +17,9 @@
       "bundleIdentifier": "com.motorvision.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to display the map and track rides.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload or select photos."
+
       }
     },
     "android": {

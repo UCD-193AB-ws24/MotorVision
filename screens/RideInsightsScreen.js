@@ -92,6 +92,7 @@ export default function RideInsightsScreen() {
     const accelSubscription = Accelerometer.addListener(({ x, y, z }) => {
       const magnitude = Math.sqrt(x * x + y * y + z * z);
       setAccelData((data) => [...data.slice(-20), parseFloat(magnitude.toFixed(2))]);
+      console.log(`Acceleration: ${magnitude.toFixed(2)} m/s²`);
     });
 
     Accelerometer.setUpdateInterval(1000);

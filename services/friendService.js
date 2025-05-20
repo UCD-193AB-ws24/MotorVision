@@ -143,6 +143,7 @@ export async function getFriendsLocations(currentUserUid) {
       const friendData = friendSnap.data();
       if (friendData.email && friendData.location) {
         locations.push({
+          name: friendData.name || 'Unknown',
           email: friendData.email,
           location: {
             lat: friendData.location.lat,
