@@ -289,9 +289,9 @@ function formatRoadsideSummary (data){
   const grouped = { gas: [], food: [], coffee: [] };
 
   const categoryMap = {
-  'gas_stations': 'gas',
-  'restaurants': 'food',
-  'coffee_shops': 'coffee'
+  'gas_stations': 'gas ⛽',
+  'restaurants': 'food ',
+  'coffee_shops': 'coffee ☕'
 };
 
   // Count and group
@@ -974,10 +974,16 @@ export default function PreRouteAnalysis() {
             <TouchableOpacity onPress={scrollToDetails}>
             <View style={styles.resultBox}>
             <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
+            <Text style={styles.titleText}>
+              Average Congestion: {' '}
             <Text style={styles.summaryText}>
-                Average Congestion: {response.maxCongestion} {getCongestionEmoji(response.maxCongestion)}
+              {response.maxCongestion} {getCongestionEmoji(response.maxCongestion)}
             </Text>
-            <Text style={styles.summaryText}>Max Speed Allowed: {response?.maxCongestion ? response.maxSpeed.toFixed(2) : 'N/A'} mph</Text>
+            </Text>
+            <Text style={styles.titleText}>
+              Max Speed Allowed: {' '}
+            <Text style={styles.summaryText}> {response?.maxCongestion ? response.maxSpeed.toFixed(2) : 'N/A'} mph</Text>
+            </Text>
             </View>
             </TouchableOpacity>
 
@@ -987,9 +993,18 @@ export default function PreRouteAnalysis() {
               <Text style={styles.sectionTitle}>Weather Conditions</Text>
               {weatherSummary ? (
               <>
-              <Text style={styles.summaryText}>Average Temperature: {weatherSummary.average_temperature.toFixed(1)}°F</Text>
-              <Text style={styles.summaryText}>Average Windspeed: {weatherSummary.average_wind_speed.toFixed(1)} mph</Text>
-              <Text style={styles.summaryText}>Most Common Weather: {weatherSummary.icons}</Text>
+              <Text style={styles.titleText}>
+                Average Temperature: {' '}
+              <Text style={styles.summaryText}> {weatherSummary.average_temperature.toFixed(1)}°F</Text>
+              </Text>
+              <Text style={styles.titleText}>
+                Average Windspeed: {' '}
+              <Text style={styles.summaryText}> {weatherSummary.average_wind_speed.toFixed(1)} mph</Text>
+              </Text>
+              <Text style={styles.titleText}>
+                Most Common Weather: {' '}
+              <Text style={styles.summaryText}> {weatherSummary.icons}</Text>
+              </Text>
             </>
             ) : (
             <Text style={styles.summaryText}>Loading weather data...</Text>
@@ -1004,8 +1019,11 @@ export default function PreRouteAnalysis() {
             <Text style={styles.sectionTitle}>Riding Conditions</Text>
             {rideabilityScore ? (
             <>
+            <Text style={styles.titleText}>
+              Rideability Score: {' '}
             <Text style={styles.summaryText}>
-                Rideability Score: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"}
+                {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} 🏍️
+            </Text>
             </Text>
             </>
           ) : (
@@ -1021,8 +1039,11 @@ export default function PreRouteAnalysis() {
 
             {resources?.summary ? (
               Object.entries(resources.summary).map(([key, count]) => (
-              <Text key={key} style={styles.summaryText}>
-                {key.charAt(0).toUpperCase() + key.slice(1)}: {count}
+              <Text key={key} style={styles.titleText}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}: {' '}
+                <Text style={styles.summaryText}>
+                {count}
+                </Text>
               </Text>
             ))
             ) : (
@@ -1279,12 +1300,13 @@ const styles = StyleSheet.create({
   },
   resultBox: {
     backgroundColor: '#1E1E1E',
-    marginTop: 20,
-    padding: 15,
+    marginTop: 5,
+    marginBottom: 5,
+    padding: 5,
     borderRadius: 10,
   },
-  resultText: {
-    color: '#ffffff',
+  titleText: {
+    color: '#cccccc',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1309,12 +1331,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cccccc',
     marginBottom: 5,
+    fontWeight: 'normal',
   },
   overviewContainer: {
     marginTop: 15,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 8,
