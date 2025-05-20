@@ -571,7 +571,7 @@ const getCongestionEmoji = (level) => {
   
     const segments = [];
   
-    for (let i = 1; i < geometryCoords.length; i += 10) {
+    for (let i = 1; i < geometryCoords.length; i += 1) {
       console.log("Going through rendering loop");
       const prevCoord = geometryCoords[i - 1];
       const currCoord = geometryCoords[i];
@@ -1066,7 +1066,8 @@ export default function PreRouteAnalysis() {
           </View>
           </View>
 
-          
+                <View style={styles.toggleRow}>
+
         <TouchableOpacity
           style={styles.ovalButton}
           onPress={() => setShowSpeedBubbles(prev => !prev)}
@@ -1079,6 +1080,7 @@ export default function PreRouteAnalysis() {
         <TouchableOpacity style={styles.ovalButton} onPress={() => setShowPolyline(prev => !prev)}>
     <Text style={styles.ovalButtonText}>{ showPolyline ? 'Hide Polyline' : 'Show Polyline'}</Text>
   </TouchableOpacity>
+  </View>
 
         <View style={styles.toggleRow}>
   <TouchableOpacity style={styles.ovalButton} onPress={() => setShowCoffee(prev => !prev)}>
@@ -1254,18 +1256,18 @@ export default function PreRouteAnalysis() {
             {resources?.detailed ? (
             Object.entries(resources.detailed).map(([category, places]) => (
             <View key={category} style={{ marginBottom: 10 }}>
-                <Text style={styles.headerTitle}>
+                <Text style={styles.titleText}>
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                 </Text>
                 {places.map((place, index) => (
                 <View key={index} style={styles.sectionTitle}>
-                    <Text style={styles.summaryText}>{place.name}</Text>
-                    <Text style={styles.summaryText}>Rating: {place.rating ?? 'N/A'}</Text>
+                    <Text style={styles.summaryText}> {'     '} {place.name}</Text>
+                    <Text style={styles.summaryText}> {'     '} Rating: {place.rating ?? 'N/A'}</Text>
                     <Text
-                        style={styles.summaryText}
+                        style={styles.linkText}
                         onPress={() => Linking.openURL(place.mapsLink)}
                     >
-                    View on Maps
+                    {'     '} View on Maps
                    </Text>
                 </View>
                 ))}
@@ -1389,6 +1391,13 @@ const styles = StyleSheet.create({
     color: '#cccccc',
     marginBottom: 5,
     fontWeight: 'normal',
+  },
+  linkText: {
+    fontSize: 16,
+    color: '#1E90FF',
+    marginBottom: 5,
+    fontWeight: 'normal',
+    textDecorationLine: 'underline',
   },
   overviewContainer: {
     marginTop: 15,
@@ -1559,7 +1568,6 @@ ovalButton: {
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
-    marginVertical: 10,
   },
 
   
