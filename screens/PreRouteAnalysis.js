@@ -211,9 +211,6 @@ const calculateRideability = (curvature, elevationDiff) => {
   return rideabilityScore;
 };
 
-
-
-
 const RESOURCE_TYPES = {
   gas: 'gas_station',
   food: 'restaurant',
@@ -255,10 +252,10 @@ const fetchPlacesAlongRoute = async (stepCoordinates, googleApiKey) => {
                 name: place.name,
                 address: place.vicinity,
                 rating: place.rating,
-                location: {
-                  lat: place.geometry.location.lat,
-                  lng: place.geometry.location.lng,
-                },
+                lat: place.geometry.location.lat,
+                lng: place.geometry.location.lng,
+                mapsLink: `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}`,     
+              
               });
             }
           }
@@ -280,7 +277,7 @@ const categories = {
   coffee: 'Coffee Shops',
 };
 
-
+{ /* ROADSIDE */}
 function formatRoadsideSummary (data){
 
   console.log("Entering formatRoadsideSummary", data);
@@ -589,27 +586,11 @@ export default function PreRouteAnalysis() {
   const [rideabilityScore, setRideabilityScore] = useState(null);
   const [places, setPlaces] = useState(null); // this is google maps api
   const [showOverview, setShowOverview] = useState(false);
-
-
-
-
-  const chartData = weatherSummary ? {
-    labels: weatherSummary.snapshots.map((snap, idx) => `${idx}`), // or timestamp slices
-    datasets: [
-      {
-        data: weatherSummary.snapshots.map((snap) => snap.temp),
-        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // red for temp
-        strokeWidth: 2,
-      },
-      {
-        data: weatherSummary.snapshots.map((snap) => snap.wind),
-        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`, // blue for wind
-        strokeWidth: 2,
-      },
-    ],
-    legend: ["Temperature (°F)", "Wind Speed (mph)"],
-  } : null;
-  
+  const [showSpeedBubbles, setShowSpeedBubbles] = useState(false);
+  const [showCoffee, setShowCoffee] = useState(false);
+  const [showFood, setShowFood] = useState(false);
+  const [showGas, setShowGas] = useState(false);
+  const [showPolyline, setShowPolyline] = useState(false);
 
   
 
@@ -1083,6 +1064,63 @@ export default function PreRouteAnalysis() {
 
           </View>
           </View>
+
+          
+        <TouchableOpacity
+          style={styles.ovalButton}
+          onPress={() => setShowSpeedBubbles(prev => !prev)}
+        >
+              <Text style={styles.ovalButtonText}>
+                      {showSpeedBubbles ? 'Hide Speed' : 'Show Speed'}
+              </Text>
+          </TouchableOpacity>
+
+        <TouchableOpacity style={styles.ovalButton} onPress={() => setShowPolyline(prev => !prev)}>
+    <Text style={styles.ovalButtonText}>{ showPolyline ? 'Hide Polyline' : 'Show Polyline'}</Text>
+  </TouchableOpacity>
+
+        <View style={styles.toggleRow}>
+  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowCoffee(prev => !prev)}>
+    <Text style={styles.ovalButtonText}>{showCoffee ? 'Hide ☕' : 'Show ☕'}</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowFood(prev => !prev)}>
+    <Text style={styles.ovalButtonText}>{showFood ? 'Hide 🍔' : 'Show 🍔'}</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowGas(prev => !prev)}>
+    <Text style={styles.ovalButtonText}>{showGas ? 'Hide ⛽' : 'Show ⛽'}</Text>
+  </TouchableOpacity>
+</View>
+
+
+          <Text style={styles.sectionTitle}>Speed Overview</Text>
+        <View style={styles.mapContainer}>
+        <MapView key={`map-${currentRouteIndex}`} style={{ flex: 1 }} region={region}  // Use dynamic region
+        onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
+        >
+            {/* Adding the congestion */}
+
+            {showPolyline && renderMultiColorPolyline()}
+
+
+         {/* Speed Bubbles */}
+         
+         { showSpeedBubbles &&
+         
+         response?.maxSpeedOverview.map(([speed, coords], index) => (
+         <SpeedBubble
+            key={`speed-bubble-${index}`}
+            coordinate={{ latitude: coords[1], longitude: coords[0] }}
+            speed={speed}
+        />
+      
+        ))}
+
+  
+
+        </MapView>
+        </View>
         
           {/* Congestion Overview Section TODO: change this to be more user friendly */}
           <View ref={detailsRef}
@@ -1111,28 +1149,10 @@ export default function PreRouteAnalysis() {
             </View>
 
           </View>
+        
 
         {/*Map Overlap for Speed */}
-        <Text style={styles.sectionTitle}>Speed Overview</Text>
-        <View style={styles.mapContainer}>
-        <MapView key={`map-${currentRouteIndex}`} style={{ flex: 1 }} region={region}  // Use dynamic region
-        onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
-        >
-            {/* Adding the congestion */}
-            {memoizedPolyline}
-
-
-         {/* Speed Bubbles */}
-         {response?.maxSpeedOverview.map(([speed, coords], index) => (
-         <SpeedBubble
-            key={`speed-bubble-${index}`}
-            coordinate={{ latitude: coords[1], longitude: coords[0] }}
-            speed={speed}
-        />
-      
-        ))}
-        </MapView>
-        </View>
+        
         </View>
 
         {/* Weather conditions */}
@@ -1210,9 +1230,18 @@ export default function PreRouteAnalysis() {
       <Text style={styles.headerTitle}>Riding Conditions</Text>
        {rideabilityScore &&
        <View style={styles.resultBox}>
-            <Text style={styles.congestionText}> Max Elevation: {rideabilityScore.maxElevation} </Text>
-            <Text style={styles.congestionText}> Min Elevation: {rideabilityScore.minElevation} </Text>
-            <Text style={styles.congestionText}> Average Curvature on Route: {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} </Text>
+            <Text style={styles.titleText}>
+              Maximum Elevation: {' '}
+            <Text style={styles.summaryText}> {rideabilityScore.maxElevation} </Text>
+            </Text>
+            <Text style={styles.titleText}>
+              Minimum Elevation: {' '}
+            <Text style={styles.summaryText}> {rideabilityScore.minElevation} </Text>
+            </Text>
+            <Text style={styles.titleText}>
+               Average Curvature on Route: {' '}
+            <Text style={styles.summaryText}>{rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} </Text>
+            </Text>
        </View>
        }
        </View>
@@ -1512,6 +1541,25 @@ separator: {
   backgroundColor: 'black',
   marginHorizontal: 12,
 },
+
+ovalButton: {
+    alignSelf: 'center',
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 25,
+    marginVertical: 10,
+  },
+  ovalButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginVertical: 10,
+  },
 
   
 });
