@@ -533,13 +533,32 @@ const getCongestionEmoji = (level) => {
     }
   };
 
+const resourcesColors = {
+  coffee: '#6f4e37', // dark coffee brown
+  food: '#e67e22',   // orange
+  gas: '#3498db',    // blue
+};
 
+const PlacePin = ({ coordinate, name, category }) => {
+  const bubbleColor = resourcesColors[category] || '#ccc';
+  console.log("Making a pin for this: ", name);
+
+  return (
+    <Marker
+      coordinate={coordinate}
+      title={name}
+      description={category}
+      pinColor={category === 'coffee' ? 'brown' : 'blue'}
+    />
+  );
+};
 {/* MAX SPEED  - bubbles according to NaN and mph */}
   const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
     // Function to determine the bubble color based on speed
     if (speed === null || isNaN(speed) || speed === 0) {
         return null; // No bubble rendered
       }
+     console.log("Making a speed bubble", speed);
     
       // Function to determine the bubble color based on speed
       const getBubbleColor = (speed) => {
@@ -572,7 +591,6 @@ const getCongestionEmoji = (level) => {
     const segments = [];
   
     for (let i = 1; i < geometryCoords.length; i += 1) {
-      console.log("Going through rendering loop");
       const prevCoord = geometryCoords[i - 1];
       const currCoord = geometryCoords[i];
       const congestion = congestionLevels[i - 1] || 'unknown';
@@ -706,12 +724,14 @@ export default function PreRouteAnalysis() {
         cleanedRoutes[0].stepCoordinates,
         googleApiKey
       );
-      console.log("Done with roadside resources", roadsideResources)
 
       // reformatting roadside resources
       console.log("Reformatting roadside resources")
       const formattedResources = formatRoadsideSummary(roadsideResources);
       setResources(formattedResources);
+
+      console.log("Done with roadside resources", formattedResources)
+
 
 
 
@@ -1066,38 +1086,8 @@ export default function PreRouteAnalysis() {
           </View>
           </View>
 
-                <View style={styles.toggleRow}>
 
-        <TouchableOpacity
-          style={styles.ovalButton}
-          onPress={() => setShowSpeedBubbles(prev => !prev)}
-        >
-              <Text style={styles.ovalButtonText}>
-                      {showSpeedBubbles ? 'Hide Speed' : 'Show Speed'}
-              </Text>
-          </TouchableOpacity>
-
-        <TouchableOpacity style={styles.ovalButton} onPress={() => setShowPolyline(prev => !prev)}>
-    <Text style={styles.ovalButtonText}>{ showPolyline ? 'Hide Polyline' : 'Show Polyline'}</Text>
-  </TouchableOpacity>
-  </View>
-
-        <View style={styles.toggleRow}>
-  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowCoffee(prev => !prev)}>
-    <Text style={styles.ovalButtonText}>{showCoffee ? 'Hide ☕' : 'Show ☕'}</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowFood(prev => !prev)}>
-    <Text style={styles.ovalButtonText}>{showFood ? 'Hide 🍔' : 'Show 🍔'}</Text>
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.ovalButton} onPress={() => setShowGas(prev => !prev)}>
-    <Text style={styles.ovalButtonText}>{showGas ? 'Hide ⛽' : 'Show ⛽'}</Text>
-  </TouchableOpacity>
-</View>
-
-
-          <Text style={styles.sectionTitle}>Speed Overview</Text>
+          <Text style={styles.sectionTitle}>Interactive Map</Text>
         <View style={styles.mapContainer}>
         <MapView key={`map-${currentRouteIndex}`} style={{ flex: 1 }} region={region}  // Use dynamic region
         onRegionChangeComplete={(newRegion) => setRegion(newRegion)}  // Optional: allows manual region changes 
@@ -1124,11 +1114,26 @@ export default function PreRouteAnalysis() {
 
         </MapView>
         </View>
+
+        <View style={styles.toggleRow}>
+
+        <TouchableOpacity
+          style={styles.ovalButton}
+          onPress={() => setShowSpeedBubbles(prev => !prev)}
+        >
+              <Text style={styles.ovalButtonText}>
+                      {showSpeedBubbles ? 'Hide Speed' : 'Show Speed'}
+              </Text>
+          </TouchableOpacity>
+
+        <TouchableOpacity style={styles.ovalButton} onPress={() => setShowPolyline(prev => !prev)}>
+    <Text style={styles.ovalButtonText}>{ showPolyline ? 'Hide Polyline' : 'Show Polyline'}</Text>
+  </TouchableOpacity>
+  </View>
         
           {/* Congestion Overview Section TODO: change this to be more user friendly */}
           <View ref={detailsRef}
           style={styles.resultBox}>
-        <Text style={styles.headerTitle}>Traffic and Road Information</Text>
           <View style={styles.overviewContainer}>
             <Text style={styles.sectionTitle}>Congestion Overview</Text>
             {/* New format for congestion overview */}
@@ -1159,10 +1164,8 @@ export default function PreRouteAnalysis() {
         </View>
 
         {/* Weather conditions */}
-        <View ref={weatherRef} style={styles.resultBox}>
-            <Text style={styles.headerTitle}>Weather Information</Text>
-        
-      
+        <View ref={weatherRef} style={styles.resultBox}>        
+    
   
       {weatherSummary && (
   <>
@@ -1196,7 +1199,7 @@ export default function PreRouteAnalysis() {
     />
 
     {/* Wind Speed Chart */}
-    <Text style={styles.chart}>Wind Speed Overview</Text>
+    <Text style={styles.sectionTitle}>Wind Speed Overview</Text>
     <LineChart
       data={{
         labels: weatherSummary.snapshots.map(() => ""),
@@ -1230,7 +1233,7 @@ export default function PreRouteAnalysis() {
 
 
       <View ref={rideRef} style={styles.resultBox}>
-      <Text style={styles.headerTitle}>Riding Conditions</Text>
+      <Text style={styles.sectionTitle}>Riding Conditions</Text>
        {rideabilityScore &&
        <View style={styles.resultBox}>
             <Text style={styles.titleText}>
@@ -1252,7 +1255,7 @@ export default function PreRouteAnalysis() {
        {/* Adding scroallable feature */}
        {/* Raodside Resources conditions */}
        <View ref={roadRef} style={styles.resultBox}>
-            <Text style={styles.headerTitle}>Roadside Resources</Text>
+            <Text style={styles.sectionTitle}>Roadside Resources</Text>
             {resources?.detailed ? (
             Object.entries(resources.detailed).map(([category, places]) => (
             <View key={category} style={{ marginBottom: 10 }}>
@@ -1568,6 +1571,22 @@ ovalButton: {
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
+  },
+  pinBubble: {
+    padding: 6,
+    borderRadius: 20,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 4,
+  },
+  pinText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 
   
