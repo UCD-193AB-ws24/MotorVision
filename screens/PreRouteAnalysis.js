@@ -1273,7 +1273,7 @@ export default function PreRouteAnalysis() {
             <Text style={styles.sectionTitle}>Roadside Resources</Text>
             {resources?.detailed ? (
             Object.entries(resources.detailed).map(([category, places]) => (
-            <View key={category} style={{ marginBottom: 10 }}>
+            <View key={category} style={{ marginBottom: 10, padding: 2 }}>
                 <Text style={styles.titleText}>
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                 </Text>
@@ -1387,6 +1387,7 @@ const styles = StyleSheet.create({
     color: '#cccccc',
     fontSize: 16,
     fontWeight: 'bold',
+    paddingLeft: 10,
   },
   scrollView: {
     flex: 1,
@@ -1425,7 +1426,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: 5,
+    paddingLeft: 10,
+    paddingTop: 6,
   },
   chart: {
     fontSize: 24,
@@ -1433,12 +1436,18 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
     alignItems: 'center',
+    paddingTop: 10,
+    paddingLeft: 10,
   },
   headerTitle: {
-    fontSize: 30,
+    fontSize: 35,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#cccccc',
+    paddingLeft: 10,
+    marginTop: 10,  
+    color: 'white',
+    textDecorationLine: 'bold',
+
+
 
   },
   listText: {
@@ -1509,7 +1518,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   congestionOverviewList: {
-    marginTop: 10,
+    marginTop: 5,
+    paddingLeft: 12,
   },
   congestionItem: {
     flexDirection: 'row',
@@ -1577,7 +1587,7 @@ ovalButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 25,
-    marginVertical: 10,
+    marginVertical: 18,
   },
   ovalButtonText: {
     color: 'white',
