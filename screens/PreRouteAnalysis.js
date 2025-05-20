@@ -19,6 +19,7 @@ import 'react-native-get-random-values';
 import * as Location from 'expo-location';
 
 
+
 const googleApiKey = 'AIzaSyBT6nc18rrT6YZrEghVzSGYUoXSiI23oIA';
 const Nominatim_BASE_URL = "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=";
 
@@ -923,6 +924,19 @@ export default function PreRouteAnalysis() {
     }
   };
 
+  const viewShotRef = useRef();
+
+  const handleShare = async () => {
+    try {
+      const uri = await viewShotRef.current.capture();
+      const fileUri = FileSystem.cacheDirectory + 'route-analysis.png';
+      await FileSystem.copyAsync({ from: uri, to: fileUri });
+      await Sharing.shareAsync(fileUri);
+    } catch (error) {
+      console.error('Sharing error:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -963,6 +977,7 @@ export default function PreRouteAnalysis() {
           <Text style={styles.buttonText}>Analyze</Text>
         )}
       </TouchableOpacity>
+     
 
       {error && <Text style={styles.errorText}>{error}</Text>}
       {response && (
@@ -1297,6 +1312,8 @@ export default function PreRouteAnalysis() {
           <Text style={styles.buttonText}>Find Another Route</Text>
         </TouchableOpacity>
 
+
+
          </View>
         )}
 
@@ -1316,10 +1333,9 @@ export default function PreRouteAnalysis() {
          </View>
         )}
 
-
-
       </ScrollView>
     )}
+
     </KeyboardAvoidingView>
   );
 }
@@ -1586,6 +1602,18 @@ ovalButton: {
   pinText: {
     color: '#fff',
     fontSize: 10,
+    fontWeight: 'bold',
+  },
+  shareButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    backgroundColor: '#3498db',
+    padding: 12,
+    borderRadius: 8,
+  },
+  shareText: {
+    color: '#fff',
     fontWeight: 'bold',
   },
 
