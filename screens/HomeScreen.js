@@ -129,7 +129,7 @@ export default function HomeScreen({ navigation }) {
         messages: [
           {
             role: 'user',
-            content: `I'm using a smart motorcycle helmet app. My riding stats are: total rides: ${stats.totalRides}, miles ridden: ${stats.totalMiles}, average speed: ${stats.avgSpeed} mph. Give me a short, motivational motorcycle-themed insight.`,
+            content: `I'm using a smart motorcycle helmet app. My riding stats are: total rides: ${stats.totalRides}, miles ridden: ${stats.totalMiles}, average speed: ${stats.avgSpeed} mph. Give me a short, motorcycle-themed insight on safety.`,
           },
         ],
       };
