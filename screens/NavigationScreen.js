@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Platform, View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, Modal, Linking, Image } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -8,11 +8,14 @@ import { db, auth } from '../config/firebase';
 import { getFriendsLocations, updateUserLocation } from '../services/friendService';
 import { getDoc, query, where, getDocs, collection, getFirestore, doc, updateDoc, increment } from 'firebase/firestore';
 import FriendProfileModal from './UserDetailsScreen';
+import { ThemeContext } from './ThemeCustomization';
+
 
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyC0nK92oLlA1ote5BvcDKYNrEO2dlUEDpE';
 
 export default function NavigationScreen() {
+  const { theme } = useContext(ThemeContext);
   const [region, setRegion] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [startTripAlertShown, setStartTripAlertShown] = useState(false);
@@ -506,7 +509,7 @@ export default function NavigationScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.startTripButton, tripActive ? styles.activeButton : null]}
+        style={[styles.startTripButton,  { backgroundColor: theme.accent }, tripActive ? styles.activeButton : null]}
         onPress={handleStartTrip}
       >
         <Text style={styles.startTripText}>

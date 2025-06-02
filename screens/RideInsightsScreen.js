@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { Accelerometer } from 'expo-sensors';
@@ -8,8 +8,11 @@ import { db, auth } from '../config/firebase';
 import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import * as Location from 'expo-location';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function RideInsightsScreen() {
+  const { theme } = useContext(ThemeContext);
   const [menu, setMenu] = useState('short'); // 'short' or 'long'
   const [speedData, setSpeedData] = useState([0]);
   const [accelData, setAccelData] = useState([0]);
@@ -58,6 +61,17 @@ export default function RideInsightsScreen() {
       }
     }, [menu])
   );
+
+  const chartConfig = {
+    backgroundGradientFrom: '#1E1E1E',
+    backgroundGradientTo: '#1E1E1E',
+    color :  (opacity = 1) => `${theme.accent}${Math.floor(opacity * 255).toString(16)}`,  // or simpler
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    strokeWidth: 2,
+    barPercentage: 0.5,
+    decimalPlaces: 0,
+  };
+
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -115,10 +129,10 @@ export default function RideInsightsScreen() {
       <Text style={styles.header}>Ride Insights</Text>
 
       <View style={styles.menu}>
-        <TouchableOpacity onPress={() => setMenu('short')} style={[styles.menuButton, menu === 'short' && styles.activeButton]}>
+        <TouchableOpacity onPress={() => setMenu('short')} style={[styles.menuButton, {backgroundColor: theme.accent} , menu === 'short']}>
           <Text style={styles.menuText}>Short Term Stats</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setMenu('long')} style={[styles.menuButton, menu === 'long' && styles.activeButton]}>
+        <TouchableOpacity onPress={() => setMenu('long')} style={[styles.menuButton, {backgroundColor: theme.accent}, menu === 'long']}>
           <Text style={styles.menuText}>Long Term Stats</Text>
         </TouchableOpacity>
       </View>
@@ -174,15 +188,6 @@ export default function RideInsightsScreen() {
   );
 }
 
-const chartConfig = {
-  backgroundGradientFrom: '#1E1E1E',
-  backgroundGradientTo: '#1E1E1E',
-  color: (opacity = 1) => `rgba(10, 132, 255, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  strokeWidth: 2,
-  barPercentage: 0.5,
-  decimalPlaces: 0,
-};
 
 const styles = StyleSheet.create({
   container: {
