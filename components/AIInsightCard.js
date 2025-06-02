@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 
-export default function AIInsightCard({ insight, loading }) {
+export default function AIInsightCard({ insight, loading, accentColor = '#00FFFF' }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.header}>AI Insight</Text>
+      <Text style={[styles.header, { color: accentColor }]}>AI Insight</Text>
       {loading ? (
         <ActivityIndicator size="small" color="#0A84FF" />
       ) : (
