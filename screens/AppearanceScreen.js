@@ -3,9 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ThemeContext } from './ThemeCustomization';
 
 const themes = [
-  { accent: '#ff4081' },
-  { accent: '#0A84FF' },
-  { accent: '#228B22' },
+  { name: "Pretty in Pink", accent: '#ff4081' },
+  { name: "iOS Default", accent: '#0A84FF' },
+  { name: "Evergreen", accent: '#228B22' },
+  { name: "Sunshine", accent: '#FFD700' },
+  { name: "Violet Hues", accent: '#800080'},
+  { name: "Sunset", accent: '#FFA500' }
 ];
 
 export default function AppearanceScreen({ navigation }) {
@@ -20,7 +23,7 @@ export default function AppearanceScreen({ navigation }) {
           onPress={() => updateTheme(t)}
           style={[styles.accentButton, { backgroundColor: t.accent }]}
         >
-          <Text style={styles.buttonText}>Accent {index + 1}</Text>
+          <Text style={styles.buttonText}>{t.name}</Text>
         </TouchableOpacity>
       ))}
 

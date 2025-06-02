@@ -459,7 +459,7 @@ export default function NavigationScreen() {
         style={styles.floatingButton}
         onPress={() => setShowPlacesList(true)}
       >
-        <MaterialCommunityIcons name="motorbike" size={28} color="#fff" />
+        <MaterialCommunityIcons name="motorbike" size={28} color={theme.accent} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -467,7 +467,7 @@ export default function NavigationScreen() {
         style={styles.floatingButton4}
 
       >
-        <MaterialCommunityIcons name="compass-outline" size={28} color="#fff" />
+        <MaterialCommunityIcons name="compass-outline" size={28} color={theme.accent} />
 
 
       </TouchableOpacity>
@@ -481,7 +481,7 @@ export default function NavigationScreen() {
           loadFriendsLocations(); // refresh + drop pins
         }}
       >
-        <MaterialCommunityIcons name="account-multiple" size={28} color="#fff" />
+        <MaterialCommunityIcons name="account-multiple" size={28} color={theme.accent} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -505,7 +505,7 @@ export default function NavigationScreen() {
           }
         }}
       >
-        <MaterialCommunityIcons name="crosshairs-gps" size={28} color="#fff" />
+        <MaterialCommunityIcons name="crosshairs-gps" size={28} color={theme.accent} />
       </TouchableOpacity>
 
       <TouchableOpacity

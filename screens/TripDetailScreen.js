@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function TripDetailScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const route = useRoute();
   const { trip } = route.params;
 
@@ -143,7 +146,7 @@ export default function TripDetailScreen({ navigation }) {
       )}
 
       <TouchableOpacity
-        style={styles.backButton}
+        style={[styles.backButton, { backgroundColor: theme.accent }]}
         onPress={() => navigation.goBack()}
       >
         <Text style={styles.buttonText}>Back to History</Text>

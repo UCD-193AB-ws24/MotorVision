@@ -75,15 +75,15 @@ export default function SettingsScreen({ navigation }) {
         keyExtractor={(item) => item.title}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.settingItem} onPress={item.onPress}>
-            <Ionicons name={item.icon} size={24} color="#0A84FF" style={styles.icon} />
+            <Ionicons name={item.icon} size={24} color={theme.accent} style={styles.icon} />
             <Text style={styles.settingText}>{item.title}</Text>
-            <Ionicons name="chevron-forward-outline" size={20} color="#888" />
+            <Ionicons name="chevron-forward-outline" size={20} color={theme.accent} />
           </TouchableOpacity>
         )}
       />
 
       <TouchableOpacity
-        style={styles.guideButton}
+        style={[styles.guideButton, { backgroundColor: theme.accent }]}
         onPress={() => navigation.navigate('SettingsTab', { screen: 'PairingGuide' })}
       >
         <Ionicons name="bluetooth-outline" size={24} color="#ffffff" style={styles.icon} />

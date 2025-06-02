@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import { ThemeProvider } from './screens/ThemeCustomization';
+import { ThemeContext } from './screens/ThemeCustomization';
 
 
 // Screens
@@ -78,6 +79,7 @@ function SettingsStack() {
 }
 
 function MainTabs() {
+  const { theme } = useContext(ThemeContext);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -92,7 +94,7 @@ function MainTabs() {
             case 'SettingsTab': iconName = 'settings'; break;
             default: iconName = 'ellipse';
           }
-          return <Ionicons name={iconName} size={24} color={color} />;
+          return <Ionicons name={iconName} size={24} color={theme.accent} />;
         },
         tabBarActiveTintColor: '#0A84FF',
         tabBarStyle: { height: 70, paddingBottom: 10 },

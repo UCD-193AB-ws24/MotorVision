@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { LineChart } from 'react-native-chart-kit';
 import { Dimensions, Linking } from 'react-native';
 import 'react-native-get-random-values';
 import * as Location from 'expo-location';
+import { ThemeContext } from './ThemeCustomization';
+
 
 
 
@@ -617,6 +619,7 @@ const renderMultiColorPolyline = (geometryCoords, congestionLevels) => {
 
 {/* EXECUTABLE*/ }
 export default function PreRouteAnalysis() {
+  const { theme } = useContext(ThemeContext);
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -967,7 +970,7 @@ export default function PreRouteAnalysis() {
 
 
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, { backgroundColor: theme.accent }]}
         onPress={handleSubmit}
         disabled={loading}
       >
