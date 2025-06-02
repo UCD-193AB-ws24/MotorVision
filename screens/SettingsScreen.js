@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useContext} from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { ThemeContext } from './ThemeCustomization';
+import { AppearanceScreen } from './AppearanceScreen';
+
 
 export default function SettingsScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
+
   const settingsOptions = [
     {
       title: "Profile",
@@ -41,7 +46,8 @@ export default function SettingsScreen({ navigation }) {
     {
       title: "Appearance",
       icon: "color-palette-outline",
-      onPress: () => alert('Appearance Settings coming soon!'),
+      onPress: () => navigation.navigate('AppearanceScreen'),
+
     },
     {
       title: "Help & Support",
@@ -84,7 +90,7 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.buttonText}>How to Pair a Device</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.accent }]} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Back to Home Screen</Text>
       </TouchableOpacity>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,14 @@ import AIInsightCard from '../components/AIInsightCard';
 import UserStatsCard from '../components/UserStatsCard';
 import QuickNavGrid from '../components/QuickNavGrid';
 
+// Accent
+import { ThemeContext } from './ThemeCustomization';
+
+
 let aiInsightFetched = false;
 
 export default function HomeScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const [userName, setUserName] = useState('');
   const [joinDate, setJoinDate] = useState('');
   const [speed, setSpeed] = useState(0);
@@ -193,7 +198,7 @@ export default function HomeScreen({ navigation }) {
         avgSpeed={stats.avgSpeed}
       />
 
-      <AIInsightCard insight={aiInsight} loading={aiLoading} />
+      <AIInsightCard insight={aiInsight} loading={aiLoading} accentColor={theme.accent} />
       <QuickNavGrid navigation={navigation} />
     </ScrollView>
   );

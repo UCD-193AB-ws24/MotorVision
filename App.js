@@ -7,6 +7,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
+import { ThemeProvider } from './screens/ThemeCustomization';
+
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
@@ -25,6 +27,7 @@ import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import PreRouteAnalysis from './screens/PreRouteAnalysis';
 import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
+import AppearanceScreen from './screens/AppearanceScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -69,6 +72,7 @@ function SettingsStack() {
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
       <Stack.Screen name="SensorAndLocation" component={SensorAndLocationScreen} />
+      <Stack.Screen name="AppearanceScreen" component={AppearanceScreen} />
     </Stack.Navigator>
   );
 }
@@ -131,6 +135,7 @@ export default function App() {
   }
 
   return (
+    <ThemeProvider>
     <NavigationContainer theme={DarkTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
@@ -140,5 +145,6 @@ export default function App() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </ThemeProvider>
   );
 }
