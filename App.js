@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -22,6 +23,8 @@ import FriendsScreen from './screens/FriendsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
+import PreRouteAnalysis from './screens/PreRouteAnalysis';
+import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -65,6 +68,7 @@ function SettingsStack() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
+      <Stack.Screen name="SensorAndLocation" component={SensorAndLocationScreen} />
     </Stack.Navigator>
   );
 }
@@ -77,6 +81,7 @@ function MainTabs() {
           let iconName;
           switch (route.name) {
             case 'Home': iconName = 'home'; break;
+            case 'Pre Route Analysis': iconName = 'location'; break;
             case 'Navigation': iconName = 'map'; break;
             case 'Insights': iconName = 'stats-chart'; break;
             case 'Trip History': iconName = 'time'; break;
@@ -90,6 +95,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Pre Route Analysis" component={PreRouteAnalysis} />
       <Tab.Screen name="Navigation" component={NavigationScreen} />
       <Tab.Screen name="Insights" component={RideInsightsScreen} />
       <Tab.Screen name="Trip History" component={TripStack} />
@@ -104,14 +110,25 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+      try {
+        setUser(currentUser);
+      } catch (err) {
+        console.error('Auth listener error:', err);
+      } finally {
+        setLoading(false);
+      }
     });
 
     return unsubscribe;
   }, []);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
+        <ActivityIndicator size="large" color="#0A84FF" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer theme={DarkTheme}>

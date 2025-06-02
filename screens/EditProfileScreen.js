@@ -1,21 +1,20 @@
-// screens/EditProfileScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signOut } from 'firebase/auth';
-import { auth, db } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '../config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EditProfileScreen({ navigation }) {
-  const tripLogs = useBluetoothStore(state => state.tripLogs);
-  const setProfileImageGlobal = useProfileStore(state => state.setProfileImage);
+  const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
+  const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -24,23 +23,35 @@ export default function EditProfileScreen({ navigation }) {
   const [profileImage, setProfileImageLocal] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setName(data.name || '');
-            setEmail(data.email || '');
-            setBio(data.bio || '');
-            setProfileImageLocal(data.profileImage || '');
-            setCreatedAt(new Date(data.createdAt.seconds * 1000).toLocaleDateString());
-            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: data.name }));
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setName(data.name || '');
+          setEmail(data.email || user.email || '');
+          setBio(data.bio || '');
+          setProfileImageLocal(data.profileImage || '');
+
+          const joined = data.createdAt?.seconds;
+          if (joined) {
+            setCreatedAt(new Date(joined * 1000).toLocaleDateString());
           }
+
+          // Cache only name and createdAt
+          await AsyncStorage.setItem('userInfo', JSON.stringify({
+            name: data.name || '',
+            createdAt: joined || '',
+          }));
         }
-      });
-    };
-    fetchProfile();
+      } catch (err) {
+        console.error('[EditProfile] Failed to fetch user doc:', err);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleSave = async () => {
@@ -48,17 +59,19 @@ export default function EditProfileScreen({ navigation }) {
     if (!user) return;
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      const updatePayload = { name, bio, profileImage };
+
+      await updateDoc(doc(db, 'users', user.uid), updatePayload);
+      await AsyncStorage.setItem('userInfo', JSON.stringify({
         name,
-        bio,
-        profileImage,
-      });
-      await AsyncStorage.setItem('userInfo', JSON.stringify({ name }));
-      setProfileImageGlobal(profileImage); // Update Zustand so ProfileScreen reflects it
+        createdAt: createdAt ? new Date(createdAt).getTime() / 1000 : '',
+      }));
+
+      setProfileImageGlobal(profileImage);
       Alert.alert('Saved', 'Profile updated successfully.');
       navigation.goBack();
     } catch (err) {
-      console.error('Error saving:', err);
+      console.error('[EditProfile] Save error:', err);
       Alert.alert('Error', 'Failed to save changes.');
     }
   };
@@ -78,16 +91,21 @@ export default function EditProfileScreen({ navigation }) {
 
     if (!result.canceled && result.assets?.[0]?.uri) {
       const uri = result.assets[0].uri;
-      setProfileImageLocal(uri);
-    }
-  };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      console.log('User signed out!');
-    } catch (error) {
-      console.error('Sign out error:', error);
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const storage = getStorage();
+        const imageRef = ref(storage, `profile_images/${auth.currentUser.uid}_${Date.now()}.jpg`);
+        await uploadBytes(imageRef, blob);
+        const downloadURL = await getDownloadURL(imageRef);
+
+        setProfileImageLocal(downloadURL);
+      } catch (error) {
+        console.error('[EditProfile] Image upload error:', error);
+        Alert.alert('Upload Failed', 'Unable to upload profile image.');
+      }
     }
   };
 
@@ -115,7 +133,7 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.value}>{email}</Text>
 
         <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{createdAt}</Text>
+        <Text style={styles.value}>{createdAt || '—'}</Text>
       </View>
 
       <View style={styles.card}>
@@ -143,14 +161,11 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Ride Stats</Text>
         <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
         <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
-        <Text style={styles.stat}>Crashes Recorded: {/* TODO */}</Text>
+        <Text style={styles.stat}>Crashes Recorded: {/* Hook up later */}</Text>
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.buttonOutline} onPress={handleSignOut}>
-        <Text style={styles.buttonText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -194,9 +209,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
     elevation: 3,
   },
   label: {
@@ -212,7 +224,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#2C2C2E',
-    color: 'white',
+    color: '#fff',
     padding: 12,
     borderRadius: 10,
     marginBottom: 12,
@@ -234,13 +246,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
-  },
-  buttonOutline: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#0A84FF',
   },
   buttonText: {
     color: '#ffffff',

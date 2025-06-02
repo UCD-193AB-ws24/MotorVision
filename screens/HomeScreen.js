@@ -1,70 +1,108 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, Animated, Alert, ScrollView, ActivityIndicator
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  Animated,
+  ScrollView,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import axios from 'axios';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCrashDetection } from '../hooks/useCrashDetection';
 import { useSensorBuffer } from '../hooks/useSensorBuffer';
 import { auth, db } from '../config/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 
+// Components
+import AIInsightCard from '../components/AIInsightCard';
+import UserStatsCard from '../components/UserStatsCard';
+import QuickNavGrid from '../components/QuickNavGrid';
+
+let aiInsightFetched = false;
+
 export default function HomeScreen({ navigation }) {
-  const [speed, setSpeed] = useState(0);
   const [userName, setUserName] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [joinDate, setJoinDate] = useState('');
+  const [speed, setSpeed] = useState(0);
   const isCrashed = useCrashDetection();
   useSensorBuffer();
 
-  const [stats, setStats] = useState({
-    totalRides: 0,
-    totalMiles: 0,
-    avgSpeed: 0,
-  });
-
+  const [stats, setStats] = useState({ totalRides: 0, totalMiles: 0, avgSpeed: 0 });
   const [aiInsight, setAiInsight] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      try {
-        if (currentUser) {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserInfo = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
 
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            await AsyncStorage.setItem('userInfo', JSON.stringify({ name: userData.name }));
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
 
-            const totalMiles = userData.stats?.totalDistanceMiles || 0;
-            const totalMinutes = userData.stats?.totalMinutes || 0;
-            const avgSpeed = totalMinutes > 0 ? (totalMiles / (totalMinutes / 60)).toFixed(1) : 0;
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+
+            setUserName(data.name || '');
+            setJoinDate(
+              data.createdAt?.seconds
+                ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+                : ''
+            );
+
+            const totalMiles = data.stats?.totalDistanceMiles || 0;
+            const totalMinutes = data.stats?.totalMinutes || 0;
+            const avgSpeed = totalMinutes > 0
+              ? (totalMiles / (totalMinutes / 60)).toFixed(1)
+              : 0;
 
             setStats({
-              totalRides: userData.stats?.totalRides || 0,
+              totalRides: data.stats?.totalRides || 0,
               totalMiles: parseFloat(totalMiles.toFixed(1)),
               avgSpeed,
             });
+
+            await AsyncStorage.setItem('userInfo', JSON.stringify({
+              name: data.name || '',
+              createdAt: data.createdAt?.seconds || '',
+            }));
+          } else {
+            await loadUserInfoFromCache();
           }
+        } catch (err) {
+          console.error('[HomeScreen] Firebase fetch failed:', err);
+          await loadUserInfoFromCache();
         }
+      };
 
-        const stored = await AsyncStorage.getItem('userInfo');
-        if (stored) {
-          const { name } = JSON.parse(stored);
-          setUserName(name);
+      const loadUserInfoFromCache = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('userInfo');
+          if (stored) {
+            const { name, createdAt } = JSON.parse(stored);
+            setUserName(name || '');
+            setJoinDate(
+              createdAt ? new Date(createdAt * 1000).toLocaleDateString() : ''
+            );
+          }
+        } catch (err) {
+          console.error('[HomeScreen] Failed to load cache:', err);
         }
-      } catch (e) {
-        console.error('Failed to load user info:', e);
-      }
-    });
+      };
 
-    return () => unsubscribe();
+      loadUserInfo();
+    }, [])
+  );
+
+  useEffect(() => {
+    const loadCachedInsight = async () => {
+      const cached = await AsyncStorage.getItem('aiInsightCache');
+      if (cached) setAiInsight(cached);
+    };
+    loadCachedInsight();
   }, []);
 
   useEffect(() => {
@@ -83,131 +121,81 @@ export default function HomeScreen({ navigation }) {
     });
   }, []);
 
-  const fetchAiInsight = async () => {
+  const fetchAiInsight = useCallback(async () => {
     setAiLoading(true);
-    console.log('[AI] Fetching insight with stats:', stats);
     try {
       const payload = {
         model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
         messages: [
           {
             role: 'user',
-            content: `Based on my recent ride statistics: total rides - ${stats.totalRides}, total miles - ${stats.totalMiles}, average speed - ${stats.avgSpeed} mph. Provide a short personalized motivational insight.`,
+            content: `I'm using a smart motorcycle helmet app. My riding stats are: total rides: ${stats.totalRides}, miles ridden: ${stats.totalMiles}, average speed: ${stats.avgSpeed} mph. Give me a short, motorcycle-themed insight on safety.`,
           },
         ],
       };
 
       const headers = {
-        Authorization: `Bearer 9ad9bd0724ab63efe6210bb155be872a93a755fef42d258168cc71e382e746b0`, // Replace securely
+        Authorization: `Bearer ad08d4d7c7fa837fec21ab725125f1a3f9d930990ff381893cfd66030daee38b`,
         'Content-Type': 'application/json',
       };
 
-      console.log('[AI] Sending payload:', payload);
-      const response = await axios.post(
+      const response = await fetch(
         'https://api.together.xyz/v1/chat/completions',
-        payload,
-        { headers }
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        }
       );
 
-      console.log('[AI] Raw response:', response.data);
-      const message = response.data?.choices?.[0]?.message?.content?.trim();
+      const json = await response.json();
+      const message = json?.choices?.[0]?.message?.content?.trim();
       setAiInsight(message || 'Insight was empty.');
+      await AsyncStorage.setItem('aiInsightCache', message || '');
     } catch (err) {
-      console.error('AI Insight Error:', err.response?.data || err.message);
+      console.error('[AI Insight]', err.message);
       setAiInsight('Insight unavailable at this time.');
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [stats]);
 
   useFocusEffect(
     useCallback(() => {
-      if (stats.totalRides > 0) {
+      if (!aiInsightFetched && stats.totalRides > 0) {
+        aiInsightFetched = true;
         fetchAiInsight();
       }
-    }, [stats])
+    }, [fetchAiInsight, stats.totalRides])
   );
-
-  const handleConnect = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get('http://3.147.83.156:8000/connect/');
-      setIsConnected(true);
-      Alert.alert('Connected', response.data.message || 'SmartHelmet is now connected.');
-    } catch (err) {
-      setError('Connection failed. Please try again.');
-      Alert.alert('Error', 'Unable to connect to SmartHelmet.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <StatusBar style="light" />
       <Text style={styles.header}>MotorVision</Text>
-      {userName !== '' && <Text style={styles.greeting}>Welcome back, {userName}!</Text>}
+      {!!userName && <Text style={styles.greeting}>Welcome back, {userName}!</Text>}
+      {!!joinDate && <Text style={styles.joined}>Member since {joinDate}</Text>}
 
-      <Animated.Image
-        source={require('../assets/helmet.png')}
-        style={[styles.helmet]}
-      />
+      <Animated.Image source={require('../assets/helmet.png')} style={styles.helmet} />
 
-      <View style={styles.statusRow}>
-        <Ionicons name={isConnected ? 'checkmark-circle' : 'alert-circle'} size={20} color={isConnected ? '#0f0' : '#f44'} />
-        <Text style={styles.statusText}>{isConnected ? 'Helmet Connected' : 'Not Connected'}</Text>
-        {isCrashed && <Text style={styles.crashText}>⚠️ Crash Detected</Text>}
-      </View>
+      {isCrashed && (
+        <Text style={styles.crashText}>⚠️ Crash Detected</Text>
+      )}
 
       <View style={styles.statCard}>
         <Text style={styles.mainStat}>{speed}</Text>
         <Text style={styles.unit}>mph</Text>
       </View>
 
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryText}>Total Rides: {stats.totalRides}</Text>
-        <Text style={styles.summaryText}>Total Miles: {stats.totalMiles}</Text>
-        <Text style={styles.summaryText}>Avg Speed: {stats.avgSpeed} mph</Text>
-      </View>
+      <UserStatsCard
+        totalRides={stats.totalRides}
+        totalMiles={stats.totalMiles}
+        avgSpeed={stats.avgSpeed}
+      />
 
-      <View style={styles.aiInsightCard}>
-        <Text style={styles.aiInsightHeader}>AI Insight</Text>
-        {aiLoading ? (
-          <ActivityIndicator size="small" color="#0A84FF" />
-        ) : (
-          <Text style={styles.aiInsightText}>{aiInsight}</Text>
-        )}
-      </View>
-
-      <View style={styles.grid}>
-        <Tile icon="map" label="Navigation" onPress={() => navigation.navigate('Navigation')} />
-        <Tile icon="history" label="Trips" onPress={() => navigation.navigate('Trip History')} />
-        <Tile icon="account-group" label="Friends" onPress={() =>
-          navigation.navigate('SettingsTab', { screen: 'Friends' })
-        } />
-        <Tile icon="cog" label="Settings" onPress={() =>
-          navigation.navigate('SettingsTab', { screen: 'Settings' })
-        } />
-      </View>
-
-      <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
-        <Text style={styles.buttonText}>
-          {loading ? 'Connecting...' : isConnected ? 'Connected' : 'Connect Helmet'}
-        </Text>
-      </TouchableOpacity>
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      <AIInsightCard insight={aiInsight} loading={aiLoading} />
+      <QuickNavGrid navigation={navigation} />
     </ScrollView>
-  );
-}
-
-function Tile({ icon, label, onPress }) {
-  return (
-    <TouchableOpacity style={styles.tile} onPress={onPress}>
-      <MaterialCommunityIcons name={icon} size={26} color="#ccc" />
-      <Text style={styles.tileText}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -227,6 +215,11 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     color: '#aaa',
+    marginBottom: 4,
+  },
+  joined: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 12,
   },
   helmet: {
@@ -234,19 +227,10 @@ const styles = StyleSheet.create({
     height: 130,
     marginBottom: 12,
   },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
-  },
-  statusText: {
-    fontSize: 15,
-    color: '#ddd',
-  },
   crashText: {
     color: '#f66',
     fontWeight: 'bold',
+    marginBottom: 8,
   },
   statCard: {
     alignItems: 'center',
@@ -264,73 +248,5 @@ const styles = StyleSheet.create({
   unit: {
     color: '#aaa',
     fontSize: 14,
-  },
-  summaryCard: {
-    backgroundColor: '#272727',
-    padding: 16,
-    borderRadius: 12,
-    width: '80%',
-    marginBottom: 20,
-  },
-  summaryText: {
-    fontSize: 15,
-    color: '#eee',
-    textAlign: 'center',
-    marginVertical: 2,
-  },
-  aiInsightCard: {
-    backgroundColor: '#1E1E1E',
-    padding: 16,
-    borderRadius: 12,
-    width: '80%',
-    marginBottom: 20,
-  },
-  aiInsightHeader: {
-    fontSize: 16,
-    color: '#0A84FF',
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  aiInsightText: {
-    fontSize: 14,
-    color: '#ccc',
-    textAlign: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    width: '90%',
-    marginBottom: 20,
-  },
-  tile: {
-    width: '45%',
-    aspectRatio: 1,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tileText: {
-    color: '#ccc',
-    marginTop: 6,
-    fontSize: 14,
-  },
-  connectButton: {
-    backgroundColor: '#0A84FF',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#ff4d4d',
-    marginTop: 10,
   },
 });

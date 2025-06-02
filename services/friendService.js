@@ -1,5 +1,3 @@
-// friendsService.js
-
 import { auth, db } from '../config/firebase';
 import {
   doc,
@@ -9,153 +7,154 @@ import {
   collection,
   query,
   where,
-  getDocs
-} from "firebase/firestore";
+  getDocs,
+  getDoc,
+} from 'firebase/firestore';
 
 /**
- * Get a user by their email
- * @param {string} email
- * @returns {Promise<{uid: string, ...userData}>}
+ * Get a user by email
  */
 export async function getUserByEmail(email) {
-  const usersRef = collection(db, "users");
-  const q = query(usersRef, where("email", "==", email));
+  const q = query(collection(db, 'users'), where('email', '==', email));
   const snapshot = await getDocs(q);
-
   if (!snapshot.empty) {
     const doc = snapshot.docs[0];
     return { uid: doc.id, ...doc.data() };
-  } else {
-    return null;
   }
+  return null;
 }
 
 /**
- * Send a friend request from currentUser to friend by email
- * @param {string} currentUserUid
- * @param {string} friendEmail
- * @returns {Promise<boolean>}
+ * Send a friend request from current user to another email
  */
 export async function sendFriendRequest(currentUserUid, friendEmail) {
   const friend = await getUserByEmail(friendEmail);
-  if (!friend) throw new Error("No user found with that email.");
+  if (!friend) throw new Error('No user found with that email.');
+  if (currentUserUid === friend.uid) throw new Error("You can't add yourself.");
 
-  const friendUid = friend.uid;
-
-  if (currentUserUid === friendUid) throw new Error("You can't add yourself.");
-
-  await updateDoc(doc(db, `users/${currentUserUid}`), {
-    requested: arrayUnion(friendUid)
+  await updateDoc(doc(db, 'users', currentUserUid), {
+    requested: arrayUnion(friend.uid),
   });
 
-  await updateDoc(doc(db, `users/${friendUid}`), {
-    pending: arrayUnion(currentUserUid)
+  await updateDoc(doc(db, 'users', friend.uid), {
+    pending: arrayUnion(currentUserUid),
   });
 
   return true;
 }
 
 /**
- * Accept a friend request using emails
- * @param {string} requesterEmail
- * @returns {Promise<boolean>}
+ * Accept a friend request (by email)
  */
 export async function acceptFriendRequestByEmail(requesterEmail) {
   const currentUserUid = auth.currentUser?.uid;
-  if (!currentUserUid) throw new Error("Not authenticated.");
+  if (!currentUserUid) throw new Error('Not authenticated.');
 
   const requester = await getUserByEmail(requesterEmail);
-  if (!requester) throw new Error("Requester not found.");
+  if (!requester) throw new Error('Requester not found.');
+  if (currentUserUid === requester.uid) throw new Error("You can't accept yourself.");
 
-  const requesterUid = requester.uid;
-
-  if (currentUserUid === requesterUid) {
-    throw new Error("You can't accept a request from yourself.");
-  }
-
-  await updateDoc(doc(db, `users/${currentUserUid}`), {
-    friends: arrayUnion(requesterUid),
-    pending: arrayRemove(requesterUid)
+  await updateDoc(doc(db, 'users', currentUserUid), {
+    friends: arrayUnion(requester.uid),
+    pending: arrayRemove(requester.uid),
   });
 
-  await updateDoc(doc(db, `users/${requesterUid}`), {
+  await updateDoc(doc(db, 'users', requester.uid), {
     friends: arrayUnion(currentUserUid),
-    requested: arrayRemove(currentUserUid)
+    requested: arrayRemove(currentUserUid),
   });
 
   return true;
 }
 
 /**
- * Accept a friend request using UIDs
- * @param {string} currentUserUid
- * @param {string} requesterUid
- * @returns {Promise<boolean>}
+ * Accept a friend request (by UID)
  */
 export async function acceptFriendRequest(currentUserUid, requesterUid) {
-  await updateDoc(doc(db, `users/${currentUserUid}`), {
+  await updateDoc(doc(db, 'users', currentUserUid), {
     friends: arrayUnion(requesterUid),
-    pending: arrayRemove(requesterUid)
+    pending: arrayRemove(requesterUid),
   });
 
-  await updateDoc(doc(db, `users/${requesterUid}`), {
+  await updateDoc(doc(db, 'users', requesterUid), {
     friends: arrayUnion(currentUserUid),
-    requested: arrayRemove(currentUserUid)
+    requested: arrayRemove(currentUserUid),
   });
 
   return true;
 }
 
 /**
- * Remove a friend (mutual removal from friends arrays)
- * @param {string} uid1
- * @param {string} uid2
- * @returns {Promise<void>}
+ * Remove a friend from both users' lists
  */
 export async function removeFriend(uid1, uid2) {
-  await updateDoc(doc(db, `users/${uid1}`), {
-    friends: arrayRemove(uid2)
+  await updateDoc(doc(db, 'users', uid1), {
+    friends: arrayRemove(uid2),
   });
 
-  await updateDoc(doc(db, `users/${uid2}`), {
-    friends: arrayRemove(uid1)
+  await updateDoc(doc(db, 'users', uid2), {
+    friends: arrayRemove(uid1),
   });
 }
 
 /**
- * Update a user's current location in Firestore
- * @param {string} uid
- * @param {{lat: number, lng: number}} location
- * @returns {Promise<void>}
+ * Update user’s location
  */
 export async function updateUserLocation(uid, location) {
-  const userRef = doc(db, "users", uid);
-
-  await updateDoc(userRef, {
+  await updateDoc(doc(db, 'users', uid), {
     location: {
       lat: location.lat,
       lng: location.lng,
-      timestamp: Date.now()
-    }
+      timestamp: Date.now(),
+    },
   });
 }
 
 /**
- * Get a user's location by their email
- * @param {string} email
- * @returns {Promise<{lat: number, lng: number, timestamp?: number} | null>}
+ * Get user location by email
  */
 export async function getUserLocationByEmail(email) {
   const user = await getUserByEmail(email);
-  if (!user) throw new Error("User not found.");
-
-  if (user.location && user.location.lat && user.location.lng) {
+  if (!user) throw new Error('User not found.');
+  if (user.location?.lat && user.location?.lng) {
     return {
       lat: user.location.lat,
       lng: user.location.lng,
-      timestamp: user.location.timestamp || null
+      timestamp: user.location.timestamp || null,
     };
-  } else {
-    return null;
   }
+  return null;
+}
+
+/**
+ * Get all friends’ locations
+ */
+export async function getFriendsLocations(currentUserUid) {
+  const userRef = doc(db, 'users', currentUserUid);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) throw new Error('User not found.');
+
+  const friendUids = userSnap.data().friends || [];
+  const locations = [];
+
+  for (const uid of friendUids) {
+    const friendSnap = await getDoc(doc(db, 'users', uid));
+    if (friendSnap.exists()) {
+      const friendData = friendSnap.data();
+      if (friendData.email && friendData.location) {
+        locations.push({
+          name: friendData.name || 'Unknown',
+          email: friendData.email,
+          location: {
+            lat: friendData.location.lat,
+            lng: friendData.location.lng,
+            timestamp: friendData.location.timestamp || null,
+            profileImage: friendData.profileImage || null // Optional: include profile image
+          },
+        });
+      }
+    }
+  }
+
+  return locations;
 }

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { Accelerometer } from 'expo-sensors';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { db, auth } from '../config/firebase';
 import { useFocusEffect } from '@react-navigation/native';
-
+import dayjs from 'dayjs';
 import * as Location from 'expo-location';
 
-
 export default function RideInsightsScreen() {
+  const [menu, setMenu] = useState('short'); // 'short' or 'long'
   const [speedData, setSpeedData] = useState([0]);
   const [accelData, setAccelData] = useState([0]);
   const [speed, setSpeed] = useState(0);
@@ -24,20 +24,40 @@ export default function RideInsightsScreen() {
     const db = getFirestore();
     const userRef = doc(db, `users/${userId}`);
     const docSnap = await getDoc(userRef);
-  
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       setLongTermStats(data.longTermStats || {});
     }
   };
 
+  const getLast7Days = () => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      days.push(dayjs().subtract(i, 'day').format('YYYY-MM-DD'));
+    }
+    return days;
+  };
+
+  const normalizeStats = (stats) => {
+    const last7Days = getLast7Days();
+    return last7Days.map((date) => ({
+      date,
+      value: stats[date] ?? 0,
+    }));
+  };
+
+  const normalizedData = normalizeStats(longTermStats);
+  const labels = normalizedData.map((item) => dayjs(item.date).format('MM/DD'));
+  const data = normalizedData.map((item) => item.value);
 
   useFocusEffect(
     useCallback(() => {
-      fetchLongTermStats(auth.currentUser.uid); 
-    }, [])
+      if (menu === 'long') {
+        fetchLongTermStats(auth.currentUser.uid);
+      }
+    }, [menu])
   );
-  
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -67,11 +87,12 @@ export default function RideInsightsScreen() {
   }, []);
 
   useEffect(() => {
-    if (!tripActive) return;
+    if (!tripActive || menu !== 'short') return;
 
     const accelSubscription = Accelerometer.addListener(({ x, y, z }) => {
       const magnitude = Math.sqrt(x * x + y * y + z * z);
       setAccelData((data) => [...data.slice(-20), parseFloat(magnitude.toFixed(2))]);
+      console.log(`Acceleration: ${magnitude.toFixed(2)} m/s²`);
     });
 
     Accelerometer.setUpdateInterval(1000);
@@ -87,86 +108,68 @@ export default function RideInsightsScreen() {
       clearInterval(interval);
       accelSubscription && accelSubscription.remove();
     };
-  }, [tripActive]);
+  }, [tripActive, menu]);
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Ride Insights</Text>
 
-      <Text style={styles.chartLabel}>Speed (mph)</Text>
-      <LineChart
-        data={{
-          labels: Array(speedData.length).fill(''),
-          datasets: [{ data: speedData }],
-        }}
-        width={350}
-        height={200}
-        yAxisSuffix=" mph"
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      />
+      <View style={styles.menu}>
+        <TouchableOpacity onPress={() => setMenu('short')} style={[styles.menuButton, menu === 'short' && styles.activeButton]}>
+          <Text style={styles.menuText}>Short Term Stats</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setMenu('long')} style={[styles.menuButton, menu === 'long' && styles.activeButton]}>
+          <Text style={styles.menuText}>Long Term Stats</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.chartLabel}>Acceleration (m/s²)</Text>
-      <LineChart
-        data={{
-          labels: Array(accelData.length).fill(''),
-          datasets: [{ data: accelData }],
-        }}
-        width={350}
-        height={200}
-        yAxisSuffix=" m/s²"
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      />
+      {menu === 'short' ? (
+        <>
+          <Text style={styles.chartLabel}>Speed (mph)</Text>
+          <LineChart
+            data={{
+              labels: Array(speedData.length).fill(''),
+              datasets: [{ data: speedData }],
+            }}
+            width={350}
+            height={200}
+            yAxisSuffix=" mph"
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
 
-      {/* <Text style={styles.chartLabel}>Lean Angle (°)</Text>
-      <LineChart
-        data={{
-          labels: Array(leanAngleData.length).fill(''),
-          datasets: [{ data: leanAngleData }],
-        }}
-        width={350}
-        height={200}
-        yAxisSuffix="°"
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      />
-
-      <Text style={styles.chartLabel}>Braking Force (%)</Text>
-      <LineChart
-        data={{
-          labels: Array(brakingForceData.length).fill(''),
-          datasets: [{ data: brakingForceData }],
-        }}
-        width={350}
-        height={200}
-        yAxisSuffix="%"
-        chartConfig={chartConfig}
-        bezier
-        style={styles.chart}
-      /> */}
-
-      <Text style={styles.chartLabel}>Distance Per Day (km)</Text>
-      <BarChart
-        data={{
-          labels: Object.keys(longTermStats),
-          datasets: [
-            {
-              data: Object.values(longTermStats),
-            },
-          ],
-        }}
-        width={350}
-        height={220}
-        yAxisSuffix=" km"
-        chartConfig={chartConfig}
-        fromZero={true}
-        style={styles.chart}
-      />
-
+          <Text style={styles.chartLabel}>Acceleration (m/s²)</Text>
+          <LineChart
+            data={{
+              labels: Array(accelData.length).fill(''),
+              datasets: [{ data: accelData }],
+            }}
+            width={350}
+            height={200}
+            yAxisSuffix=" m/s²"
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        </>
+      ) : (
+        <>
+          <Text style={styles.chartLabel}>Distance Per Day (mi)</Text>
+          <BarChart
+            data={{
+              labels: labels,
+              datasets: [{ data: data }],
+            }}
+            width={350}
+            height={220}
+            yAxisSuffix=" mi"
+            chartConfig={chartConfig}
+            fromZero={true}
+            style={styles.chart}
+          />
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -203,5 +206,24 @@ const styles = StyleSheet.create({
   chart: {
     marginVertical: 8,
     borderRadius: 16,
+  },
+  menu: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  menuButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    marginHorizontal: 10,
+  },
+  activeButton: {
+    backgroundColor: '#0A84FF',
+  },
+  menuText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });

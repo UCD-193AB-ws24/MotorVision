@@ -1,24 +1,50 @@
-import React, { useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ProfileScreen({ navigation }) {
   const name = useProfileStore((state) => state.name);
   const email = useProfileStore((state) => state.email);
   const profileImage = useProfileStore((state) => state.profileImage);
+  const createdAt = useProfileStore((state) => state.createdAt);
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
   const tripLogs = useBluetoothStore((state) => state.tripLogs);
 
-  const joinedDate = 'Joined April 2025'; // Optionally fetch from createdAt
+  const [joinDate, setJoinDate] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        try {
+          await hydrateProfile();
+
+          if (createdAt?.seconds) {
+            setJoinDate(new Date(createdAt.seconds * 1000).toLocaleDateString());
+          } else {
+            const cached = await AsyncStorage.getItem('userInfo');
+            if (cached) {
+              const { createdAt: cachedCreatedAt } = JSON.parse(cached);
+              if (cachedCreatedAt) {
+                setJoinDate(new Date(cachedCreatedAt * 1000).toLocaleDateString());
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[ProfileScreen] Hydration fallback error:', err);
+        }
+      };
+
+      loadProfile();
+    }, [createdAt])
+  );
+
   const totalDistanceMi = (
     tripLogs.reduce((sum, trip) => sum + (trip.totalDistance || 0), 0) / 1609
   ).toFixed(2);
-
-  useEffect(() => {
-    hydrateProfile();
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -42,7 +68,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.value}>{email}</Text>
 
         <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{joinedDate}</Text>
+        <Text style={styles.value}>{joinDate || '—'}</Text>
       </View>
 
       <View style={styles.card}>
