@@ -12,7 +12,6 @@ import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
 
-// Centralized profile hydration function
 const hydrateProfile = async (setProfile) => {
   const user = auth.currentUser;
   if (!user) return;
@@ -41,7 +40,6 @@ const hydrateProfile = async (setProfile) => {
   }
 };
 
-// Helper to delete previous image
 const deletePreviousImage = async (url) => {
   if (!url) return;
 
@@ -62,7 +60,6 @@ const deletePreviousImage = async (url) => {
   }
 };
 
-// Centralized profile update function
 const updateProfile = async (profileData, createdAt) => {
   const user = auth.currentUser;
   if (!user) return;
@@ -163,7 +160,6 @@ export default function EditProfileScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>Edit Profile</Text>
 
-      {/* Profile Picture */}
       <TouchableOpacity onPress={handleImagePick} style={styles.imageContainer}>
         {profile.profileImage ? (
           <Image source={{ uri: profile.profileImage }} style={styles.image} />
@@ -175,7 +171,7 @@ export default function EditProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
-      {/* Name */}
+      {/* Full Name & Bio */}
       <View style={styles.card}>
         <Text style={styles.label}>Full Name</Text>
         <TextInput
@@ -185,19 +181,7 @@ export default function EditProfileScreen({ navigation }) {
           placeholder="Your name"
           placeholderTextColor="#aaa"
         />
-      </View>
 
-      {/* Email & Join Date */}
-      <View style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{profile.email}</Text>
-
-        <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
-      </View>
-
-      {/* Bio */}
-      <View style={styles.card}>
         <Text style={styles.label}>Bio</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
@@ -214,10 +198,17 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Ride Stats</Text>
         <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
         <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
-        <Text style={styles.stat}>Crashes Recorded: {/* Hook up later */}</Text>
       </View>
 
-      {/* Save Button */}
+      {/* Email & Join Date */}
+      <View style={styles.card}>
+        <Text style={styles.label}>Email</Text>
+        <Text style={styles.value}>{profile.email}</Text>
+
+        <Text style={styles.label}>Joined</Text>
+        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
+      </View>
+
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>

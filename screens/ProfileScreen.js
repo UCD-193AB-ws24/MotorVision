@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen({ navigation }) {
   const tripLogs = useBluetoothStore((state) => state.tripLogs);
-  const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
   const [profile, setProfile] = useState({
     name: '',
     email: '',
+    bio: '',
     profileImage: '',
     createdAt: '',
   });
@@ -30,6 +29,7 @@ export default function ProfileScreen({ navigation }) {
         setProfile({
           name: data.name || '',
           email: data.email || user.email || '',
+          bio: data.bio || '',
           profileImage: data.profileImage || '',
           createdAt: data.createdAt?.seconds
             ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
@@ -52,7 +52,6 @@ export default function ProfileScreen({ navigation }) {
       const loadProfile = async () => {
         const user = auth.currentUser;
         if (user) {
-          // Try local cache first
           const cached = await AsyncStorage.getItem('userInfo');
           if (cached) {
             const { name, createdAt: cachedCreatedAt } = JSON.parse(cached);
@@ -65,7 +64,6 @@ export default function ProfileScreen({ navigation }) {
             }));
           }
 
-          // Hydrate from Firestore (background update)
           await hydrateProfile();
         }
       };
@@ -79,9 +77,15 @@ export default function ProfileScreen({ navigation }) {
   ).toFixed(2);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Back button */}
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.header}>Profile</Text>
 
+      {/* Profile Image */}
       <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
         {profile.profileImage ? (
           <Image source={{ uri: profile.profileImage }} style={styles.image} />
@@ -92,10 +96,24 @@ export default function ProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
+      {/* Name & Bio */}
       <View style={styles.card}>
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>Full Name</Text>
         <Text style={styles.value}>{profile.name || '—'}</Text>
 
+        <Text style={styles.label}>Bio</Text>
+        <Text style={styles.value}>{profile.bio || '—'}</Text>
+      </View>
+
+      {/* Ride Stats */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Ride Stats</Text>
+        <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
+        <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
+      </View>
+
+      {/* Email & Join Date */}
+      <View style={styles.card}>
         <Text style={styles.label}>Email</Text>
         <Text style={styles.value}>{profile.email || '—'}</Text>
 
@@ -103,12 +121,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.value}>{profile.createdAt || '—'}</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Ride Stats</Text>
-        <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
-        <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
-      </View>
-
+      {/* Edit button */}
       <TouchableOpacity
         style={styles.editButton}
         onPress={() => navigation.navigate('EditProfile')}
@@ -116,12 +129,14 @@ export default function ProfileScreen({ navigation }) {
         <Ionicons name="create-outline" size={18} color="#fff" />
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212', padding: 20 },
+  container: { flex: 1, backgroundColor: '#121212' },
+  contentContainer: { padding: 20, paddingBottom: 40 },
+  backButton: { marginBottom: 10 },
   header: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', marginBottom: 20, textAlign: 'center' },
   image: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 20 },
   imagePlaceholder: { alignSelf: 'center', marginBottom: 20 },
@@ -138,6 +153,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     alignSelf: 'center',
+    marginBottom: 20,
   },
   editText: { fontSize: 16, color: '#fff', marginLeft: 8 },
 });
