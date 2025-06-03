@@ -1,21 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useBluetoothStore } from '../store/bluetoothStore';
-import { useProfileStore } from '../store/profileStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen({ navigation }) {
-  const tripLogs = useBluetoothStore((state) => state.tripLogs);
   const [profile, setProfile] = useState({
     name: '',
     email: '',
     bio: '',
     profileImage: '',
     createdAt: '',
+    totalRides: 0,
+    totalDistance: 0,
   });
 
   const hydrateProfile = async () => {
@@ -34,6 +33,8 @@ export default function ProfileScreen({ navigation }) {
           createdAt: data.createdAt?.seconds
             ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
             : '',
+          totalRides: data.stats?.totalRides || 0,
+          totalDistance: parseFloat((data.stats?.totalDistanceMiles || 0).toFixed(1)),
         });
 
         await AsyncStorage.setItem('userInfo', JSON.stringify({
@@ -72,10 +73,6 @@ export default function ProfileScreen({ navigation }) {
     }, [])
   );
 
-  const totalDistanceMi = (
-    tripLogs.reduce((sum, trip) => sum + (trip.totalDistance || 0), 0) / 1609
-  ).toFixed(2);
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Back button */}
@@ -96,29 +93,32 @@ export default function ProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
-      {/* Name & Bio */}
+      {/* Full Name */}
       <View style={styles.card}>
-        <Text style={styles.label}>Full Name</Text>
-        <Text style={styles.value}>{profile.name || '—'}</Text>
+        <Text style={styles.sectionTitle}>Name</Text>
+        <Text style={styles.stat}>{profile.name || '—'}</Text>
+      </View>
 
-        <Text style={styles.label}>Bio</Text>
-        <Text style={styles.value}>{profile.bio || '—'}</Text>
+      {/* Bio */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Bio</Text>
+        <Text style={styles.stat}>{profile.bio || '—'}</Text>
       </View>
 
       {/* Ride Stats */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ride Stats</Text>
-        <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
-        <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
+        <Text style={styles.stat}>Total Trips: {profile.totalRides}</Text>
+        <Text style={styles.stat}>Total Distance: {profile.totalDistance} mi</Text>
       </View>
 
       {/* Email & Join Date */}
       <View style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{profile.email || '—'}</Text>
+        <Text style={styles.sectionTitle}>Email</Text>
+        <Text style={styles.stat}>{profile.email || '—'}</Text>
 
-        <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
+        <Text style={styles.sectionTitle}>Joined</Text>
+        <Text style={styles.stat}>{profile.createdAt || '—'}</Text>
       </View>
 
       {/* Edit button */}
@@ -141,8 +141,6 @@ const styles = StyleSheet.create({
   image: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 20 },
   imagePlaceholder: { alignSelf: 'center', marginBottom: 20 },
   card: { backgroundColor: '#1E1E1E', borderRadius: 12, padding: 20, marginBottom: 20 },
-  label: { fontSize: 16, color: '#bbb', marginBottom: 4 },
-  value: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
   stat: { fontSize: 16, color: '#ccc', marginBottom: 6 },
   editButton: {

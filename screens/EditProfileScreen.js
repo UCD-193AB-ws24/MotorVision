@@ -8,7 +8,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,6 +27,8 @@ const hydrateProfile = async (setProfile) => {
         createdAt: data.createdAt?.seconds
           ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
           : '',
+        totalRides: data.stats?.totalRides || 0,
+        totalDistance: parseFloat((data.stats?.totalDistanceMiles || 0).toFixed(1)),
       });
 
       await AsyncStorage.setItem('userInfo', JSON.stringify({
@@ -77,7 +78,6 @@ const updateProfile = async (profileData, createdAt) => {
 };
 
 export default function EditProfileScreen({ navigation }) {
-  const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
   const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
 
   const [profile, setProfile] = useState({
@@ -86,6 +86,8 @@ export default function EditProfileScreen({ navigation }) {
     bio: '',
     profileImage: '',
     createdAt: '',
+    totalRides: 0,
+    totalDistance: 0,
   });
 
   useEffect(() => {
@@ -152,10 +154,6 @@ export default function EditProfileScreen({ navigation }) {
     }
   };
 
-  const totalDistanceMi = (
-    tripLogs.reduce((sum, trip) => sum + (trip.totalDistance || 0), 0) / 1609
-  ).toFixed(2);
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>Edit Profile</Text>
@@ -171,9 +169,9 @@ export default function EditProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
-      {/* Full Name & Bio */}
+      {/* Full Name */}
       <View style={styles.card}>
-        <Text style={styles.label}>Full Name</Text>
+        <Text style={styles.sectionTitle}>Full Name</Text>
         <TextInput
           style={styles.input}
           value={profile.name}
@@ -181,8 +179,11 @@ export default function EditProfileScreen({ navigation }) {
           placeholder="Your name"
           placeholderTextColor="#aaa"
         />
+      </View>
 
-        <Text style={styles.label}>Bio</Text>
+      {/* Bio */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Bio</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
           multiline
@@ -196,17 +197,17 @@ export default function EditProfileScreen({ navigation }) {
       {/* Ride Stats */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ride Stats</Text>
-        <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
-        <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
+        <Text style={styles.stat}>Total Trips: {profile.totalRides}</Text>
+        <Text style={styles.stat}>Total Distance: {profile.totalDistance} mi</Text>
       </View>
 
       {/* Email & Join Date */}
       <View style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{profile.email}</Text>
+        <Text style={styles.sectionTitle}>Email</Text>
+        <Text style={styles.stat}>{profile.email}</Text>
 
-        <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
+        <Text style={styles.sectionTitle}>Joined</Text>
+        <Text style={styles.stat}>{profile.createdAt || '—'}</Text>
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>
@@ -244,8 +245,8 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
   },
-  label: { color: '#bbb', fontSize: 15, marginBottom: 4 },
-  value: { fontSize: 17, fontWeight: '600', color: '#fff', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
+  stat: { fontSize: 16, color: '#ccc', marginBottom: 6 },
   input: {
     backgroundColor: '#2C2C2E',
     color: '#fff',
@@ -253,8 +254,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
-  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  stat: { fontSize: 15, color: '#ccc', marginBottom: 6 },
   button: {
     backgroundColor: '#0A84FF',
     paddingVertical: 14,
