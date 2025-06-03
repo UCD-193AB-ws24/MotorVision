@@ -137,19 +137,19 @@ export default function FriendsScreen() {
 
       <View style={styles.tabs}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_FRIENDS && styles.tabActive]}
+          style={[styles.tabButton, activeTab === TAB_FRIENDS && {borderBottomColor: theme.accent}]}
           onPress={() => setActiveTab(TAB_FRIENDS)}
         >
           <Text style={styles.tabText}>Friends</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_REQUESTS && styles.tabActive]}
+          style={[styles.tabButton, activeTab === TAB_REQUESTS && {borderBottomColor: theme.accent}]}
           onPress={() => setActiveTab(TAB_REQUESTS)}
         >
           <Text style={styles.tabText}>Requests</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_SENT && styles.tabActive]}
+          style={[styles.tabButton, activeTab === TAB_SENT && {borderBottomColor: theme.accent}]}
           onPress={() => setActiveTab(TAB_SENT)}
         >
           <Text style={styles.tabText}>Sent</Text>
