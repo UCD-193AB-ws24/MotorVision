@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { ThemeContext } from './ThemeCustomization';
 
-export default function SensorAndLocationScreen() {
+
+export default function SensorAndLocationScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,7 +48,7 @@ export default function SensorAndLocationScreen() {
         </Text>
       </View>
 
-      <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
+      <TouchableOpacity style={[styles.connectButton, { backgroundColor: theme.accent }]} onPress={handleConnect}>
         <Text style={styles.buttonText}>
           {loading ? 'Connecting...' : isConnected ? 'Reconnect Helmet' : 'Connect Helmet'}
         </Text>
@@ -58,6 +61,10 @@ export default function SensorAndLocationScreen() {
           Location and sensor services must be enabled for crash detection, speed tracking, and helmet pairing.
         </Text>
       </View>
+
+      <TouchableOpacity style={styles.connectButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.buttonText}>Back to Settings</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

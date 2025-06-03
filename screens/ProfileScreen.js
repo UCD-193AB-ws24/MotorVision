@@ -84,6 +84,11 @@ export default function ProfileScreen({ navigation }) {
         <Ionicons name="create-outline" size={18} color="#fff" />
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
+
+      
+      <TouchableOpacity  style={styles.editButton}  onPress={() => navigation.goBack()}>
+          <Text style={styles.editText}>Back to Settings</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -102,10 +107,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0A84FF',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignSelf: 'center',
+    margin: 6,
+    fontWeight: 'bold'
   },
   editText: { fontSize: 16, color: '#fff', marginLeft: 8 },
 });

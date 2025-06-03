@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, Image,
 } from 'react-native';
@@ -11,8 +11,11 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function EditProfileScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
   const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
 
@@ -167,6 +170,7 @@ export default function EditProfileScreen({ navigation }) {
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>
+
     </ScrollView>
   );
 }
