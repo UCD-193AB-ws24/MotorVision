@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback, useContext} from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
 import {
@@ -13,12 +13,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../store/profileStore';
+import { ThemeContext } from './ThemeCustomization';
+
 
 const TAB_FRIENDS = 'friends';
 const TAB_REQUESTS = 'requests';
 const TAB_SENT = 'sent';
 
 export default function FriendsScreen() {
+  const { theme } = useContext(ThemeContext);
   const [activeTab, setActiveTab] = useState(TAB_FRIENDS);
   const [modalVisible, setModalVisible] = useState(false);
   const [emailInput, setEmailInput] = useState('');
@@ -155,7 +158,7 @@ export default function FriendsScreen() {
 
       {renderContent()}
 
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.accent }]} onPress={() => setModalVisible(true)}>
         <Ionicons name="person-add-outline" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Friend</Text>
       </TouchableOpacity>

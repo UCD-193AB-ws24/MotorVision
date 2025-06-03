@@ -1,12 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function ProfileScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const name = useProfileStore((state) => state.name);
   const email = useProfileStore((state) => state.email);
   const profileImage = useProfileStore((state) => state.profileImage);
@@ -78,7 +81,7 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <TouchableOpacity
-        style={styles.editButton}
+        style={[styles.editButton, { backgroundColor: theme.accent }]}
         onPress={() => navigation.navigate('EditProfile')}
       >
         <Ionicons name="create-outline" size={18} color="#fff" />
