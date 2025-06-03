@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import { useProfileStore } from './store/profileStore';
+import { useBluetoothStore } from './store/bluetoothStore';
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
@@ -110,14 +111,21 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
+  const loadTripLogs = useBluetoothStore((state) => state.loadTripLogs);
+  const clearTripLogs = useBluetoothStore((state) => state.clearTripLogs);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
         setUser(currentUser);
+
         if (currentUser) {
-          // Hydrate profile data in Zustand store on auth change
+          // Load profile & trip logs for the logged-in user
           await hydrateProfile();
+          await loadTripLogs();
+        } else {
+          // Clear trip logs when user logs out
+          await clearTripLogs();
         }
       } catch (err) {
         console.error('Auth listener error:', err);
@@ -127,7 +135,7 @@ export default function App() {
     });
 
     return unsubscribe;
-  }, [hydrateProfile]);
+  }, [hydrateProfile, loadTripLogs, clearTripLogs]);
 
   if (loading) {
     return (

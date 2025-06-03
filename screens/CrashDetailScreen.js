@@ -41,8 +41,17 @@ export default function CrashDetailScreen({ route, navigation }) {
   const formatSpeed = (speed) =>
     typeof speed === 'number' ? `${(speed * 2.237).toFixed(1)} mph` : 'N/A';
 
-  const formatAccel = (accel) =>
-    typeof accel === 'number' ? `${accel.toFixed(2)} m/s²` : 'N/A';
+  const formatAccel = (accel) => {
+    if (typeof accel === 'number') {
+      return `${accel.toFixed(2)} m/s²`;
+    }
+    if (accel && typeof accel === 'object' && accel.magnitude !== undefined) {
+      return `${parseFloat(accel.magnitude).toFixed(2)} m/s²`;
+    }
+    return 'N/A';
+  };
+
+
 
   const formatLocation = (loc) =>
     loc?.latitude && loc?.longitude ? `${loc.latitude}, ${loc.longitude}` : 'Not available';
@@ -151,7 +160,9 @@ export default function CrashDetailScreen({ route, navigation }) {
         <Text style={styles.detailValue}>{formatSpeed(crash.speed)}</Text>
 
         <Text style={styles.detailLabel}>Acceleration:</Text>
-        <Text style={styles.detailValue}>{formatAccel(crash.acceleration)}</Text>
+        <Text style={styles.detailValue}>{crash.acceleration !== undefined && crash.acceleration !== null
+          ? `${parseFloat(crash.acceleration).toFixed(2)} m/s²`
+          : 'N/A'}</Text>
 
         <Text style={styles.detailLabel}>Location:</Text>
         <Text style={styles.detailValue}>{formatLocation(crash.location)}</Text>
