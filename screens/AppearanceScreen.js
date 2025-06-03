@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ThemeContext } from './ThemeCustomization';
 
 const themes = [
+    { name: "iOS Default", accent: '#0A84FF' },
   { name: "Pretty in Pink", accent: '#ff4081' },
-  { name: "iOS Default", accent: '#0A84FF' },
   { name: "Evergreen", accent: '#228B22' },
   { name: "Sunshine", accent: '#FFD700' },
   { name: "Violet Hues", accent: '#800080'},
@@ -28,7 +28,7 @@ export default function AppearanceScreen({ navigation }) {
       ))}
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.buttonText}>Back</Text>
+        <Text style={styles.buttonText}>Back to Settings</Text>
       </TouchableOpacity>
     </View>
   );
