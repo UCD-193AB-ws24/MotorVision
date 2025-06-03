@@ -24,7 +24,9 @@ import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import PreRouteAnalysis from './screens/PreRouteAnalysis';
-import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
+import SensorAndLocationScreen from './screens/SensorAndLocationScreen';
+import OnboardingGate from './screens/OnboardingGate';
+import ProfileSetupScreen from './screens/ProfileSetupScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -134,7 +136,11 @@ export default function App() {
     <NavigationContainer theme={DarkTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <>
+            <Stack.Screen name="OnboardingGate" component={OnboardingGate} />
+            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+          </>
         ) : (
           <Stack.Screen name="LoginStack" component={LoginStack} />
         )}
