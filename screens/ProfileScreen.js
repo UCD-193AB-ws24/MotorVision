@@ -1,45 +1,77 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+import { auth, db } from '../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen({ navigation }) {
-  const name = useProfileStore((state) => state.name);
-  const email = useProfileStore((state) => state.email);
-  const profileImage = useProfileStore((state) => state.profileImage);
-  const createdAt = useProfileStore((state) => state.createdAt);
-  const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
   const tripLogs = useBluetoothStore((state) => state.tripLogs);
+  const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    profileImage: '',
+    createdAt: '',
+  });
 
-  const [joinDate, setJoinDate] = useState('');
+  const hydrateProfile = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setProfile({
+          name: data.name || '',
+          email: data.email || user.email || '',
+          profileImage: data.profileImage || '',
+          createdAt: data.createdAt?.seconds
+            ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+            : '',
+        });
+
+        await AsyncStorage.setItem('userInfo', JSON.stringify({
+          name: data.name || '',
+          createdAt: data.createdAt?.seconds || '',
+        }));
+      }
+    } catch (err) {
+      console.error('[Profile Hydration] Failed:', err);
+      Alert.alert('Error', 'Failed to load profile.');
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       const loadProfile = async () => {
-        try {
-          await hydrateProfile();
-
-          if (createdAt?.seconds) {
-            setJoinDate(new Date(createdAt.seconds * 1000).toLocaleDateString());
-          } else {
-            const cached = await AsyncStorage.getItem('userInfo');
-            if (cached) {
-              const { createdAt: cachedCreatedAt } = JSON.parse(cached);
-              if (cachedCreatedAt) {
-                setJoinDate(new Date(cachedCreatedAt * 1000).toLocaleDateString());
-              }
-            }
+        const user = auth.currentUser;
+        if (user) {
+          // Try local cache first
+          const cached = await AsyncStorage.getItem('userInfo');
+          if (cached) {
+            const { name, createdAt: cachedCreatedAt } = JSON.parse(cached);
+            setProfile((prev) => ({
+              ...prev,
+              name: name || '',
+              createdAt: cachedCreatedAt
+                ? new Date(cachedCreatedAt * 1000).toLocaleDateString()
+                : '',
+            }));
           }
-        } catch (err) {
-          console.error('[ProfileScreen] Hydration fallback error:', err);
+
+          // Hydrate from Firestore (background update)
+          await hydrateProfile();
         }
       };
 
       loadProfile();
-    }, [createdAt])
+    }, [])
   );
 
   const totalDistanceMi = (
@@ -51,8 +83,8 @@ export default function ProfileScreen({ navigation }) {
       <Text style={styles.header}>Profile</Text>
 
       <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.image} />
+        {profile.profileImage ? (
+          <Image source={{ uri: profile.profileImage }} style={styles.image} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="person-circle-outline" size={100} color="#555" />
@@ -62,13 +94,13 @@ export default function ProfileScreen({ navigation }) {
 
       <View style={styles.card}>
         <Text style={styles.label}>Name</Text>
-        <Text style={styles.value}>{name}</Text>
+        <Text style={styles.value}>{profile.name || '—'}</Text>
 
         <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{email}</Text>
+        <Text style={styles.value}>{profile.email || '—'}</Text>
 
         <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{joinDate || '—'}</Text>
+        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
       </View>
 
       <View style={styles.card}>

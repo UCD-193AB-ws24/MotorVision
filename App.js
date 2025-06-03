@@ -4,9 +4,9 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
+import { useProfileStore } from './store/profileStore';
 
 // Screens
 import HomeScreen from './screens/HomeScreen';
@@ -109,11 +109,16 @@ function MainTabs() {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
         setUser(currentUser);
+        if (currentUser) {
+          // Hydrate profile data in Zustand store on auth change
+          await hydrateProfile();
+        }
       } catch (err) {
         console.error('Auth listener error:', err);
       } finally {
@@ -122,7 +127,7 @@ export default function App() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [hydrateProfile]);
 
   if (loading) {
     return (

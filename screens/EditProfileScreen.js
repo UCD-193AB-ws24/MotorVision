@@ -7,71 +7,112 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { useProfileStore } from '../store/profileStore';
 import { Ionicons } from '@expo/vector-icons';
+
+// Centralized profile hydration function
+const hydrateProfile = async (setProfile) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      setProfile({
+        name: data.name || '',
+        email: data.email || user.email || '',
+        bio: data.bio || '',
+        profileImage: data.profileImage || '',
+        createdAt: data.createdAt?.seconds
+          ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+          : '',
+      });
+
+      await AsyncStorage.setItem('userInfo', JSON.stringify({
+        name: data.name || '',
+        createdAt: data.createdAt?.seconds || '',
+      }));
+    }
+  } catch (err) {
+    console.error('[Profile Hydration] Failed:', err);
+  }
+};
+
+// Helper to delete previous image
+const deletePreviousImage = async (url) => {
+  if (!url) return;
+
+  try {
+    const storage = getStorage();
+    const decodedUrl = decodeURIComponent(url.split('?')[0]);
+    const parts = decodedUrl.split('/o/');
+    if (parts.length < 2) {
+      console.warn('Could not parse storage path from URL:', url);
+      return;
+    }
+    const filePath = parts[1];
+    const prevRef = ref(storage, filePath);
+    await deleteObject(prevRef);
+    console.log('Previous image deleted successfully');
+  } catch (error) {
+    console.warn('Could not delete previous image:', error);
+  }
+};
+
+// Centralized profile update function
+const updateProfile = async (profileData, createdAt) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    await updateDoc(doc(db, 'users', user.uid), profileData);
+    await AsyncStorage.setItem('userInfo', JSON.stringify({
+      name: profileData.name || '',
+      createdAt: createdAt ? new Date(createdAt).getTime() / 1000 : '',
+    }));
+  } catch (err) {
+    console.error('[Profile Update] Failed:', err);
+    throw err;
+  }
+};
 
 export default function EditProfileScreen({ navigation }) {
   const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
   const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
 
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [email, setEmail] = useState('');
-  const [createdAt, setCreatedAt] = useState('');
-  const [profileImage, setProfileImageLocal] = useState('');
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    profileImage: '',
+    createdAt: '',
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setName(data.name || '');
-          setEmail(data.email || user.email || '');
-          setBio(data.bio || '');
-          setProfileImageLocal(data.profileImage || '');
-
-          const joined = data.createdAt?.seconds;
-          if (joined) {
-            setCreatedAt(new Date(joined * 1000).toLocaleDateString());
-          }
-
-          // Cache only name and createdAt
-          await AsyncStorage.setItem('userInfo', JSON.stringify({
-            name: data.name || '',
-            createdAt: joined || '',
-          }));
-        }
-      } catch (err) {
-        console.error('[EditProfile] Failed to fetch user doc:', err);
+      if (user) {
+        await hydrateProfile(setProfile);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
   const handleSave = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const { name, bio, profileImage, createdAt } = profile;
+    if (!name.trim()) {
+      Alert.alert('Validation Error', 'Name cannot be empty.');
+      return;
+    }
 
     try {
-      const updatePayload = { name, bio, profileImage };
-
-      await updateDoc(doc(db, 'users', user.uid), updatePayload);
-      await AsyncStorage.setItem('userInfo', JSON.stringify({
-        name,
-        createdAt: createdAt ? new Date(createdAt).getTime() / 1000 : '',
-      }));
-
+      await updateProfile({ name, bio, profileImage }, createdAt);
       setProfileImageGlobal(profileImage);
       Alert.alert('Saved', 'Profile updated successfully.');
       navigation.goBack();
     } catch (err) {
-      console.error('[EditProfile] Save error:', err);
       Alert.alert('Error', 'Failed to save changes.');
     }
   };
@@ -95,15 +136,20 @@ export default function EditProfileScreen({ navigation }) {
       try {
         const response = await fetch(uri);
         const blob = await response.blob();
-
         const storage = getStorage();
-        const imageRef = ref(storage, `profile_images/${auth.currentUser.uid}_${Date.now()}.jpg`);
+        const user = auth.currentUser;
+
+        if (profile.profileImage) {
+          await deletePreviousImage(profile.profileImage);
+        }
+
+        const imageRef = ref(storage, `profile_images/${user.uid}_${Date.now()}.jpg`);
         await uploadBytes(imageRef, blob);
         const downloadURL = await getDownloadURL(imageRef);
 
-        setProfileImageLocal(downloadURL);
+        setProfile((prev) => ({ ...prev, profileImage: downloadURL }));
       } catch (error) {
-        console.error('[EditProfile] Image upload error:', error);
+        console.error('[Image Upload] Error:', error);
         Alert.alert('Upload Failed', 'Unable to upload profile image.');
       }
     }
@@ -117,46 +163,53 @@ export default function EditProfileScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.header}>Edit Profile</Text>
 
+      {/* Profile Picture */}
       <TouchableOpacity onPress={handleImagePick} style={styles.imageContainer}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.image} />
+        {profile.profileImage ? (
+          <Image source={{ uri: profile.profileImage }} style={styles.image} />
         ) : (
           <View style={styles.placeholder}>
             <Ionicons name="camera-outline" size={32} color="#888" />
-            <Text style={styles.placeholderText}>Upload Photo</Text>
+            <Text style={styles.placeholderText}>Add Photo</Text>
           </View>
         )}
       </TouchableOpacity>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{email}</Text>
-
-        <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{createdAt || '—'}</Text>
-      </View>
-
+      {/* Name */}
       <View style={styles.card}>
         <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={styles.input}
-          value={name}
-          onChangeText={setName}
+          value={profile.name}
+          onChangeText={(text) => setProfile((prev) => ({ ...prev, name: text }))}
           placeholder="Your name"
           placeholderTextColor="#aaa"
         />
+      </View>
 
+      {/* Email & Join Date */}
+      <View style={styles.card}>
+        <Text style={styles.label}>Email</Text>
+        <Text style={styles.value}>{profile.email}</Text>
+
+        <Text style={styles.label}>Joined</Text>
+        <Text style={styles.value}>{profile.createdAt || '—'}</Text>
+      </View>
+
+      {/* Bio */}
+      <View style={styles.card}>
         <Text style={styles.label}>Bio</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
           multiline
-          value={bio}
-          onChangeText={setBio}
+          value={profile.bio}
+          onChangeText={(text) => setProfile((prev) => ({ ...prev, bio: text }))}
           placeholder="Write a short bio..."
           placeholderTextColor="#aaa"
         />
       </View>
 
+      {/* Ride Stats */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ride Stats</Text>
         <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
@@ -164,6 +217,7 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.stat}>Crashes Recorded: {/* Hook up later */}</Text>
       </View>
 
+      {/* Save Button */}
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>
@@ -181,15 +235,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  imageContainer: {
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
+  imageContainer: { alignSelf: 'center', marginBottom: 20 },
+  image: { width: 100, height: 100, borderRadius: 50 },
   placeholder: {
     width: 100,
     height: 100,
@@ -199,29 +246,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 4,
-  },
+  placeholderText: { color: '#888', fontSize: 12, marginTop: 4 },
   card: {
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    elevation: 3,
   },
-  label: {
-    color: '#bbb',
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 12,
-  },
+  label: { color: '#bbb', fontSize: 15, marginBottom: 4 },
+  value: { fontSize: 17, fontWeight: '600', color: '#fff', marginBottom: 12 },
   input: {
     backgroundColor: '#2C2C2E',
     color: '#fff',
@@ -229,17 +262,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  stat: {
-    fontSize: 15,
-    color: '#ccc',
-    marginBottom: 6,
-  },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  stat: { fontSize: 15, color: '#ccc', marginBottom: 6 },
   button: {
     backgroundColor: '#0A84FF',
     paddingVertical: 14,
@@ -247,9 +271,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
 });
