@@ -20,7 +20,7 @@ const TAB_FRIENDS = 'friends';
 const TAB_REQUESTS = 'requests';
 const TAB_SENT = 'sent';
 
-export default function FriendsScreen() {
+export default function FriendsScreen({navigation}) {
   const { theme } = useContext(ThemeContext);
   const [activeTab, setActiveTab] = useState(TAB_FRIENDS);
   const [modalVisible, setModalVisible] = useState(false);
@@ -161,6 +161,9 @@ export default function FriendsScreen() {
       <TouchableOpacity style={[styles.addButton, { backgroundColor: theme.accent }]} onPress={() => setModalVisible(true)}>
         <Ionicons name="person-add-outline" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Friend</Text>
+      </TouchableOpacity>
+       <TouchableOpacity style={styles.addButton} onPress={() => navigation.goBack()}>
+         <Text style={styles.addButtonText}>Back to Settings</Text>
       </TouchableOpacity>
 
       <Modal
