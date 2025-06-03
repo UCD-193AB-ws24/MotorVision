@@ -18,7 +18,6 @@ import CrashDetailScreen from './screens/CrashDetailScreen';
 import PairingGuideScreen from './screens/PairingGuideScreen';
 import TripHistoryScreen from './screens/TripHistoryScreen';
 import TripDetailScreen from './screens/TripDetailScreen';
-import LandingScreen from './screens/LandingScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import FriendsScreen from './screens/FriendsScreen';
 import ProfileScreen from './screens/ProfileScreen';
@@ -28,6 +27,8 @@ import PreRouteAnalysis from './screens/PreRouteAnalysis';
 import SensorAndLocationScreen from './screens/SensorAndLocationScreen';
 import OnboardingGate from './screens/OnboardingGate';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
+import NotificationsScreen from './screens/NotificationsScreen'; // ✅ Added
+import PrivacySecurityScreen from './screens/PrivacySecurityScreen'; // ✅ Added
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -72,6 +73,8 @@ function SettingsStack() {
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
       <Stack.Screen name="SensorAndLocation" component={SensorAndLocationScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
     </Stack.Navigator>
   );
 }
@@ -120,11 +123,9 @@ export default function App() {
         setUser(currentUser);
 
         if (currentUser) {
-          // Load profile & trip logs for the logged-in user
           await hydrateProfile();
           await loadTripLogs();
         } else {
-          // Clear trip logs when user logs out
           await clearTripLogs();
         }
       } catch (err) {
