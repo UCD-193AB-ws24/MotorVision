@@ -29,7 +29,7 @@ import SignUpScreen from './screens/SignUpScreen';
 import PreRouteAnalysis from './screens/PreRouteAnalysis';
 import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
 import AppearanceScreen from './screens/AppearanceScreen';
-import HelpScreen from './screens/AppearanceScreen';
+import HelpScreen from './screens/HelpScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();

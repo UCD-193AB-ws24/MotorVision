@@ -3,14 +3,13 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native
 
 const instructions = [
   { id: '1', text: "1. Please contact iOS Support first." },
-  { id: '2', text: "2. Please contact the developer team at the following email address:" },
-  { id: '3', text: "sakarkare@ucdavis.edu" },
+  { id: '2', text: "2. Please contact the developer team at the following email address: sakarkare@ucdavis.edu" },
 ];
 
 export default function HelpScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>How to Pair a Device</Text>
+      <Text style={styles.header}>Help and Support</Text>
 
       {/* Instruction List */}
       <FlatList
