@@ -12,6 +12,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { ThemeContext } from './ThemeCustomization';
 import { AppearanceScreen } from './AppearanceScreen';
+import { HelpScreen } from './HelpScreen';
+
 
 
 export default function SettingsScreen({ navigation }) {
@@ -52,7 +54,8 @@ export default function SettingsScreen({ navigation }) {
     {
       title: "Help & Support",
       icon: "help-circle-outline",
-      onPress: () => alert('Help & Support coming soon!'),
+      onPress: () => navigation.navigate('HelpScreen'), // ✅ Updated
+
     },
   ];
 
@@ -83,7 +86,7 @@ export default function SettingsScreen({ navigation }) {
       />
 
       <TouchableOpacity
-        style={[styles.guideButton, { backgroundColor: theme.accent }]}
+        style={styles.guideButton}
         onPress={() => navigation.navigate('SettingsTab', { screen: 'PairingGuide' })}
       >
         <Ionicons name="bluetooth-outline" size={24} color="#ffffff" style={styles.icon} />

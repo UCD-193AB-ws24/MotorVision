@@ -29,6 +29,7 @@ import SignUpScreen from './screens/SignUpScreen';
 import PreRouteAnalysis from './screens/PreRouteAnalysis';
 import SensorAndLocationScreen from './screens/SensorAndLocationScreen'; // ✅ New screen
 import AppearanceScreen from './screens/AppearanceScreen';
+import HelpScreen from './screens/AppearanceScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -74,6 +75,7 @@ function SettingsStack() {
       <Stack.Screen name="PairingGuide" component={PairingGuideScreen} />
       <Stack.Screen name="SensorAndLocation" component={SensorAndLocationScreen} />
       <Stack.Screen name="AppearanceScreen" component={AppearanceScreen} />
+      <Stack.Screen name="HelpScreen" component={HelpScreen} />
     </Stack.Navigator>
   );
 }
