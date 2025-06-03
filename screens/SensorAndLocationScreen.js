@@ -61,10 +61,13 @@ export default function SensorAndLocationScreen({ navigation }) {
           Location and sensor services must be enabled for crash detection, speed tracking, and helmet pairing.
         </Text>
       </View>
-
-      <TouchableOpacity style={styles.connectButton} onPress={() => navigation.goBack()}>
+      
+      <View style={styles.bottomContent}>
+       <TouchableOpacity style={styles.connectButton} onPress={() => navigation.goBack()}>
               <Text style={styles.buttonText}>Back to Settings</Text>
       </TouchableOpacity>
+      </View>
+
     </ScrollView>
   );
 }
@@ -98,6 +101,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 12,
     marginBottom: 12,
+    marginTop: 10
   },
   buttonText: {
     color: '#fff',
@@ -118,5 +122,8 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 14,
     textAlign: 'center',
+  },
+  bottomContent: {
+    paddingTop: 300,
   },
 });

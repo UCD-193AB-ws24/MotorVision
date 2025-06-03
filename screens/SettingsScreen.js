@@ -31,16 +31,6 @@ export default function SettingsScreen({ navigation }) {
       onPress: () => navigation.navigate('Friends'),
     },
     {
-      title: "Notifications",
-      icon: "notifications-outline",
-      onPress: () => alert('Notifications Settings coming soon!'),
-    },
-    {
-      title: "Privacy & Security",
-      icon: "shield-outline",
-      onPress: () => alert('Privacy & Security Settings coming soon!'),
-    },
-    {
       title: "Sensor and Location Services",
       icon: "location-outline",
       onPress: () => navigation.navigate('SensorAndLocation'), // ✅ Updated
@@ -56,6 +46,16 @@ export default function SettingsScreen({ navigation }) {
       icon: "help-circle-outline",
       onPress: () => navigation.navigate('HelpScreen'), // ✅ Updated
 
+    },
+    {
+      title: "Notifications",
+      icon: "notifications-outline",
+      onPress: () => alert('Notifications Settings coming soon!'),
+    },
+    {
+      title: "Privacy & Security",
+      icon: "shield-outline",
+      onPress: () => alert('Privacy & Security Settings coming soon!'),
     },
   ];
 
