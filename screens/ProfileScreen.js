@@ -117,5 +117,5 @@ const styles = StyleSheet.create({
     margin: 6,
     fontWeight: 'bold'
   },
-  editText: { fontSize: 16, color: '#fff', marginLeft: 8 },
+  editText: { fontSize: 16, color: '#fff', marginLeft: 8, fontWeight: 'bold'},
 });
