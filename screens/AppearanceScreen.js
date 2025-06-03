@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ThemeContext } from './ThemeCustomization';
+import { Ionicons } from '@expo/vector-icons';
+
 
 const themes = [
   { name: 'iOS Default', accent: '#0A84FF' },
@@ -39,9 +41,13 @@ export default function AppearanceScreen({ navigation }) {
         </TouchableOpacity>
       ))}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>Back to Settings</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomContext}>
+             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Text style={styles.backText}>Back to Settings</Text>
+            </TouchableOpacity>
+      </View>
+    
+
     </View>
   );
 }
@@ -77,6 +83,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A84FF',
     borderRadius: 10,
     alignItems: 'center',
+  },
+   backArrow: {
+    alignItems: 'left',
+    marginRight: 150,
+    marginBottom: 5
   },
   backText: {
     color: '#fff',
