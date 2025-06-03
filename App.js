@@ -96,9 +96,9 @@ function MainTabs() {
             case 'SettingsTab': iconName = 'settings'; break;
             default: iconName = 'ellipse';
           }
-          return <Ionicons name={iconName} size={24} color={theme.accent} />;
+          return <Ionicons name={iconName} size={24} color={color} />;
         },
-        tabBarActiveTintColor: '#0A84FF',
+        tabBarActiveTintColor: theme.accent,
         tabBarStyle: { height: 70, paddingBottom: 10 },
       })}
     >
