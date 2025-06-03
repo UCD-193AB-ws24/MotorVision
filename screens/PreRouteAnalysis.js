@@ -1237,7 +1237,7 @@ export default function PreRouteAnalysis() {
                     backgroundGradientFrom: '#1E1E1E',
                     backgroundGradientTo: '#1E1E1E',
                     decimalPlaces: 1,
-                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    color :  (opacity = 1) => `${theme.accent}${Math.floor(opacity * 255).toString(16)}`,  // or simpler
                     labelColor: (opacity = 1) => `rgba(200, 200, 200, ${opacity})`,
                     propsForDots: { r: "4", strokeWidth: "1", stroke: "#3498db" },
                   }}
@@ -1316,7 +1316,7 @@ export default function PreRouteAnalysis() {
                       <Text
                         style={{
                           ...styles.linkText,
-                          fontSize: 14,
+                          fontSize: 14
                         }}
                         onPress={() => Linking.openURL(place.mapsLink)}
                       >
@@ -1338,7 +1338,7 @@ export default function PreRouteAnalysis() {
                 {routes.length - 1} alternate route(s) available
               </Text>
               <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, { backgroundColor: theme.accent }]}
                 onPress={() => {
                   const nextIndex = (currentRouteIndex + 1) % routes.length;
                   setCurrentRouteIndex(nextIndex);
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   linkText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1E90FF',
     marginBottom: 5,
     fontWeight: 'normal',
