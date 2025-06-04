@@ -1,7 +1,7 @@
 // components/MapSection.js
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 
 const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
@@ -13,7 +13,7 @@ const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
     return '#e74c3c'; // red
   };
 
-  const displaySpeed = speed === null ? 'N/A' : `${speed.toFixed(0)} ${unit}`;
+  const displaySpeed = `${speed.toFixed(0)} ${unit}`;
   const bubbleColor = getBubbleColor(speed);
 
   return (
@@ -25,63 +25,29 @@ const SpeedBubble = ({ coordinate, speed, unit = 'mph' }) => {
   );
 };
 
-export default function MapSection({
-  region,
-  showPolyline,
-  polylines,
-  showSpeedBubbles,
-  response,
-  setShowPolyline,
-  setShowSpeedBubbles,
-}) {
+export default function MapSection({ region, polylines, response }) {
   return (
     <View>
       <Text style={styles.sectionTitle}>Interactive Map</Text>
       <View style={styles.mapContainer}>
-        <MapView
-          style={{ flex: 1 }}
-          region={region}
-          onRegionChangeComplete={(newRegion) => {}}
-        >
-          {showPolyline &&
-            polylines?.map((segment, index) => (
-              <Polyline
-                key={`segment-${index}`}
-                coordinates={segment.coordinates}
-                strokeColor={segment.color}
-                strokeWidth={6}
-              />
-            ))}
+        <MapView style={{ flex: 1 }} region={region}>
+          {polylines?.map((segment, index) => (
+            <Polyline
+              key={`segment-${index}`}
+              coordinates={segment.coordinates}
+              strokeColor={segment.color}
+              strokeWidth={6}
+            />
+          ))}
 
-          {showSpeedBubbles &&
-            response?.maxSpeedOverview.map(([speed, coords], index) => (
-              <SpeedBubble
-                key={`speed-bubble-${index}`}
-                coordinate={{ latitude: coords[1], longitude: coords[0] }}
-                speed={speed}
-              />
-            ))}
+          {response?.maxSpeedOverview.map(([speed, coords], index) => (
+            <SpeedBubble
+              key={`speed-bubble-${index}`}
+              coordinate={{ latitude: coords[1], longitude: coords[0] }}
+              speed={speed}
+            />
+          ))}
         </MapView>
-      </View>
-
-      <View style={styles.toggleRow}>
-        <TouchableOpacity
-          style={styles.ovalButton}
-          onPress={() => setShowSpeedBubbles((prev) => !prev)}
-        >
-          <Text style={styles.ovalButtonText}>
-            {showSpeedBubbles ? 'Hide Speed' : 'Show Speed'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.ovalButton}
-          onPress={() => setShowPolyline((prev) => !prev)}
-        >
-          <Text style={styles.ovalButtonText}>
-            {showPolyline ? 'Hide Polyline' : 'Show Polyline'}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -101,22 +67,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 10,
     overflow: 'hidden',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    marginTop: 18,
-  },
-  ovalButton: {
-    backgroundColor: '#4A90E2',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 25,
-  },
-  ovalButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
   },
   speedBubble: {
     paddingVertical: 8,
