@@ -1,4 +1,4 @@
-import React, {useContext} from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -11,61 +11,52 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { ThemeContext } from './ThemeCustomization';
-import { AppearanceScreen } from './AppearanceScreen';
-import { HelpScreen } from './HelpScreen';
-
-
 
 export default function SettingsScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
 
   const settingsOptions = [
     {
-      title: "Profile",
-      icon: "person-circle-outline",
+      key: 'profile',
+      title: 'Profile',
+      icon: 'person-circle-outline',
       onPress: () => navigation.navigate('SettingsTab', { screen: 'Profile' }),
     },
     {
-      title: "Friends",
-      icon: "people-outline",
+      key: 'friends',
+      title: 'Friends',
+      icon: 'people-outline',
       onPress: () => navigation.navigate('Friends'),
     },
     {
-      title: "Notifications",
-      icon: "notifications-outline",
-      onPress: () => navigation.navigate('Notifications'), // ✅ Updated
+      key: 'notifications-nav',
+      title: 'Notifications',
+      icon: 'notifications-outline',
+      onPress: () => navigation.navigate('Notifications'),
     },
     {
-      title: "Privacy & Security",
-      icon: "shield-outline",
-      onPress: () => navigation.navigate('PrivacySecurity'), // ✅ Updated
+      key: 'privacy-nav',
+      title: 'Privacy & Security',
+      icon: 'shield-outline',
+      onPress: () => navigation.navigate('PrivacySecurity'),
     },
     {
-      title: "Sensor and Location Services",
-      icon: "location-outline",
+      key: 'sensor-location',
+      title: 'Sensor and Location Services',
+      icon: 'location-outline',
       onPress: () => navigation.navigate('SensorAndLocation'),
     },
     {
-      title: "Appearance",
-      icon: "color-palette-outline",
+      key: 'appearance',
+      title: 'Appearance',
+      icon: 'color-palette-outline',
       onPress: () => navigation.navigate('AppearanceScreen'),
-
     },
     {
-      title: "Help & Support",
-      icon: "help-circle-outline",
-      onPress: () => navigation.navigate('HelpScreen'), // ✅ Updated
-
-    },
-    {
-      title: "Notifications",
-      icon: "notifications-outline",
-      onPress: () => alert('Notifications Settings coming soon!'),
-    },
-    {
-      title: "Privacy & Security",
-      icon: "shield-outline",
-      onPress: () => alert('Privacy & Security Settings coming soon!'),
+      key: 'help',
+      title: 'Help & Support',
+      icon: 'help-circle-outline',
+      onPress: () => navigation.navigate('HelpScreen'),
     },
   ];
 
@@ -85,7 +76,7 @@ export default function SettingsScreen({ navigation }) {
 
       <FlatList
         data={settingsOptions}
-        keyExtractor={(item) => item.title}
+        keyExtractor={(item) => item.key}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.settingItem} onPress={item.onPress}>
             <Ionicons name={item.icon} size={24} color={theme.accent} style={styles.icon} />

@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 
+import { ThemeContext } from './ThemeCustomization'; // ✅ Add this line
+
 import SearchInput from '../components/SearchInput';
 import SummarySection from '../components/SummarySection';
 import MapSection from '../components/MapSection';

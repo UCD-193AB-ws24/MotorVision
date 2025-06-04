@@ -9,24 +9,10 @@ import { auth, db } from '../config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useProfileStore } from '../store/profileStore';
+import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from './ThemeCustomization';
 
-
-export default function EditProfileScreen({ navigation }) {
-  const { theme } = useContext(ThemeContext);
-  const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
-  const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
-
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [email, setEmail] = useState('');
-  const [createdAt, setCreatedAt] = useState('');
-  const [profileImage, setProfileImageLocal] = useState('');
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
 const hydrateProfile = async (setProfile) => {
   const user = auth.currentUser;
   if (!user) return;
@@ -94,6 +80,8 @@ const updateProfile = async (profileData, createdAt) => {
 };
 
 export default function EditProfileScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
+  const tripLogs = useBluetoothStore((state) => state.tripLogs || []);
   const setProfileImageGlobal = useProfileStore((state) => state.setProfileImage);
 
   const [profile, setProfile] = useState({
@@ -185,7 +173,6 @@ export default function EditProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
-      {/* Full Name */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Full Name</Text>
         <TextInput
@@ -197,7 +184,6 @@ export default function EditProfileScreen({ navigation }) {
         />
       </View>
 
-      {/* Bio */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Bio</Text>
         <TextInput
@@ -210,14 +196,12 @@ export default function EditProfileScreen({ navigation }) {
         />
       </View>
 
-      {/* Ride Stats */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ride Stats</Text>
         <Text style={styles.stat}>Total Trips: {profile.totalRides}</Text>
         <Text style={styles.stat}>Total Distance: {profile.totalDistance} mi</Text>
       </View>
 
-      {/* Email & Join Date */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Email</Text>
         <Text style={styles.stat}>{profile.email}</Text>
@@ -229,7 +213,6 @@ export default function EditProfileScreen({ navigation }) {
       <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>
-
     </ScrollView>
   );
 }
