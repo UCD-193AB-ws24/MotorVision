@@ -129,13 +129,26 @@ export default function RideInsightsScreen() {
       <Text style={styles.header}>Ride Insights</Text>
 
       <View style={styles.menu}>
-        <TouchableOpacity onPress={() => setMenu('short')} style={[styles.menuButton, {backgroundColor: theme.accent} , menu === 'short']}>
-          <Text style={styles.menuText}>Short Term Stats</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setMenu('long')} style={[styles.menuButton, {backgroundColor: theme.accent}, menu === 'long']}>
-          <Text style={styles.menuText}>Long Term Stats</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+          onPress={() => setMenu('short')}
+          style={[
+                styles.menuButton,
+                { backgroundColor: menu === 'short' ? theme.accent : '#1E1E1E' }
+          ]}
+          >
+        <Text style={styles.menuText}>Short Term Stats</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => setMenu('long')}
+    style={[
+      styles.menuButton,
+      { backgroundColor: menu === 'long' ? theme.accent : '#1E1E1E' }
+    ]}
+  >
+    <Text style={styles.menuText}>Long Term Stats</Text>
+  </TouchableOpacity>
+</View>
 
       {menu === 'short' ? (
         <>
