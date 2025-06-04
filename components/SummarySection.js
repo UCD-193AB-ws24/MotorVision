@@ -1,5 +1,3 @@
-// components/SummarySection.js
-
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -15,101 +13,103 @@ export default function SummarySection({
 }) {
   const getCongestionEmoji = (level) => {
     switch (level) {
-      case 'low':
-        return '🟢';
-      case 'moderate':
-        return '🟡';
-      case 'heavy':
-        return '🟠';
-      case 'severe':
-        return '🔴';
-      default:
-        return '⚪';
+      case 'low': return '🟢';
+      case 'moderate': return '🟡';
+      case 'heavy': return '🟠';
+      case 'severe': return '🔴';
+      default: return '⚪';
     }
   };
 
   return (
-    <View style={styles.summaryContainer}>
-      <Text style={styles.headerTitle}>Summary</Text>
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Summary</Text>
 
+      {/* Traffic & Road */}
       <TouchableOpacity onPress={scrollToDetails}>
-        <View style={styles.resultBox}>
-          <Text style={styles.sectionTitle}>Traffic and Road Conditions</Text>
-          <Text style={styles.titleText}>
-            Average Congestion: {' '}
-            <Text style={styles.summaryText}>
-              {response?.maxCongestion} {getCongestionEmoji(response?.maxCongestion)}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Traffic & Road</Text>
+          <Text style={styles.cardText}>
+            Average Congestion: <Text style={styles.cardValue}>
+              {response?.maxCongestion ?? 'N/A'} {getCongestionEmoji(response?.maxCongestion)}
             </Text>
           </Text>
-          <Text style={styles.titleText}>
-            Max Speed Allowed: {' '}
-            <Text style={styles.summaryText}>
-              {response?.maxSpeed ? response.maxSpeed.toFixed(2) : 'N/A'} mph
+          <Text style={styles.cardText}>
+            Max Speed Allowed: <Text style={styles.cardValue}>
+              {response?.maxSpeed?.toFixed?.(2) ?? 'N/A'} mph
             </Text>
           </Text>
         </View>
       </TouchableOpacity>
 
-      <View style={styles.divider} />
-
+      {/* Weather */}
       <TouchableOpacity onPress={scrollToWeather}>
-        <View style={styles.resultBox}>
-          <Text style={styles.sectionTitle}>Weather Conditions</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Weather</Text>
           {weatherSummary ? (
             <>
-              <Text style={styles.titleText}>
-                Average Temperature: {' '}
-                <Text style={styles.summaryText}>{weatherSummary.average_temperature?.toFixed(1)}°F</Text>
+              <Text style={styles.cardText}>
+                Avg Temperature: <Text style={styles.cardValue}>
+                  {weatherSummary.average_temperature?.toFixed(1)}°F
+                </Text>
               </Text>
-              <Text style={styles.titleText}>
-                Average Windspeed: {' '}
-                <Text style={styles.summaryText}>{weatherSummary.average_wind_speed?.toFixed(1)} mph</Text>
+              <Text style={styles.cardText}>
+                Avg Windspeed: <Text style={styles.cardValue}>
+                  {weatherSummary.average_wind_speed?.toFixed(1)} mph
+                </Text>
               </Text>
-              <Text style={styles.titleText}>
-                Most Common Weather: {' '}
-                <Text style={styles.summaryText}>{weatherSummary.icons}</Text>
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.summaryText}>Loading weather data...</Text>
-          )}
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.divider} />
-
-      <TouchableOpacity onPress={scrollToRide}>
-        <View style={styles.resultBox}>
-          <Text style={styles.sectionTitle}>Riding Conditions</Text>
-          {rideabilityScore ? (
-            <>
-              <Text style={styles.titleText}>
-                Rideability Score: {' '}
-                <Text style={styles.summaryText}>
-                  {rideabilityScore.curvature?.toFixed?.(2) ?? "N/A"} 🏍️
+              <Text style={styles.cardText}>
+                Common Weather: <Text style={styles.cardValue}>
+                  {weatherSummary.icons}
                 </Text>
               </Text>
             </>
           ) : (
-            <Text style={styles.summaryText}>Loading riding data...</Text>
+            <Text style={styles.cardValue}>Loading weather data...</Text>
           )}
         </View>
       </TouchableOpacity>
 
-      <View style={styles.divider} />
+      {/* Rideability */}
+      <TouchableOpacity onPress={scrollToRide}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Rideability</Text>
+          {rideabilityScore ? (
+            <>
+              <Text style={styles.cardText}>
+                Curvature Score: <Text style={styles.cardValue}>
+                  {rideabilityScore.curvature?.toFixed?.(2) ?? 'N/A'}
+                </Text>
+              </Text>
+              <Text style={styles.cardText}>
+                Elevation Δ: <Text style={styles.cardValue}>
+                  {(rideabilityScore.maxElevation - rideabilityScore.minElevation).toFixed(1)} ft
+                </Text>
+              </Text>
+              <Text style={styles.cardText}>
+                Overall Score: <Text style={styles.cardValue}>
+                  {rideabilityScore.score?.toFixed?.(1) ?? 'N/A'} / 10
+                </Text>
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.cardValue}>Loading rideability data...</Text>
+          )}
+        </View>
+      </TouchableOpacity>
 
+      {/* Roadside Resources */}
       <TouchableOpacity onPress={scrollToRoad}>
-        <View style={styles.resultBox}>
-          <Text style={styles.sectionTitle}>Roadside Resources</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Roadside Resources</Text>
           {resources?.summary ? (
             Object.entries(resources.summary).map(([key, count]) => (
-              <Text key={key} style={styles.titleText}>
-                {key.charAt(0).toUpperCase() + key.slice(1)}: {' '}
-                <Text style={styles.summaryText}>{count}</Text>
+              <Text key={key} style={styles.cardText}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}: <Text style={styles.cardValue}>{count}</Text>
               </Text>
             ))
           ) : (
-            <Text style={styles.summaryText}>Loading roadside resources...</Text>
+            <Text style={styles.cardValue}>Loading roadside data...</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -118,49 +118,40 @@ export default function SummarySection({
 }
 
 const styles = StyleSheet.create({
-  summaryContainer: {
+  sectionContainer: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
     marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 35,
-    fontWeight: 'bold',
-    paddingLeft: 10,
-    marginTop: 10,
-    color: 'white',
-  },
-  resultBox: {
-    backgroundColor: '#1E1E1E',
-    marginTop: 5,
-    marginBottom: 5,
-    padding: 5,
-    borderRadius: 10,
-  },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 5,
-    paddingLeft: 10,
-    paddingTop: 6,
   },
-  titleText: {
-    color: '#cccccc',
-    fontSize: 16,
+  card: {
+    backgroundColor: '#2B2B2B',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginVertical: 8,
+  },
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    paddingLeft: 10,
+    color: '#ffffff',
+    marginBottom: 6,
   },
-  summaryText: {
-    fontSize: 16,
+  cardText: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#cccccc',
-    marginBottom: 5,
-    fontWeight: 'normal',
-    paddingLeft: 10,
+    marginBottom: 3,
   },
-  divider: {
-    height: 1,
-    width: '85%',
-    backgroundColor: '#ccc',
-    marginVertical: 12,
-    alignSelf: 'center',
+  cardValue: {
+    fontWeight: 'normal',
+    color: '#99ccff',
   },
 });
