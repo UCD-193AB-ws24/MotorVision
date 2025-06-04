@@ -3,14 +3,16 @@ import React, { createContext, useState } from 'react';
 export const ThemeContext = createContext();
 
 const defaultTheme = {
-  accent: '#ff4081', // default button color
+  name: 'iOS Default',
+  accent: '#0A84FF', // Blue
 };
+
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(defaultTheme);
 
   const updateTheme = (newTheme) => {
-    setTheme({ accent: newTheme.accent });
+    setTheme(newTheme);
   };
 
   return (
