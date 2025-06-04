@@ -11,7 +11,7 @@ import {
   updateProfile,
   getCachedProfile,
 } from '../services/profileService';
-import { arrayRemove, updateDoc, doc } from 'firebase/firestore';
+import { arrayRemove, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export const useProfileStore = create((set, get) => ({

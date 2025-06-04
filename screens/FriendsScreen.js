@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useContext} from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { getDoc } from 'firebase/firestore';
 
 import {
   View,
@@ -15,12 +16,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../store/profileStore';
 import { ThemeContext } from './ThemeCustomization';
 
-
 const TAB_FRIENDS = 'friends';
 const TAB_REQUESTS = 'requests';
 const TAB_SENT = 'sent';
 
-export default function FriendsScreen({navigation}) {
+export default function FriendsScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
   const [activeTab, setActiveTab] = useState(TAB_FRIENDS);
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,20 +35,32 @@ export default function FriendsScreen({navigation}) {
   const removeFriend = useProfileStore((state) => state.removeFriend);
   const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
   const cleanUpRequested = useProfileStore((state) => state.cleanUpRequested);
+  const hydrateFriends = useProfileStore((state) => state.hydrateFriends);
 
- useFocusEffect(
-  useCallback(() => {
-    const hydrateAndClean = async () => {
-      try {
-        await hydrateProfile();
-        await cleanUpRequested();
-      } catch (err) {
-        console.error('Profile hydration failed:', err);
-      }
-    };
-    hydrateAndClean();
-  }, [])
-);
+  useFocusEffect(
+    useCallback(() => {
+      const hydrateAndClean = async () => {
+        try {
+          await hydrateProfile();
+          await hydrateFriends();
+          await cleanUpRequested();
+        } catch (err) {
+          console.error('Profile hydration failed:', err);
+        }
+      };
+      hydrateAndClean();
+    }, [])
+  );
+
+  const handleRefresh = async () => {
+    try {
+      await hydrateFriends();
+      Alert.alert('Refreshed', 'Friend list updated.');
+    } catch (err) {
+      console.error('Refresh failed:', err);
+      Alert.alert('Error', 'Could not refresh friends.');
+    }
+  };
 
   const handleSendRequest = async () => {
     const email = emailInput.trim().toLowerCase();
@@ -133,23 +145,28 @@ export default function FriendsScreen({navigation}) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Friends</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Friends</Text>
+        <TouchableOpacity onPress={handleRefresh} style={styles.refreshIcon}>
+          <Ionicons name="refresh" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.tabs}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_FRIENDS && {borderBottomColor: theme.accent}]}
+          style={[styles.tabButton, activeTab === TAB_FRIENDS && { borderBottomColor: theme.accent }]}
           onPress={() => setActiveTab(TAB_FRIENDS)}
         >
           <Text style={styles.tabText}>Friends</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_REQUESTS && {borderBottomColor: theme.accent}]}
+          style={[styles.tabButton, activeTab === TAB_REQUESTS && { borderBottomColor: theme.accent }]}
           onPress={() => setActiveTab(TAB_REQUESTS)}
         >
           <Text style={styles.tabText}>Requests</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === TAB_SENT && {borderBottomColor: theme.accent}]}
+          style={[styles.tabButton, activeTab === TAB_SENT && { borderBottomColor: theme.accent }]}
           onPress={() => setActiveTab(TAB_SENT)}
         >
           <Text style={styles.tabText}>Sent</Text>
@@ -162,7 +179,7 @@ export default function FriendsScreen({navigation}) {
         <Ionicons name="person-add-outline" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Friend</Text>
       </TouchableOpacity>
-       
+
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -202,12 +219,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     padding: 20,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 16,
-    textAlign: 'center',
+    paddingLeft: 8,
+  },
+  refreshIcon: {
+    padding: 8,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
   },
   tabs: {
     flexDirection: 'row',
@@ -219,9 +246,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: '#0A84FF',
   },
   tabText: {
     color: '#fff',
