@@ -224,7 +224,7 @@ export default function PreRouteAnalysis() {
         loading={searchLoading}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+      <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={handleSubmit} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Analyze</Text>}
       </TouchableOpacity>
 
