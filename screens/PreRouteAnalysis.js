@@ -60,7 +60,9 @@ export default function PreRouteAnalysis() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
 
+  const searchTimeout = useRef(null);
   const scrollViewRef = useRef(null);
   const detailsRef = useRef(null);
   const weatherRef = useRef(null);
@@ -98,22 +100,36 @@ export default function PreRouteAnalysis() {
 
   const handleSearch = async (text) => {
     setQuery(text);
-    if (text.length < 3) return setResults([]);
-    const delta = milesToDegrees(100);
-    const minLon = userLocation.lon - delta;
-    const maxLon = userLocation.lon + delta;
-    const minLat = userLocation.lat - delta;
-    const maxLat = userLocation.lat + delta;
-    const viewbox = `${minLon},${minLat},${maxLon},${maxLat}`;
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&addressdetails=1&limit=5&viewbox=${viewbox}&bounded=1`
-      );
-      const data = await response.json();
-      setResults(data);
-    } catch (err) {
-      console.error('Search error:', err);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (text.length < 3) {
+      setResults([]);
+      setSearchLoading(false);
+      return;
     }
+
+    setSearchLoading(true);
+
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const delta = milesToDegrees(100);
+        const minLon = userLocation.lon - delta;
+        const maxLon = userLocation.lon + delta;
+        const minLat = userLocation.lat - delta;
+        const maxLat = userLocation.lat + delta;
+        const viewbox = `${minLon},${minLat},${maxLon},${maxLat}`;
+
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&addressdetails=1&limit=5&viewbox=${viewbox}&bounded=1`
+        );
+        const data = await response.json();
+        setResults(data);
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500);
   };
 
   const handleSelect = (item) => {
@@ -198,9 +214,14 @@ export default function PreRouteAnalysis() {
 
       <SearchInput
         query={query}
-        results={results}
+        results={
+          searchLoading
+            ? [{ display_name: 'Searching...', isLoading: true }]
+            : results
+        }
         onSearchChange={handleSearch}
         onSelectResult={handleSelect}
+        loading={searchLoading}
       />
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
