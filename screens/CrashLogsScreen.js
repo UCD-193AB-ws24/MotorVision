@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 import { useBluetoothStore } from '../store/bluetoothStore';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function CrashLogsScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const crashLogs = useBluetoothStore((state) => state.crashLogs);
   const loadCrashLogs = useBluetoothStore((state) => state.loadCrashLogs);
   const deleteCrashLog = useBluetoothStore((state) => state.deleteCrashLog);
@@ -82,7 +85,7 @@ export default function CrashLogsScreen({ navigation }) {
       )}
 
       {crashLogs.length > 0 && (
-        <TouchableOpacity style={styles.clearButton} onPress={handleClearLogs}>
+        <TouchableOpacity style={[styles.clearButton, { backgroundColor: theme.accent }]} onPress={handleClearLogs}>
           <Text style={styles.clearButtonText}>Clear All Logs</Text>
         </TouchableOpacity>
       )}

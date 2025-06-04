@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useBluetoothStore } from '../store/bluetoothStore';
+import { ThemeContext } from './ThemeCustomization';
+
 
 export default function CrashDetailScreen({ route, navigation }) {
+  const { theme } = useContext(ThemeContext);
   const [trajectoryImage, setTrajectoryImage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isImageVisible, setIsImageVisible] = useState(false);
@@ -158,14 +161,14 @@ export default function CrashDetailScreen({ route, navigation }) {
       </View>
 
       {isRecent && (
-        <TouchableOpacity style={styles.button} onPress={exportCrashBuffer}>
+        <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={exportCrashBuffer}>
           <Text style={styles.buttonText}>Export Crash Buffer</Text>
         </TouchableOpacity>
       )}
 
       {!trajectoryImage && (
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, { backgroundColor: theme.accent }]}
           onPress={fetchTrajectoryImage}
           disabled={isLoading}
         >
@@ -180,7 +183,7 @@ export default function CrashDetailScreen({ route, navigation }) {
       {trajectoryImage && (
         <>
           <TouchableOpacity
-            style={styles.toggleButton}
+            style={[styles.toggleButton, { backgroundColor: theme.accent }]}
             onPress={() => setIsImageVisible(!isImageVisible)}
           >
             <Text style={styles.buttonText}>
