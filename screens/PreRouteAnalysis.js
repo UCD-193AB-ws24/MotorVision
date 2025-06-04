@@ -267,7 +267,7 @@ export default function PreRouteAnalysis() {
             roadRef={roadRef}
           />
 
-          {routes.length > 1 && (
+          {/* {routes.length > 1 && (
             <View style={{ alignItems: 'center', marginTop: 20 }}>
               <Text style={{ color: '#fff', marginBottom: 10 }}>
                 {routes.length - 1} alternate route(s) available
@@ -283,7 +283,7 @@ export default function PreRouteAnalysis() {
                 <Text style={styles.buttonText}>Find Another Route</Text>
               </TouchableOpacity>
             </View>
-          )}
+          )} */}
         </ScrollView>
       )}
     </KeyboardAvoidingView>
