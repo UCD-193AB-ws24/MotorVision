@@ -423,20 +423,20 @@ export default function NavigationScreen() {
                 }}
               />
             </View>
-            <Callout>
-              <View style={{ maxWidth: 600 }}>
+            {/* <Callout>
+              <View>
                 <Text
                   style={{
                     fontWeight: 'bold',
                     flexWrap: 'wrap',
                   }}
                   // numberOfLines={1}
-                  ellipsizeMode="tail"
+                  // ellipsizeMode="tail"
                 >
                   {friend.name}
                 </Text>
               </View>
-            </Callout>
+            </Callout> */}
           </Marker>
         ))}
 
