@@ -87,10 +87,10 @@ function MainTabs() {
           let iconName;
           switch (route.name) {
             case 'Home': iconName = 'home'; break;
-            case 'Pre Route Analysis': iconName = 'location'; break;
+            case 'Preview': iconName = 'location'; break;
             case 'Navigation': iconName = 'map'; break;
             case 'Insights': iconName = 'stats-chart'; break;
-            case 'Trip History': iconName = 'time'; break;
+            case 'History': iconName = 'time'; break;
             case 'SettingsTab': iconName = 'settings'; break;
             default: iconName = 'ellipse';
           }
@@ -101,10 +101,10 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Pre Route Analysis" component={PreRouteAnalysis} />
+      <Tab.Screen name="Preview" component={PreRouteAnalysis} />
       <Tab.Screen name="Navigation" component={NavigationScreen} />
       <Tab.Screen name="Insights" component={RideInsightsScreen} />
-      <Tab.Screen name="Trip History" component={TripStack} />
+      <Tab.Screen name="History" component={TripStack} />
       <Tab.Screen name="SettingsTab" component={SettingsStack} options={{ title: 'Settings' }} />
     </Tab.Navigator>
   );
