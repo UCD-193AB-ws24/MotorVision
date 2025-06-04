@@ -34,7 +34,7 @@ export default function HomeScreen({ navigation }) {
   const isCrashed = useCrashDetection();
   useSensorBuffer();
 
-  const [stats, setStats] = useState({ totalRides: 0, totalMiles: 0, avgSpeed: 0 });
+  const [stats, setStats] = useState({ totalTrips: 0, totalDistance: 0 });
   const [aiInsight, setAiInsight] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -58,16 +58,9 @@ export default function HomeScreen({ navigation }) {
                 : ''
             );
 
-            const totalMiles = data.stats?.totalDistanceMiles || 0;
-            const totalMinutes = data.stats?.totalMinutes || 0;
-            const avgSpeed = totalMinutes > 0
-              ? (totalMiles / (totalMinutes / 60)).toFixed(1)
-              : 0;
-
             setStats({
-              totalRides: data.stats?.totalRides || 0,
-              totalMiles: parseFloat(totalMiles.toFixed(1)),
-              avgSpeed,
+              totalTrips: data.stats?.totalRides || 0,
+              totalDistance: parseFloat((data.stats?.totalDistanceMiles || 0).toFixed(1)),
             });
 
             await AsyncStorage.setItem('userInfo', JSON.stringify({
@@ -134,7 +127,7 @@ export default function HomeScreen({ navigation }) {
         messages: [
           {
             role: 'user',
-            content: `I'm using a smart motorcycle helmet app. My riding stats are: total rides: ${stats.totalRides}, miles ridden: ${stats.totalMiles}, average speed: ${stats.avgSpeed} mph. Give me a short, motorcycle-themed insight on safety.`,
+            content: `I'm using a smart motorcycle helmet app. My riding stats are: total trips: ${stats.totalTrips}, miles ridden: ${stats.totalDistance}. Give me a short, motorcycle-themed insight on safety.`,
           },
         ],
       };
@@ -167,11 +160,11 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      if (!aiInsightFetched && stats.totalRides > 0) {
+      if (!aiInsightFetched && stats.totalTrips > 0) {
         aiInsightFetched = true;
         fetchAiInsight();
       }
-    }, [fetchAiInsight, stats.totalRides])
+    }, [fetchAiInsight, stats.totalTrips])
   );
 
   return (
@@ -193,9 +186,8 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <UserStatsCard
-        totalRides={stats.totalRides}
-        totalMiles={stats.totalMiles}
-        avgSpeed={stats.avgSpeed}
+        totalTrips={stats.totalTrips}
+        totalDistance={stats.totalDistance}
       />
 
       <AIInsightCard insight={aiInsight} loading={aiLoading} accentColor={theme.accent} />

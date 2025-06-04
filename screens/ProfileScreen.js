@@ -1,61 +1,94 @@
 import React, { useState, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useBluetoothStore } from '../store/bluetoothStore';
-import { useProfileStore } from '../store/profileStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemeContext } from './ThemeCustomization';
 
+import { auth, db } from '../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
-  const name = useProfileStore((state) => state.name);
-  const email = useProfileStore((state) => state.email);
-  const profileImage = useProfileStore((state) => state.profileImage);
-  const createdAt = useProfileStore((state) => state.createdAt);
-  const hydrateProfile = useProfileStore((state) => state.hydrateProfile);
-  const tripLogs = useBluetoothStore((state) => state.tripLogs);
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    profileImage: '',
+    createdAt: '',
+    totalRides: 0,
+    totalDistance: 0,
+  });
 
-  const [joinDate, setJoinDate] = useState('');
+  const hydrateProfile = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setProfile({
+          name: data.name || '',
+          email: data.email || user.email || '',
+          bio: data.bio || '',
+          profileImage: data.profileImage || '',
+          createdAt: data.createdAt?.seconds
+            ? new Date(data.createdAt.seconds * 1000).toLocaleDateString()
+            : '',
+          totalRides: data.stats?.totalRides || 0,
+          totalDistance: parseFloat((data.stats?.totalDistanceMiles || 0).toFixed(1)),
+        });
+
+        await AsyncStorage.setItem('userInfo', JSON.stringify({
+          name: data.name || '',
+          createdAt: data.createdAt?.seconds || '',
+        }));
+      }
+    } catch (err) {
+      console.error('[Profile Hydration] Failed:', err);
+      Alert.alert('Error', 'Failed to load profile.');
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       const loadProfile = async () => {
-        try {
-          await hydrateProfile();
-
-          if (createdAt?.seconds) {
-            setJoinDate(new Date(createdAt.seconds * 1000).toLocaleDateString());
-          } else {
-            const cached = await AsyncStorage.getItem('userInfo');
-            if (cached) {
-              const { createdAt: cachedCreatedAt } = JSON.parse(cached);
-              if (cachedCreatedAt) {
-                setJoinDate(new Date(cachedCreatedAt * 1000).toLocaleDateString());
-              }
-            }
+        const user = auth.currentUser;
+        if (user) {
+          const cached = await AsyncStorage.getItem('userInfo');
+          if (cached) {
+            const { name, createdAt: cachedCreatedAt } = JSON.parse(cached);
+            setProfile((prev) => ({
+              ...prev,
+              name: name || '',
+              createdAt: cachedCreatedAt
+                ? new Date(cachedCreatedAt * 1000).toLocaleDateString()
+                : '',
+            }));
           }
-        } catch (err) {
-          console.error('[ProfileScreen] Hydration fallback error:', err);
+
+          await hydrateProfile();
         }
       };
 
       loadProfile();
-    }, [createdAt])
+    }, [])
   );
 
-  const totalDistanceMi = (
-    tripLogs.reduce((sum, trip) => sum + (trip.totalDistance || 0), 0) / 1609
-  ).toFixed(2);
-
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Back button */}
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.header}>Profile</Text>
 
+      {/* Profile Image */}
       <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.image} />
+        {profile.profileImage ? (
+          <Image source={{ uri: profile.profileImage }} style={styles.image} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="person-circle-outline" size={100} color="#555" />
@@ -63,23 +96,35 @@ export default function ProfileScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
+      {/* Full Name */}
       <View style={styles.card}>
-        <Text style={styles.label}>Name</Text>
-        <Text style={styles.value}>{name}</Text>
-
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{email}</Text>
-
-        <Text style={styles.label}>Joined</Text>
-        <Text style={styles.value}>{joinDate || '—'}</Text>
+        <Text style={styles.sectionTitle}>Name</Text>
+        <Text style={styles.stat}>{profile.name || '—'}</Text>
       </View>
 
+      {/* Bio */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Bio</Text>
+        <Text style={styles.stat}>{profile.bio || '—'}</Text>
+      </View>
+
+      {/* Ride Stats */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Ride Stats</Text>
-        <Text style={styles.stat}>Total Trips: {tripLogs.length}</Text>
-        <Text style={styles.stat}>Total Distance: {totalDistanceMi} mi</Text>
+        <Text style={styles.stat}>Total Trips: {profile.totalRides}</Text>
+        <Text style={styles.stat}>Total Distance: {profile.totalDistance} mi</Text>
       </View>
 
+      {/* Email & Join Date */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Email</Text>
+        <Text style={styles.stat}>{profile.email || '—'}</Text>
+
+        <Text style={styles.sectionTitle}>Joined</Text>
+        <Text style={styles.stat}>{profile.createdAt || '—'}</Text>
+      </View>
+
+      {/* Edit button */}
       <TouchableOpacity
         style={[styles.editButton, { backgroundColor: theme.accent }]}
         onPress={() => navigation.navigate('EditProfile')}
@@ -87,20 +132,18 @@ export default function ProfileScreen({ navigation }) {
         <Ionicons name="create-outline" size={18} color="#fff" />
         <Text style={styles.editText}>Edit Profile</Text>
       </TouchableOpacity>
-
-      
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212', padding: 20 },
+  container: { flex: 1, backgroundColor: '#121212' },
+  contentContainer: { padding: 20, paddingBottom: 40 },
+  backButton: { marginBottom: 10 },
   header: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', marginBottom: 20, textAlign: 'center' },
   image: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 20 },
   imagePlaceholder: { alignSelf: 'center', marginBottom: 20 },
   card: { backgroundColor: '#1E1E1E', borderRadius: 12, padding: 20, marginBottom: 20 },
-  label: { fontSize: 16, color: '#bbb', marginBottom: 4 },
-  value: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
   stat: { fontSize: 16, color: '#ccc', marginBottom: 6 },
   editButton: {
@@ -111,8 +154,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     alignSelf: 'center',
-    margin: 6,
-    fontWeight: 'bold'
+    marginBottom: 20,
   },
   editText: { fontSize: 16, color: '#fff', marginLeft: 8, fontWeight: 'bold'},
 });

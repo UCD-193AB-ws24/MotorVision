@@ -31,9 +31,19 @@ export default function SettingsScreen({ navigation }) {
       onPress: () => navigation.navigate('Friends'),
     },
     {
+      title: "Notifications",
+      icon: "notifications-outline",
+      onPress: () => navigation.navigate('Notifications'), // ✅ Updated
+    },
+    {
+      title: "Privacy & Security",
+      icon: "shield-outline",
+      onPress: () => navigation.navigate('PrivacySecurity'), // ✅ Updated
+    },
+    {
       title: "Sensor and Location Services",
       icon: "location-outline",
-      onPress: () => navigation.navigate('SensorAndLocation'), // ✅ Updated
+      onPress: () => navigation.navigate('SensorAndLocation'),
     },
     {
       title: "Appearance",
@@ -105,18 +115,8 @@ export default function SettingsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    padding: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#121212', padding: 20 },
+  header: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', marginBottom: 20, textAlign: 'center' },
   settingItem: {
     backgroundColor: '#1E1E1E',
     padding: 15,
@@ -127,15 +127,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
-  icon: {
-    marginRight: 12,
-  },
-  settingText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '500',
-    flex: 1,
-  },
+  icon: { marginRight: 12 },
+  settingText: { color: '#ffffff', fontSize: 18, fontWeight: '500', flex: 1 },
   guideButton: {
     marginTop: 20,
     backgroundColor: '#00bfff',
@@ -149,12 +142,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
+  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
   backButton: {
     marginTop: 20,
     paddingVertical: 12,
@@ -167,11 +155,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  backButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  backButtonText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
   signOutButton: {
     marginTop: 20,
     paddingVertical: 14,
@@ -180,9 +164,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF453A',
   },
-  signOutText: {
-    color: '#FF453A',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  signOutText: { color: '#FF453A', fontSize: 16, fontWeight: 'bold' },
 });

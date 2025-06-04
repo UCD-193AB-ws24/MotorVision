@@ -1,19 +1,25 @@
 import { create } from 'zustand';
-import { auth, db } from '../config/firebase';
-import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../config/firebase';
 import {
   getUserByEmail,
   sendFriendRequest,
   acceptFriendRequest,
   removeFriend,
 } from '../services/friendService';
+import {
+  hydrateProfile,
+  updateProfile,
+  getCachedProfile,
+} from '../services/profileService';
+import { arrayRemove, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 export const useProfileStore = create((set, get) => ({
   name: '',
   email: '',
+  bio: '',
   profileImage: '',
-  createdAt: null,
+  createdAt: '',
   friends: [],
   pending: [],
   requested: [],
@@ -24,9 +30,39 @@ export const useProfileStore = create((set, get) => ({
   setCreatedAt: (value) => set({ createdAt: value }),
 
   /**
-   * Load user’s profile and friend-related info from Firestore
+   * Hydrate profile from Firestore, fallback to local cache
    */
   hydrateProfile: async () => {
+    const cached = await getCachedProfile();
+    set({
+      name: cached.name,
+      createdAt: cached.createdAt,
+    });
+
+    const profile = await hydrateProfile();
+    if (profile) {
+      set({
+        name: profile.name,
+        email: profile.email,
+        bio: profile.bio,
+        profileImage: profile.profileImage,
+        createdAt: profile.createdAt,
+      });
+    }
+  },
+
+  /**
+   * Update profile data in Firestore and local cache
+   */
+  updateProfile: async (profileData, createdAt) => {
+    await updateProfile(profileData, createdAt);
+    set(profileData);
+  },
+
+  /**
+   * Load friends and requests info
+   */
+  hydrateFriends: async () => {
     const user = auth.currentUser;
     if (!user) return;
 
@@ -52,19 +88,10 @@ export const useProfileStore = create((set, get) => ({
     ]);
 
     set({
-      name: data.name || '',
-      email: data.email || '',
-      profileImage: data.profileImage || '',
-      createdAt: data.createdAt || null,
       friends: friendEmails,
       pending: pendingEmails,
       requested: requestedEmails,
     });
-
-    await AsyncStorage.setItem('userInfo', JSON.stringify({
-      name: data.name || '',
-      createdAt: data.createdAt?.seconds || '',
-    }));
   },
 
   sendRequest: async (friendEmail) => {

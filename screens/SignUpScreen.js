@@ -10,22 +10,18 @@ import {
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase'; // Adjust the import path as necessary
+import { auth, db } from '../config/firebase'; // Adjust path as needed
 
-const SignUpScreen = ({navigation}) => {
-  const [name, setName] = useState('');
+const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSignUp = async () => {
     try {
-      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Store additional data in Firestore
       await setDoc(doc(db, 'users', user.uid), {
-        name,
         email,
         createdAt: new Date(),
         friends: [],
@@ -33,7 +29,8 @@ const SignUpScreen = ({navigation}) => {
         requested: [],
       });
 
-      Alert.alert('Success', 'Account created!');
+      // Redirect to onboarding gate to determine next screen
+      navigation.replace('OnboardingGate');
     } catch (error) {
       console.error(error);
       Alert.alert('Sign Up Error', error.message);
@@ -44,13 +41,7 @@ const SignUpScreen = ({navigation}) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <Text style={styles.title}>MotorVision</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        placeholderTextColor="#ccc"
-        value={name}
-        onChangeText={setName}
-      />
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -60,6 +51,7 @@ const SignUpScreen = ({navigation}) => {
         keyboardType="email-address"
         autoCapitalize="none"
       />
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -68,6 +60,7 @@ const SignUpScreen = ({navigation}) => {
         onChangeText={setPassword}
         secureTextEntry
       />
+
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>Create Account</Text>
       </TouchableOpacity>
@@ -105,15 +98,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#111',
   },
- button: {
+  button: {
     width: '100%',
-    backgroundColor: '#0A84FF', // Tesla red
+    backgroundColor: '#0A84FF',
     padding: 15,
     borderRadius: 30,
     alignItems: 'center',
     marginTop: 10,
   },
-
   buttonNoBackground: {
     width: '100%',
     padding: 15,
