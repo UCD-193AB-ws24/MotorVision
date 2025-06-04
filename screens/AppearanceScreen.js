@@ -41,12 +41,6 @@ export default function AppearanceScreen({ navigation }) {
         </TouchableOpacity>
       ))}
 
-      <View style={styles.bottomContext}>
-             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Text style={styles.backText}>Back to Settings</Text>
-            </TouchableOpacity>
-      </View>
-    
 
     </View>
   );

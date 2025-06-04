@@ -63,8 +63,9 @@ export default function SensorAndLocationScreen({ navigation }) {
       </View>
       
       <View style={styles.bottomContent}>
-       <TouchableOpacity style={styles.connectButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.buttonText}>Back to Settings</Text>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backArrow}>
+          <Ionicons name="chevron-back" size={28} color="#0A84FF" />
+          <Text style={styles.backText}>Back to Settings</Text>
       </TouchableOpacity>
       </View>
 
@@ -126,4 +127,13 @@ const styles = StyleSheet.create({
   bottomContent: {
     paddingTop: 300,
   },
+  chevronButton: {
+  position: 'absolute',
+  padding: 10,
+  zIndex: 10,
+  bottom: 0,
+  left: 0
+},
+backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+backText: { fontSize: 18, color: '#0A84FF', marginLeft: 5 },
 });

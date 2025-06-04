@@ -89,9 +89,6 @@ export default function ProfileScreen({ navigation }) {
       </TouchableOpacity>
 
       
-      <TouchableOpacity  style={styles.editButton}  onPress={() => navigation.goBack()}>
-          <Text style={styles.editText}>Back to Settings</Text>
-      </TouchableOpacity>
     </View>
   );
 }

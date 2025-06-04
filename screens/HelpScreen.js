@@ -23,12 +23,7 @@ export default function HelpScreen({ navigation }) {
       />
 
       {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.buttonText}>Back to Settings</Text>
-      </TouchableOpacity>
+      
     </View>
   );
 }
