@@ -167,7 +167,7 @@ export default function EditProfileScreen({ navigation }) {
         <Text style={styles.stat}>Crashes Recorded: {/* Hook up later */}</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
+      <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={handleSave}>
         <Text style={styles.buttonText}>Save Changes</Text>
       </TouchableOpacity>
 

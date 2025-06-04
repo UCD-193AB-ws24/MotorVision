@@ -162,10 +162,7 @@ export default function FriendsScreen({navigation}) {
         <Ionicons name="person-add-outline" size={18} color="#fff" />
         <Text style={styles.addButtonText}>Add Friend</Text>
       </TouchableOpacity>
-       <TouchableOpacity style={styles.addButton} onPress={() => navigation.goBack()}>
-         <Text style={styles.addButtonText}>Back to Settings</Text>
-      </TouchableOpacity>
-
+       
       <Modal
         visible={modalVisible}
         animationType="slide"

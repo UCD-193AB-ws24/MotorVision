@@ -62,12 +62,7 @@ export default function SensorAndLocationScreen({ navigation }) {
         </Text>
       </View>
       
-      <View style={styles.bottomContent}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backArrow}>
-          <Ionicons name="chevron-back" size={28} color="#0A84FF" />
-          <Text style={styles.backText}>Back to Settings</Text>
-      </TouchableOpacity>
-      </View>
+      
 
     </ScrollView>
   );
