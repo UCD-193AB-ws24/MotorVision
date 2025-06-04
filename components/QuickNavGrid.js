@@ -6,7 +6,7 @@ export default function QuickNavGrid({ navigation }) {
   return (
     <View style={styles.grid}>
       <Tile icon="map" label="Navigation" onPress={() => navigation.navigate('Navigation')} />
-      <Tile icon="history" label="Trips" onPress={() => navigation.navigate('Trip History')} />
+      <Tile icon="history" label="Trips" onPress={() => navigation.navigate('History')} />
       <Tile
         icon="account-group"
         label="Friends"
