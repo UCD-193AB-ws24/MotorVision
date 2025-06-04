@@ -97,7 +97,6 @@ export default function PreRouteAnalysis() {
 
   const handleSearch = async (text) => {
     setQuery(text);
-
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
     if (text.length < 3) {
@@ -127,7 +126,7 @@ export default function PreRouteAnalysis() {
       } finally {
         setSearchLoading(false);
       }
-    }, 500); // debounce delay
+    }, 500);
   };
 
   const handleSelect = (item) => {
@@ -212,7 +211,11 @@ export default function PreRouteAnalysis() {
 
       <SearchInput
         query={query}
-        results={searchLoading && results.length === 0 ? [] : results}
+        results={
+          searchLoading
+            ? [{ display_name: 'Searching...', isLoading: true }]
+            : results
+        }
         onSearchChange={handleSearch}
         onSelectResult={handleSelect}
         loading={searchLoading}
